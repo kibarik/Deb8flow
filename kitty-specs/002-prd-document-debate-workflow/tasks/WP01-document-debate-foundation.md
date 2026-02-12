@@ -1,21 +1,25 @@
 ---
-description: "Document Debate Workflow Foundation - Establish state extensions, document processing node, and CLI integration"
-work_package_id: "WP01"
-title: "Document Debate Workflow Foundation"
-lane: "planned"
+work_package_id: WP01
+title: Document Debate Workflow Foundation
+lane: "doing"
 dependencies: []
+base_branch: main
+base_commit: 16ba55b33084323debb536425288c6df02fa10ba
+created_at: '2026-02-12T21:26:28.342098+00:00'
 subtasks:
-  - "T001"
-  - "T002"
-  - "T003"
-  - "T004"
-  - "T005"
-  - "T006"
-  - "T007"
-  - "T008"
-  - "T009"
-  - "T010"
-  - "T011"
+- T001
+- T002
+- T003
+- T004
+- T005
+- T006
+- T007
+- T008
+- T009
+- T010
+- T011
+description: Document Debate Workflow Foundation - Establish state extensions, document processing node, and CLI integration
+shell_pid: "32611"
 ---
 
 ## Objective
