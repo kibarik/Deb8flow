@@ -1,108 +1,183 @@
-# Implementation Plan: [FEATURE]
-*Path: [templates/plan-template.md](templates/plan-template.md)*
+# Implementation Plan: PRD Document Debate Workflow
 
-
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/kitty-specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/spec-kitty.plan` command. See `src/specify_cli/missions/software-dev/command-templates/plan.md` for the execution workflow.
-
-The planner will not begin until all planning questions have been answered—capture those answers in this document before progressing to later phases.
+**Branch:** `###-002-prd-document-debate-workflow`
+**Date:** 2025-02-13
+**Spec:** [spec.md](./spec.md)
 
 ## Summary
 
 [Extract from feature spec: primary requirement + technical approach from research]
 
+Create a new standalone workflow that enables AI agents to analyze any .docx document through structured debate. The system reads .docx files, extracts text content, and conducts a 4-stage debate (opening → rebuttal → counter → final_argument) between PRO agent (defending) and CON agent (critiquing), with fact-checking and a final verdict assessing both rhetorical performance and document viability.
+
+**Key Design Decisions:**
+- New standalone `document_debate_workflow.py` (not modifying existing)
+- Extend `DebateState` with `document_input` field
+- Read .docx in `DocumentTopicNode`, pass file path from main
+- Extend prompts with document-specific instructions (PRO defends, CON critiques)
+- Judge evaluates both rhetoric AND document viability
+
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
+**Language/Version:** Python 3.11+
+**Primary Dependencies:**
+- python-docx (External) - Library for reading .docx files
+- LangGraph (Internal) - Workflow orchestration from existing codebase
+- OpenAI LLM (gpt-4.1) - Topic generation, debate arguments, verdict
 
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Storage:** File-based (no database required)
+**Testing:** pytest (existing framework)
+**Target Platform:** Linux/macOS (CLI tool)
 
-## Constitution Check
-
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
-
-[Gates determined based on constitution file]
+**Project Type:** Single Python package (CLI workflow)
+**Performance Goals:** Complete within 3 minutes for typical document (1-20 pages)
+**Constraints:** Token limits of LLM - documents larger than ~20 pages may need truncation
+**Scale/Scope:** Single workflow feature, ~5 new files, extends existing state
 
 ## Project Structure
 
 ### Documentation (this feature)
-
 ```
-kitty-specs/[###-feature]/
-├── plan.md              # This file (/spec-kitty.plan command output)
-├── research.md          # Phase 0 output (/spec-kitty.plan command)
-├── data-model.md        # Phase 1 output (/spec-kitty.plan command)
-├── quickstart.md        # Phase 1 output (/spec-kitty.plan command)
-├── contracts/           # Phase 1 output (/spec-kitty.plan command)
-└── tasks.md             # Phase 2 output (/spec-kitty.tasks command - NOT created by /spec-kitty.plan)
+kitty-specs/002-prd-document-debate-workflow/
+├── plan.md              # This file
+├── research.md          # Phase 0 output
+├── data-model.md        # Phase 1 output
+├── quickstart.md        # Phase 1 output
+├── contracts/           # Phase 1 output
+│   ├── debate_state.py.md
+│   ├── document_topic_node.py.md
+│   ├── debater_prompts.py.md
+│   └── judge_node.py.md
+└── tasks.md             # Phase 2 output (NOT created yet)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
 src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
+├── models/                    # Existing - state definitions
+├── services/                 # Existing - business logic
+│   ├── debate/            # Existing - debate workflows
+│   │   ├── debate_workflow.py        # EXISTING - unchanged
+│   │   └── document_debate_workflow.py  # NEW - standalone workflow
+├── cli/                       # CLI entry points
+│   └── main.py               # MODIFY - add --docx argument
+├── lib/                       # Shared utilities
 └── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+    ├── unit/                    # Existing
+    ├── integration/              # Existing
+    └── contract/                 # NEW - test contract compliance
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+### New Files to Create
+
+| File | Purpose | Phase |
+|-------|---------|--------|
+| `workflow/debate/document_debate_workflow.py` | Main workflow orchestration | 1 |
+| `nodes/document_topic_node.py` | Document topic generation node | 1 |
+| `prompts/document_debater_prompts.py` | PRO/CON prompts with document context | 1 |
+| Modify `debate_state.py` | Add document_input field | 1 |
+| Modify `cli/main.py` | Add --docx argument and pass-through | 1 |
+| `tests/contract/test_debate_state.py` | Test state extension | 2 |
+| `tests/contract/test_document_topic_node.py` | Test DocumentTopicNode contract | 2 |
+| `tests/contract/test_debater_prompts.py` | Test prompt extensions | 2 |
 
 ## Complexity Tracking
 
-*Fill ONLY if Constitution Check has violations that must be justified*
-
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+| N/A | No constitution exists | N/A - Using standard practices |
+
+## Parallel Work Analysis
+
+### Dependency Graph
+
+```
+Foundation (Day 1):
+- debate_state.py extension
+- python-docx dependency added
+
+Wave 1 (Days 2-3, parallel):
+- document_debate_workflow.py creation
+- document_topic_node.py creation
+- debater_prompts.py modifications
+- main.py modifications
+- contract tests creation
+
+Wave 2 (Days 4-5, parallel):
+- judge_node.py prompt extension
+- integration tests
+
+Integration (Day 6):
+- Full workflow testing
+```
+
+### Work Distribution
+
+**Sequential work:**
+- State extension must complete before workflow can use `document_input`
+- `document_topic_node.py` must exist before `document_debate_workflow.py` can import it
+
+**Parallel streams:**
+- `document_debate_workflow.py` can be developed independently from prompt modifications
+- Contract tests can be written in parallel with node implementations
+
+**Agent assignments:**
+- Single developer for entire feature (small scope, clear architecture)
+
+### Coordination Points
+
+- **Sync schedule:** N/A (single developer)
+- **Integration tests:** Run after all components complete to verify end-to-end workflow
+
+## Implementation Phases
+
+### Phase 0: Outline & Research ✅
+
+**Status:** Complete
+
+**Output:** `research.md`
+
+All technical decisions confirmed. No unknowns remaining after clarification session.
+
+### Phase 1: Design & Contracts ✅
+
+**Status:** Complete
+
+**Prerequisites:** `research.md` complete
+
+**Completed Artifacts:**
+- ✅ `data-model.md` - Entities, relationships, state transitions
+- ✅ `contracts/debate_state.py.md` - DebateState extension contract
+- ✅ `contracts/document_topic_node.py.md` - DocumentTopicNode contract
+- ✅ `contracts/debater_prompts.py.md` - PRO/CON prompt extension contract
+- ✅ `contracts/judge_node.py.md` - JudgeNode extension contract
+- ✅ `quickstart.md` - Usage guide
+
+### Phase 2: Implementation (Pending)
+
+**Status:** ⏸️ **NOT STARTED**
+
+**Prerequisites:** Phase 1 artifacts complete
+
+**Pending Tasks:**
+- Generate `tasks.md` with work packages
+- Create implementation work packages
+
+---
+
+## STOP
+
+**Planning phase complete.**
+
+The following artifacts have been generated and committed to the planning repository:
+
+1. `plan.md` - This file
+2. `research.md` - Phase 0 research output
+3. `data-model.md` - Phase 1 data model
+4. `quickstart.md` - Phase 1 quickstart guide
+5. `contracts/` - Phase 1 design contracts
+
+**DO NOT PROCEED to implementation.**
+
+Run `/spec-kitty.tasks` to generate work packages when ready to begin development.

@@ -8,7 +8,7 @@
 
 ### 1.1 Summary
 
-Create a new workflow that enables AI agents to analyze Product Requirement Documents (PRD) through structured debate. Users provide a .docx file containing PRD requirements, and the system generates a comprehensive analysis highlighting both strengths and weaknesses through adversarial discussion between PRO and CON agents.
+Create a new universal workflow that enables AI agents to analyze any .docx document through structured debate. Users provide a .docx file, and the system extracts text content and generates a comprehensive analysis highlighting both strengths and weaknesses through adversarial discussion between PRO and CON agents. While designed for PRD analysis, the workflow is document-agnostic and can process any .docx content.
 
 ### 1.2 Problem Statement
 
@@ -16,12 +16,13 @@ Currently, the Deb8flow system supports debates on internally generated topics. 
 
 ### 1.3 Proposed Solution
 
-Implement a new `document_debate_workflow.py` that:
+Implement a new `document_debate_workflow.py` as a standalone workflow that:
 - Reads PRD content from .docx files
 - Conducts structured debate between PRO agent (arguing strengths) and CON agent (arguing weaknesses)
 - Maintains the existing 4-stage debate structure (opening, rebuttal, counter, final_argument)
 - Includes fact-checking for all claims
 - Produces a comprehensive result.md with debate transcript and judge's verdict
+- **Does NOT modify the existing `debate_workflow.py` - both workflows coexist independently**
 
 ### 1.4 Actors
 
@@ -32,7 +33,16 @@ Implement a new `document_debate_workflow.py` that:
 | CON Agent | AI agent that identifies and argues weaknesses and risks of the PRD |
 | Moderator | Orchestrates debate flow and stage transitions |
 | Fact-Checker | Validates claims and statistics mentioned by agents |
-| Judge | Evaluates arguments and provides final verdict |
+| Judge | Evaluates arguments and provides final verdict; assesses both rhetorical performance AND document viability for management presentation |
+
+## Clarifications
+
+### Session 2025-02-13
+- Q: The spec mentions creating a new `document_debate_workflow.py` file (Section 1.3), while your implementation plan describes modifying the existing `debate_workflow.py` to accept `initial_state` and replace `GenerateTopicNode`. Which approach should be taken? → A: Create new standalone `document_debate_workflow.py` file keeping existing workflow unchanged
+- Q: The spec defines a `DocumentDebateState` entity with attribute `prd_content`, while your implementation plan uses `document_input` and extends the existing `DebateState`. What is the correct state structure? → A: Extend existing `DebateState` with `document_input` field; module should be universal for any .docx content, not PRD-specific
+- Q: Your implementation plan reuses existing `topic_generator_prompts` and adds `{document_text}` to debater prompts. Should the prompt strategy be specialized for document analysis or reuse existing generic prompts? → A: Extend existing prompts with document-specific instructions for PRO/CON roles
+- Q: Should .docx reading happen only at entry point (main.py) or should the node also handle file paths? → A: Read .docx only in DocumentTopicNode, pass file path from main
+- Q: The spec states the judge evaluates "rhetorical performance" (existing behavior), but for document analysis debates, should the judge evaluate the document's business viability instead? → A: Judge evaluates both rhetoric and document viability
 
 ## 2. User Scenarios & Testing
 
@@ -80,9 +90,11 @@ Implement a new `document_debate_workflow.py` that:
 **REQ-001:** The system shall read .docx files and extract text content
 
 **Acceptance Criteria:**
+- File path to .docx is passed from main.py via `initial_state`
+- DocumentTopicNode handles .docx reading using python-docx library
 - Text is extracted preserving paragraph structure
 - Tables are converted to readable text format
-- Extraction completes within 5 seconds for typical PRD (1-20 pages)
+- Extraction completes within 5 seconds for typical document (1-20 pages)
 
 **REQ-002:** The system shall validate input file before processing
 
@@ -93,12 +105,13 @@ Implement a new `document_debate_workflow.py` that:
 
 ### 3.2 Debate Workflow
 
-**REQ-003:** The system shall conduct debate between PRO and CON agents about PRD content
+**REQ-003:** The system shall conduct debate between PRO and CON agents about document content
 
 **Acceptance Criteria:**
-- PRO agent focuses exclusively on PRD strengths, opportunities, and positive aspects
-- CON agent focuses exclusively on PRD weaknesses, risks, gaps, and concerns
-- Both agents reference specific content from the PRD document
+- PRO agent focuses exclusively on defending the document's validity (strengths, opportunities, positive aspects)
+- CON agent focuses exclusively on critiquing the document (weaknesses, risks, gaps, concerns)
+- Both agents reference specific content from the document via `document_text` variable
+- Prompts are extended with document-specific instructions for PRO (defend) and CON (critique) roles
 
 **REQ-004:** The system shall maintain the 4-stage debate structure
 
@@ -125,7 +138,7 @@ Implement a new `document_debate_workflow.py` that:
 - Format matches existing debate_workflow.py output
 - Includes all agent arguments with stage labels
 - Includes fact-check results
-- Includes judge's final verdict with winner declaration
+- Includes judge's final verdict with winner declaration AND assessment of document viability
 
 ## 4. Success Criteria
 
@@ -140,10 +153,10 @@ Implement a new `document_debate_workflow.py` that:
 
 | Entity | Attributes |
 |--------|------------|
-| PRDDocument | filepath, content_text, extracted_at |
-| DocumentDebateState | prd_content, debate_topic (derived), positions, messages, stage, speaker, opening_statement_pro_agent, times_pro_fact_checked, times_con_fact_checked |
+| DocumentInput | filepath, content_text (extracted from .docx), extracted_at |
+| DebateState (extended) | **document_input** (NEW), debate_topic (derived from document), positions, messages, stage, speaker, opening_statement_pro_agent, times_pro_fact_checked, times_con_fact_checked |
 | DebateMessage | speaker, content, validated, stage |
-| AnalysisResult | winner, reasoning, strengths_identified, weaknesses_identified |
+| AnalysisResult | winner, reasoning, strengths_identified, weaknesses_identified, document_viability_assessment |
 
 ## 6. Assumptions
 
