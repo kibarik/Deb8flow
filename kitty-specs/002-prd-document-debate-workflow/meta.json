@@ -1,0 +1,10 @@
+{
+  "feature_number": "002",
+  "slug": "prd-document-debate-workflow",
+  "friendly_name": "PRD Document Debate Workflow",
+  "mission": "software-dev",
+  "source_description": "создай новый workflow по аналогии с debate_workflow.py '/Users/aleksishmanov/projects/Deb8flow/workflow/debate_workflow.py' я хочу чтобы дебаты велись на основе .docx файла. Я отправляю .docx файл, на выходе получаю result.md с заключением по дебатам",
+  "created_at": "2025-02-12T10:30:00Z",
+  "target_branch": "main",
+  "vcs": "git"
+}
