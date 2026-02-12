@@ -9,12 +9,13 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.base import RunnableSequence
 from langchain_openai import AzureChatOpenAI, ChatOpenAI
+from langchain_community.chat_models import ChatZhipuAI
 from langchain_community.callbacks.manager import get_openai_callback
 from pydantic import BaseModel
 from opentelemetry import trace
 from opentelemetry.trace import get_tracer_provider
 from debate_state import DebateState
-from configurations.llm_config import LLMConfig, OpenAILLMConfig, AzureOpenAILLMConfig
+from configurations.llm_config import LLMConfig, OpenAILLMConfig, AzureOpenAILLMConfig, ZaiLLMConfig, RequestyLLMConfig
 from rich.console import Console
 from rich.logging import RichHandler
 
@@ -22,7 +23,7 @@ from rich.logging import RichHandler
 class BaseComponent:
     """
     A foundational class for managing LLM-based workflows with token tracking.
-    Can handle both Azure OpenAI (AzureChatOpenAI) and OpenAI (ChatOpenAI).
+    Can handle Azure OpenAI (AzureChatOpenAI), OpenAI (ChatOpenAI), and Zhipu AI (ChatZhipuAI).
     """
 
     def __init__(
@@ -103,6 +104,21 @@ class BaseComponent:
                 openai_api_key=config.openai_api_key,
                 temperature=temperature,
             )
+        elif isinstance(config, ZaiLLMConfig):
+            # If it's Zhipu AI, use the ChatZhipuAI class
+            # Note: ChatZhipuAI reads ZHIPUAI_API_KEY from environment
+            return ChatZhipuAI(
+                model=config.model_name,
+                temperature=temperature,
+            )
+        elif isinstance(config, RequestyLLMConfig):
+            # If it's Requesty, use ChatOpenAI with custom base_url
+            return ChatOpenAI(
+                model=config.model_name,
+                openai_api_key=config.req_api_key,
+                base_url=config.base_url,
+                temperature=temperature,
+            )
         else:
             raise ValueError("Unsupported LLMConfig type.")
 
@@ -117,12 +133,12 @@ class BaseComponent:
 
     def execute_chain(self, inputs: Any) -> Any:
         """
-        Executes the LLM chain, tracks token usage, and retries on 429 errors.
+        Executes the LLM chain, tracks token usage, and retries on rate limit errors.
         """
         if not self.chain:
             raise ValueError("No chain is initialized for execution.")
 
-        retry_wait = 1  # Initial wait time in seconds
+        retry_wait = 2  # Initial wait time in seconds
 
         for attempt in range(self.max_retries):
             try:
@@ -136,16 +152,20 @@ class BaseComponent:
                 return result
 
             except Exception as e:
-                # If the error mentions 429, do exponential backoff and retry
-                if "429" in str(e):
+                # Log the full error for debugging
+                error_str = str(e).lower()
+                self.logger.error(f"API Error (attempt {attempt + 1}/{self.max_retries}): {e}")
+
+                # Check for rate limit errors (429, rate limit, unauthorized, etc.)
+                if "429" in error_str or "rate limit" in error_str or "401" in error_str:
                     self.logger.warning(
-                        f"Rate limit reached. Retrying in {retry_wait} seconds... "
+                        f"Rate limit/Auth error. Retrying in {retry_wait} seconds... "
                         f"(Attempt {attempt + 1}/{self.max_retries})"
                     )
                     time.sleep(retry_wait)
                     retry_wait *= 2
                 else:
-                    self.logger.error(f"Unexpected error: {str(e)}")
+                    self.logger.error(f"Non-retryable error: {str(e)}")
                     raise e
 
         raise Exception("API request failed after maximum number of retries")

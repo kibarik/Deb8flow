@@ -7,20 +7,20 @@ from nodes.debate_moderator_node import DebateModeratorNode
 from nodes.fact_checker_node import FactCheckNode
 from nodes.fact_check_router_node import FactCheckRouterNode
 from nodes.judge_node import JudgeNode
-from configurations.llm_config import llm_config_map
+from configurations.llm_config import requesty_llm_config_map
 
 class DebateWorkflow:
 
     def _initialize_workflow(self) -> StateGraph:
         workflow = StateGraph(DebateState)
         # Nodes
-        workflow.add_node("generate_topic_node", GenerateTopicNode(llm_config_map["gpt-4.1"]))
-        workflow.add_node("pro_debater_node", ProDebaterNode(llm_config_map["gpt-4.1"]))
-        workflow.add_node("con_debater_node", ConDebaterNode(llm_config_map["gpt-4.1"]))
+        workflow.add_node("generate_topic_node", GenerateTopicNode(requesty_llm_config_map["deepseek-chat"]))
+        workflow.add_node("pro_debater_node", ProDebaterNode(requesty_llm_config_map["deepseek-chat"]))
+        workflow.add_node("con_debater_node", ConDebaterNode(requesty_llm_config_map["deepseek-chat"]))
         workflow.add_node("fact_check_node", FactCheckNode())
         workflow.add_node("fact_check_router_node", FactCheckRouterNode())
         workflow.add_node("debate_moderator_node", DebateModeratorNode())
-        workflow.add_node("judge_node", JudgeNode(llm_config_map["gpt-4.1"]))
+        workflow.add_node("judge_node", JudgeNode(requesty_llm_config_map["deepseek-chat"]))
 
         # Entry point
         workflow.set_entry_point("generate_topic_node")

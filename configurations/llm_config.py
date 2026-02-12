@@ -1,6 +1,9 @@
 import os
 from dataclasses import dataclass
 from typing import Union
+from dotenv import load_dotenv
+
+load_dotenv()
 
 @dataclass
 class OpenAILLMConfig:
@@ -34,7 +37,35 @@ class AzureOpenAILLMConfig:
     openai_api_key: str
 
 
-LLMConfig = Union[OpenAILLMConfig, AzureOpenAILLMConfig]
+@dataclass
+class ZaiLLMConfig:
+    """
+    A data class to store configuration details for Zhipu AI models.
+
+    Attributes:
+        model_name (str): The name of the Zhipu AI model to use (e.g., "glm-4.7").
+        zhipuai_api_key (str): The API key for authenticating with Zhipu AI service.
+    """
+    model_name: str
+    zhipuai_api_key: str
+
+
+@dataclass
+class RequestyLLMConfig:
+    """
+    A data class to store configuration details for Requesty models.
+
+    Attributes:
+        model_name (str): The name of the model to use (e.g., "deepseek/deepseek-chat").
+        req_api_key (str): The API key for authenticating with Requesty service.
+        base_url (str): The base URL for Requesty API.
+    """
+    model_name: str
+    req_api_key: str
+    base_url: str = "https://router.requesty.ai/v1"
+
+
+LLMConfig = Union[OpenAILLMConfig, AzureOpenAILLMConfig, ZaiLLMConfig, RequestyLLMConfig]
 
 
 # Azure LLM configuration map
@@ -75,5 +106,21 @@ llm_config_map = {
     "gpt-4.1": OpenAILLMConfig(
         model_name="gpt-4.1",
         openai_api_key=os.getenv("OPENAI_API_KEY"),
+    )
+}
+
+# Zhipu AI config map
+zai_llm_config_map = {
+    "glm-4.5": ZaiLLMConfig(
+        model_name="glm-4.5",
+        zhipuai_api_key=os.getenv("OPENAI_API_KEY"),
+    )
+}
+
+# Requesty config map
+requesty_llm_config_map = {
+    "deepseek-chat": RequestyLLMConfig(
+        model_name="deepseek/deepseek-chat",
+        req_api_key=os.getenv("REQ_API_KEY"),
     )
 }
