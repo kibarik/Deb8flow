@@ -1,13 +1,14 @@
 ---
 work_package_id: WP01
 title: Test Foundation Setup
-lane: "doing"
+lane: "for_review"
 dependencies: []
 base_branch: main
 base_commit: eed99af94f712955289571fe23a5d2f9c813fa0b
 created_at: '2026-02-12T21:26:35.727181+00:00'
 subtasks: [T001, T002, T003, T004]
 shell_pid: "32751"
+agent: "claude"
 history:
 - timestamp: '2025-02-13T00:00:00Z'
   event: Work package created
@@ -329,3 +330,7 @@ When reviewing this work package:
 - `tests/conftest.py` (shared fixtures)
 - `tests/fixtures/mock_responses.py` (mock data)
 - `requirements.txt` (dependencies)
+
+## Activity Log
+
+- 2026-02-12T21:28:37Z – claude – shell_pid=32751 – lane=for_review – Moved to for_review
