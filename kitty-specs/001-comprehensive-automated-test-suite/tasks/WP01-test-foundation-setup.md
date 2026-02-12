@@ -1,13 +1,17 @@
 ---
-work_package_id: "WP01"
-title: "Test Foundation Setup"
-lane: "planned"
+work_package_id: WP01
+title: Test Foundation Setup
+lane: "doing"
 dependencies: []
-subtasks: ["T001", "T002", "T003", "T004"]
+base_branch: main
+base_commit: eed99af94f712955289571fe23a5d2f9c813fa0b
+created_at: '2026-02-12T21:26:35.727181+00:00'
+subtasks: [T001, T002, T003, T004]
+shell_pid: "32751"
 history:
-  - timestamp: "2025-02-13T00:00:00Z"
-    event: "Work package created"
-    agent: "claude-code"
+- timestamp: '2025-02-13T00:00:00Z'
+  event: Work package created
+  agent: claude-code
 ---
 
 # Work Package: Test Foundation Setup
