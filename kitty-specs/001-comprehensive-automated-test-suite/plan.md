@@ -1,108 +1,126 @@
-# Implementation Plan: [FEATURE]
-*Path: [templates/plan-template.md](templates/plan-template.md)*
+# Implementation Plan: Comprehensive Automated Test Suite
 
-
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/kitty-specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/spec-kitty.plan` command. See `src/specify_cli/missions/software-dev/command-templates/plan.md` for the execution workflow.
-
-The planner will not begin until all planning questions have been answered—capture those answers in this document before progressing to later phases.
+**Branch**: `main` | **Date**: 2025-02-12 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `kitty-specs/001-comprehensive-automated-test-suite/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Create a regression-focused automated test suite for the Deb8flow multi-agent debate system. The suite will ensure code changes don't break core functionality by testing all 7 workflow nodes (topic generator, pro/con debaters, fact checker, moderator, judge, router) and end-to-end workflow execution. Tests use pytest-asyncio with mocked LLM responses for fast, offline execution.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.10+  
+**Primary Dependencies**: pytest, pytest-asyncio, pytest-cov (already in requirements.txt)  
+**Storage**: N/A  
+**Testing**: pytest with asyncio support  
+**Target Platform**: Local development, CI/CD  
+**Project Type**: Single Python project  
+**Performance Goals**: Test suite executes in <30 seconds  
+**Constraints**: No external API calls during tests  
+**Scale/Scope**: 7 nodes + 1 workflow + integration tests
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
-
-[Gates determined based on constitution file]
+*GATE: SKIPPED* - No constitution file exists at `.kittify/memory/constitution.md`
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```
-kitty-specs/[###-feature]/
+kitty-specs/001-comprehensive-automated-test-suite/
 ├── plan.md              # This file (/spec-kitty.plan command output)
-├── research.md          # Phase 0 output (/spec-kitty.plan command)
-├── data-model.md        # Phase 1 output (/spec-kitty.plan command)
-├── quickstart.md        # Phase 1 output (/spec-kitty.plan command)
-├── contracts/           # Phase 1 output (/spec-kitty.plan command)
-└── tasks.md             # Phase 2 output (/spec-kitty.tasks command - NOT created by /spec-kitty.plan)
+├── research.md          # Phase 0 output (pytest-asyncio, mocking patterns, state transitions)
+├── data-model.md        # Phase 1 output (test entities, debate state structures)
+├── quickstart.md        # Phase 1 output (how to run/write tests)
+└── contracts/           # Phase 1 output (node interface contracts)
+    └── node-interface.yaml
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+Deb8flow/
+├── tests/                           # Test suite (enhanced/expanded)
+│   ├── fixtures/
+│   │   ├── __init__.py
+│   │   └── mock_responses.py        # Centralized mock LLM responses
+│   ├── conftest.py                  # Shared pytest fixtures
+│   ├── unit/                        # Unit tests for each node
+│   │   ├── test_topic_generator_node.py
+│   │   ├── test_pro_debater_node.py
+│   │   ├── test_con_debater_node.py
+│   │   ├── test_fact_checker_node.py
+│   │   ├── test_debate_moderator_node.py
+│   │   ├── test_fact_check_router_node.py
+│   │   └── test_judge_node.py
+│   └── integration/                 # Multi-node tests
+│       ├── test_workflow_execution.py
+│       └── test_state_transitions.py
+├── nodes/                          # Existing nodes (tested)
+│   ├── base_component.py
+│   ├── topic_generator_node.py
+│   ├── pro_debater_node.py
+│   ├── con_debater_node.py
+│   ├── fact_checker_node.py
+│   ├── fact_check_router_node.py
+│   ├── debate_moderator_node.py
+│   └── judge_node.py
+├── workflow/
+│   └── debate_workflow.py            # Main workflow (tested)
+└── debate_state.py                  # State definitions (referenced by tests)
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Single project structure with tests/ directory organized by category (unit/integration). Centralized fixtures in `tests/fixtures/` for maintainability.
 
 ## Complexity Tracking
 
-*Fill ONLY if Constitution Check has violations that must be justified*
+*Not applicable - no constitution violations to justify.*
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+## Phase 0: Research Complete
+
+**Output**: `research.md`
+
+### Key Decisions
+
+| Decision | Rationale |
+|-----------|-----------|
+| pytest-asyncio for async testing | Native LangGraph async support, standard pattern |
+| Centralized fixtures file | Smaller project (7 nodes), single source of truth |
+| Mock at LLM client level | Preserves chain structure while controlling outputs |
+| 70-80% coverage target | Focus on critical paths, diminishing returns beyond |
+
+## Phase 1: Design Complete
+
+### Data Model
+
+**Output**: `data-model.md`
+
+Key entities defined:
+- TestSuite, TestCase, MockLLMResponse
+- DebateState (production) - test operates on this structure
+- StateTransitionModel - deterministic workflow stages
+
+### Contracts
+
+**Output**: `contracts/node-interface.yaml`
+
+Node interface contract defines:
+- DebateState schema (input/output for all nodes)
+- DebateMessage schema
+- Expected responses for each node type
+
+### Quick Start Guide
+
+**Output**: `quickstart.md`
+
+Developer guidance for:
+- Running tests (all, category-specific, with coverage)
+- Writing new tests (structure, patterns, mocking)
+- Troubleshooting common issues
+
+---
+
+## Next Steps
+
+Run `/spec-kitty.tasks` to generate work packages with implementation tasks.

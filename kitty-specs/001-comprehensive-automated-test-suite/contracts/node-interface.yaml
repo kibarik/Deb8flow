@@ -1,0 +1,191 @@
+# Node Interface Contract
+# Defines the expected interface for all Deb8flow workflow nodes
+
+openapi: 3.0.0
+info:
+  title: Deb8flow Node Interface
+  version: 1.0.0
+  description: Interface contract for debate workflow nodes
+
+components:
+  schemas:
+    DebateState:
+      type: object
+      required:
+        - debate_topic
+        - positions
+        - messages
+        - stage
+        - speaker
+        - times_pro_fact_checked
+        - times_con_fact_checked
+      properties:
+        debate_topic:
+          type: string
+          description: Current debate topic
+        positions:
+          type: object
+          additionalProperties:
+            type: string
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/DebateMessage'
+        stage:
+          type: string
+          enum: [opening, rebuttal, counter, final_argument, end]
+        speaker:
+          type: string
+          enum: [pro, con, judge]
+        times_pro_fact_checked:
+          type: integer
+          minimum: 0
+          maximum: 3
+        times_con_fact_checked:
+          type: integer
+          minimum: 0
+          maximum: 3
+
+    DebateMessage:
+      type: object
+      required:
+        - speaker
+        - content
+        - validated
+        - stage
+      properties:
+        speaker:
+          type: string
+          enum: [pro, con]
+        content:
+          type: string
+          minLength: 1
+        validated:
+          type: boolean
+        stage:
+          type: string
+          enum: [opening, rebuttal, counter, final_argument]
+
+    NodeResponse:
+      type: object
+      description: State update returned by a node
+      additionalProperties: true
+
+paths:
+  /nodes/topic-generator:
+    post:
+      description: Generate a debate topic
+      x-test-interface: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DebateState'
+      responses:
+        '200':
+          description: State with topic generated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/DebateState'
+                  - type: object
+                    properties:
+                      topic:
+                        type: string
+                        minLength: 1
+
+  /nodes/pro-debater:
+    post:
+      description: Generate pro argument
+      x-test-interface: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DebateState'
+      responses:
+        '200':
+          description: State with pro argument added
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/NodeResponse'
+                  - type: object
+                    properties:
+                      messages:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/DebateMessage'
+
+  /nodes/con-debater:
+    post:
+      description: Generate con argument
+      x-test-interface: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DebateState'
+      responses:
+        '200':
+          description: State with con argument added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeResponse'
+
+  /nodes/fact-checker:
+    post:
+      description: Validate claims in a message
+      x-test-interface: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DebateState'
+      responses:
+        '200':
+          description: State with fact-check result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/NodeResponse'
+                  - type: object
+                    properties:
+                      validated:
+                        type: boolean
+                      times_pro_fact_checked:
+                        type: integer
+                      times_con_fact_checked:
+                        type: integer
+
+  /nodes/judge:
+    post:
+      description: Generate verdict
+      x-test-interface: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DebateState'
+      responses:
+        '200':
+          description: State with verdict
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/NodeResponse'
+                  - type: object
+                    properties:
+                      messages:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            content:
+                              type: string
+                                pattern: 'WINNER: (PRO|CON)'
