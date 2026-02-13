@@ -30,6 +30,7 @@ python-docx==1.1.2
 rich==14.0.0
 typing_extensions>=4.0.0
 aiofiles>=24.1.0  # NEW: Added for feature 004
+tqdm>=4.66.0  # NEW: Added for feature 005 - progress indicators
 ```
 
 ## Project Structure
@@ -45,6 +46,10 @@ Deb8flow/
 │       ├── __init__.py
 │       ├── async_file_writer.py    # Async file writer with error handling
 │       └── transcript_formatter.py  # Plain text formatting
+│   └── progress/                 # NEW: Feature 005 - CLI progress indicators
+│       ├── __init__.py
+│       ├── progress_manager.py     # ProgressManager class with tqdm
+│       └── cli_output.py          # CLIOutput class for verbosity filtering
 │
 ├── nodes/                         # LangGraph node implementations
 │   ├── __init__.py
@@ -132,6 +137,24 @@ if __name__ == "__main__":
 - `document_debate_cli.py`: Add `--output` argument, create `AsyncFileWriter`
 - Node functions: Accept optional `output_writer` parameter, write each message
 - `src/output/`: New module for output recording logic
+
+---
+
+## Feature 005: CLI Progress Indicators
+
+**New in feature 005**: Add real-time progress tracking to CLI workflow using tqdm
+
+**Key Design Decisions**:
+- Uses `tqdm` (with `tqdm.rich`) for progress bars
+- Three verbosity levels: quiet, default, verbose
+- `ProgressManager` passed through workflow state
+- Progress display integrated into existing nodes
+
+**Integration Points**:
+- `document_debate_cli.py`: Add `--verbose` and `--quiet` flags
+- `workflow/`: Accept optional `progress_manager` parameter
+- `nodes/`: Check `state["_progress_manager"]` and use if present
+- `src/progress/`: New module for `ProgressManager` and `CLIOutput`
 
 ---
 
