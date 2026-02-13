@@ -1,13 +1,17 @@
 ---
-work_package_id: "WP02"
-title: "Node Unit Tests - Part 1"
-lane: "planned"
-dependencies: ["WP01"]
-subtasks: ["T005", "T006", "T007", "T008"]
+work_package_id: WP02
+title: Node Unit Tests - Part 1
+lane: "doing"
+dependencies: [WP01]
+base_branch: 001-comprehensive-automated-test-suite-WP01
+base_commit: 1ad8d01d77f90f9befc4dc4a4854e0b91648389d
+created_at: '2026-02-13T10:01:57.456197+00:00'
+subtasks: [T005, T006, T007, T008]
+shell_pid: "55282"
 history:
-  - timestamp: "2025-02-13T00:00:00Z"
-    event: "Work package created"
-    agent: "claude-code"
+- timestamp: '2025-02-13T00:00:00Z'
+  event: Work package created
+  agent: claude-code
 ---
 
 # Work Package: Node Unit Tests - Part 1
