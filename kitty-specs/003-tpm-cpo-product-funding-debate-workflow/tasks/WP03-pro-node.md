@@ -2,7 +2,7 @@
 work_package_id: "WP03"
 title: "PRO Debater Node Custom Prompt Injection"
 phase: "Phase 2 - Implementation"
-lane: "planned"
+lane: "for_review"
 assignee: ""
 agent: ""
 shell_pid: ""
@@ -465,3 +465,4 @@ To change a work package's lane, either:
 The CLI command updates both frontmatter and activity log automatically.
 
 **Valid lanes**: `planned`, `doing`, `for_review`, `done`
+- 2026-02-13T23:57:51Z – unknown – lane=for_review – Ready for review: PRO debater node with custom prompt injection
