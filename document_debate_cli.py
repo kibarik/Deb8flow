@@ -67,6 +67,33 @@ def read_docx_file(file_path: str) -> str:
         raise RuntimeError(f"Failed to read .docx file: {file_path}") from e
 
 
+def validate_prompt_file(file_path: str) -> tuple[bool, str]:
+    """
+    Validate custom prompt file exists, is non-empty, and within size limits.
+
+    Args:
+        file_path: Path to prompt file
+
+    Returns:
+        Tuple of (is_valid, content_or_error_message)
+    """
+    # Check file exists
+    if not os.path.exists(file_path):
+        return False, f"Prompt file not found: {file_path}"
+
+    # Check file not empty
+    if os.path.getsize(file_path) == 0:
+        return False, f"Prompt file is empty: {file_path}"
+
+    # Check file size <= 5000 chars
+    with open(file_path, 'r') as f:
+        content = f.read()
+        if len(content) > 5000:
+            return False, f"Prompt file too large (max 5000 characters): {file_path}"
+
+    return True, content
+
+
 async def main():
     """Main entry point for the document debate CLI."""
     setup_logging()
@@ -92,6 +119,16 @@ async def main():
             "--request",
             help="Debate topic/question (required when using --docx)"
         )
+        parser.add_argument(
+            "--pro-prompt",
+            type=str,
+            help="Path to custom PRO debater prompt file"
+        )
+        parser.add_argument(
+            "--con-prompt",
+            type=str,
+            help="Path to custom CON debater prompt file"
+        )
 
         args = parser.parse_args()
 
@@ -107,6 +144,23 @@ async def main():
             "positions": {},
             "messages": []
         }
+
+        # Validate and add custom prompts if provided
+        if args.pro_prompt:
+            is_valid, result = validate_prompt_file(args.pro_prompt)
+            if not is_valid:
+                logger.error(f"❌ {result}")
+                sys.exit(1)
+            base_state["pro_custom_prompt"] = result
+            logger.info(f"[cyan]✓ Loaded PRO custom prompt from: {args.pro_prompt}[/]")
+
+        if args.con_prompt:
+            is_valid, result = validate_prompt_file(args.con_prompt)
+            if not is_valid:
+                logger.error(f"❌ {result}")
+                sys.exit(1)
+            base_state["con_custom_prompt"] = result
+            logger.info(f"[magenta]✓ Loaded CON custom prompt from: {args.con_prompt}[/]")
 
         if args.docx:
             try:
