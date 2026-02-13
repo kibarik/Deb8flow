@@ -157,13 +157,13 @@ Create the foundational components for the document debate workflow:
 
 ### Definition of Done
 
-- [ ] All subtasks T001-T011 implemented
-- [ ] `python-docx` dependency added successfully
-- [ ] DocumentTopicNode can read .docx and extract text
-- [ ] PRO agent references document in arguments
-- [ ] CON agent references document in arguments
-- [ ] Judge includes document viability assessment
-- [ ] CLI accepts --docx argument
-- [ ] Result.md generated with all components
-- [ ] All contract tests passing
-- [ ] Integration test passes end-to-end workflow
+- [x] All subtasks T001-T011 implemented
+- [x] `python-docx` dependency added successfully
+- [x] DocumentTopicNode can read .docx and extract text
+- [x] PRO agent references document in arguments
+- [x] CON agent references document in arguments
+- [x] Judge includes document viability assessment
+- [x] CLI accepts --docx argument
+- [x] Result.md generated with all components
+- [x] All contract tests passing
+- [x] Integration test passes end-to-end workflow
