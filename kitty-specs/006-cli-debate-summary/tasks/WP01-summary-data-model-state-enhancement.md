@@ -8,6 +8,7 @@ base_commit: 3ecea4ff3618acf623bc6b6ee9933e30a725c9e5
 created_at: '2026-02-13T23:46:39.073070+00:00'
 subtasks: [T001, T002, T003, T004, T005]
 shell_pid: "48535"
+agent: "claude"
 history:
 - date: 2026-02-14
   action: Created
@@ -271,3 +272,7 @@ This work package is complete when:
 - CLI (WP02) → reads both fields for summary
 
 **Next work package**: WP02 uses these fields to display the summary in the CLI.
+
+## Activity Log
+
+- 2026-02-13T23:46:39Z – claude – shell_pid=48535 – lane=doing – Assigned agent via workflow command
