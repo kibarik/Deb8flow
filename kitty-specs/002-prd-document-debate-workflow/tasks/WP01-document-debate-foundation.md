@@ -1,7 +1,7 @@
 ---
 work_package_id: WP01
 title: Document Debate Workflow Foundation
-lane: "doing"
+lane: "for_review"
 dependencies: []
 base_branch: main
 base_commit: 16ba55b33084323debb536425288c6df02fa10ba
@@ -436,3 +436,4 @@ Establish the foundational components for the document debate workflow. This wor
 ## Activity Log
 
 - 2026-02-12T21:26:51Z – claude – shell_pid=32923 – lane=doing – Assigned agent via workflow command
+- 2026-02-13T21:14:47Z – claude – shell_pid=32923 – lane=for_review – Moved to for_review
