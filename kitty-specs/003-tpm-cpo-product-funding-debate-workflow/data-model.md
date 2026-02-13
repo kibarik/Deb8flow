@@ -1,37 +1,52 @@
-# Data Model: TPM-CPO Product Funding Debate Workflow
+# Data Model: Custom Prompt Debate Workflow
 
 **Feature**: 003-tpm-cpo-product-funding-debate-workflow
 **Date**: 2025-02-13
 
 ## Entities
 
-### TpmCpoDebateState
+### DebateState (Extended)
 
-The primary state container for TPM-CPO funding debates.
+The existing state container, extended with custom prompt fields.
 
 ```python
-from typing import TypedDict, List, Dict, Literal
+from typing import TypedDict, List, Dict, Literal, Optional
 from typing_extensions import NotRequired
 
-TpmCpoDebateStage = Literal["opening", "rebuttal", "counter", "final_argument"]
+DebateStage = Literal["opening", "rebuttal", "counter", "final_argument"]
 
-class TpmCpoDebateMessage(TypedDict):
-    speaker: str  # "tpm" or "cpo"
+class DebateMessage(TypedDict):
+    speaker: str  # "pro" or "con"
     content: str  # The message produced
-    validated: bool  # Whether the FactChecker verified this message
-    stage: TpmCpoDebateStage  # The stage when this message was produced
+    validated: bool  # Whether FactChecker verified this message
+    stage: DebateStage  # The stage when this message was produced
 
-class TpmCpoDebateState(TypedDict):
-    debate_topic: str  # The project proposal being debated
+class DebateState(TypedDict):
+    debate_topic: str  # The topic being debated
     positions: Dict[str, str]  # Speaker position summaries
-    messages: List[TpmCpoDebateMessage]  # Full debate transcript
-    prd_input: str  # The PRD text content (source of truth)
+    messages: List[DebateMessage]  # Full debate transcript
+    # NEW FIELDS:
+    pro_custom_prompt: NotRequired[Optional[str]]  # Custom PRO debater prompt content
+    con_custom_prompt: NotRequired[Optional[str]]  # Custom CON debater prompt content
+    # EXISTING FIELDS:
     stage: NotRequired[str]  # Current stage: "opening", "rebuttal", "counter", "final_argument"
-    speaker: NotRequired[str]  # Current speaker: "tpm" or "cpo"
-    times_tpm_fact_checked: NotRequired[int]  # TPM fact-check count
-    times_cpo_fact_checked: NotRequired[int]  # CPO fact-check count
-    funding_decision: NotRequired[str]  # Final verdict: "approve" or "deny"
-    verdict_reasoning: NotRequired[str]  # Explanation for funding decision
+    speaker: NotRequired[str]  # Current speaker: "pro" or "con"
+    times_pro_fact_checked: NotRequired[int]  # PRO fact-check count
+    times_con_fact_checked: NotRequired[int]  # CON fact-check count
+    verdict: NotRequired[str]  # Final verdict
+```
+
+### PromptFile (CLI Input)
+
+Represents a custom prompt file provided via CLI flags.
+
+```python
+class PromptFile:
+    path: str  # File system path
+    content: str  # File content (max 5000 characters)
+    exists: bool  # Whether file exists
+    is_valid: bool  # Whether file passes validation
+    error: Optional[str]  # Validation error message if any
 ```
 
 ## State Transitions
@@ -39,24 +54,28 @@ class TpmCpoDebateState(TypedDict):
 ```
 [START]
     ↓
+[VALIDATE_PROMPT_FILES]
+    Check if --pro-prompt and --con-prompt files exist
+    Validate file sizes and content
+    ↓
 [INITIALIZE_STATE]
-    debate_topic = "" (to be extracted from PRD)
-    prd_input = <user_provided_text>
+    debate_topic = "" (to be extracted from text/document)
+    pro_custom_prompt = <content from --pro-prompt file or None>
+    con_custom_prompt = <content from --con-prompt file or None>
     messages = []
     stage = "opening"
-    speaker = "tpm"
+    speaker = "pro"
     ↓
-[TMP_OPENING] → [FACT_CHECK]
+[PRO_OPENING] (uses pro_custom_prompt if provided) → [FACT_CHECK]
     ↓
-[CPO_REBUTTAL] → [FACT_CHECK]
+[CON_REBUTTAL] (uses con_custom_prompt if provided) → [FACT_CHECK]
     ↓
-[TMP_COUNTER] → [FACT_CHECK]
+[PRO_COUNTER] (uses pro_custom_prompt if provided) → [FACT_CHECK]
     ↓
-[CPO_FINAL_ARGUMENT] → [FACT_CHECK]
+[CON_FINAL_ARGUMENT] (uses con_custom_prompt if provided) → [FACT_CHECK]
     ↓
 [JUDGE_VERDICT]
-    funding_decision = "approve" | "deny"
-    verdict_reasoning = <explanation>
+    verdict = <explanation>
     ↓
 [END]
 ```
@@ -64,20 +83,46 @@ class TpmCpoDebateState(TypedDict):
 ## Relationships
 
 ```
-TpmCpoDebateState
-    ├─ contains → List<TpmCpoDebateMessage>
-    ├─ references → prd_input (str)
-    ├─ tracks → stage (TpmCpoDebateStage)
-    ├─ tracks → speaker ("tpm" | "cpo")
-    └─ produces → funding_decision + verdict_reasoning
+DebateState
+    ├─ contains → List<DebateMessage>
+    ├─ references → pro_custom_prompt (Optional[str])
+    ├─ references → con_custom_prompt (Optional[str])
+    ├─ tracks → stage (DebateStage)
+    ├─ tracks → speaker ("pro" | "con")
+    └─ produces → verdict
+
+PromptFile (CLI)
+    ├─ provided by → --pro-prompt flag
+    ├─ provided by → --con-prompt flag
+    ├─ validated by → File validation logic
+    └─ injected into → DebateState.pro_custom_prompt OR DebateState.con_custom_prompt
 ```
 
 ## Validation Rules
 
+### File Validation (CLI)
+
 | Field | Validation | Rationale |
 |-------|------------|-----------|
-| prd_input | Required, non-empty | Source material for debate |
-| debate_topic | Required, derived from prd_input | Focused debate topic |
-| speaker | Must be "tpm" or "cpo" | Prevent invalid state |
+| --pro-prompt file | Must exist, non-empty, <= 5000 chars | Prevent invalid inputs |
+| --con-prompt file | Must exist, non-empty, <= 5000 chars | Prevent invalid inputs |
+
+### State Validation
+
+| Field | Validation | Rationale |
+|-------|------------|-----------|
+| pro_custom_prompt | Optional, None or non-empty string | Allow default behavior |
+| con_custom_prompt | Optional, None or non-empty string | Allow default behavior |
+| debate_topic | Required, derived from input | Focused debate topic |
+| speaker | Must be "pro" or "con" | Prevent invalid state |
 | stage | Must follow sequence: opening → rebuttal → counter → final_argument | Enforce debate structure |
-| funding_decision | Must be "approve" or "deny" at end | Binary decision required |
+
+### Prompt Injection Rules
+
+| Rule | Implementation |
+|------|----------------|
+| Custom prompt is None | Use base system prompt only |
+| Custom prompt provided | Prepend custom prompt to base system prompt |
+| Both prompts None | Standard debate (backward compatibility) |
+| Only PRO prompt | PRO uses custom, CON uses base |
+| Only CON prompt | CON uses custom, PRO uses base |

@@ -1,4 +1,4 @@
-# TPM-CPO Product Funding Debate Workflow
+# Custom Prompt Debate Workflow
 
 **Feature Number**: 003
 **Status**: Draft
@@ -6,134 +6,217 @@
 
 ## Overview
 
-A debate workflow that simulates a product funding decision conversation between a Technical Product Manager (TPM) advocating for project launch and a Chief Product Officer (CPO) evaluating completeness, value, and resource allocation. The workflow accepts any text-based Product Requirement Document (PRD) as input and orchestrates a structured debate with fact-checking and a final verdict.
+A flexible debate workflow enhancement that enables custom role-based debates through CLI prompt injection. Instead of creating separate node classes for each role combination, the system accepts custom prompt files that are injected into the existing PRO and CON debater system prompts. This approach allows TPM vs CPO funding debates, or any other custom role combination, without creating new node classes or workflow files.
 
 ## User Problem Statement
 
-Product teams need a structured way to evaluate project proposals before committing resources. Current evaluation lacks rigorous debate and validation of claims made in PRDs. Decisions are often made based on incomplete information or unverified assumptions about market size, competitive landscape, technical feasibility, and resource requirements.
+Product teams need to evaluate project proposals from different professional perspectives. Current debate system uses generic PRO/CON roles that don't capture specific professional contexts like Technical Product Manager (TPM) advocating for launch vs Chief Product Officer (CPO) evaluating resource allocation. Rather than creating hardcoded node classes for each role combination, users need a flexible way to customize debater personalities and contexts.
 
 ## Goals
 
 ### Primary Goals
-- Enable structured debate between TPM (project advocate) and CPO (resource steward) about project funding
-- Validate claims made in PRD documents through fact-checking
-- Provide a reasoned verdict on whether a project should receive funding
+- Enable custom role-based debates through CLI prompt flags
+- Inject custom prompts into existing system prompts without replacing them
+- Support TPM vs CPO funding debates and any other custom role combinations
+- Maintain backward compatibility with existing debates
 
 ### Secondary Goals
-- Expose gaps and assumptions in product proposals
-- Create an auditable record of the funding decision rationale
-- Reuse existing debate orchestration patterns from `debate_workflow.py`
+- Allow rapid experimentation with different role combinations
+- Avoid creating separate node classes for each role type
+- Reuse existing debate orchestration patterns from `document_debate_workflow.py`
 
 ## Out of Scope
 
+- Creating separate TPM/CPO node classes
+- Creating new workflow files (e.g., `tpm_cpo_debate_workflow.py`)
+- Modifying the existing debate flow sequence
+- Breaking existing tests or functionality
 - Direct integration with project management tools (Jira, Linear, etc.)
-- Automatic resource allocation or budgeting
 - Real-time human-in-the-loop debate participation
-- Multi-stakeholder debates beyond TPM vs CPO
-- PRD generation or writing assistance
 
 ## User Scenarios & Testing
 
-### Scenario 1: Simple Product Idea Evaluation
+### Scenario 1: TPM vs CPO Funding Debate
 
-**User**: A product manager submits a brief 2-paragraph product idea via plain text.
+**User**: A product manager wants to debate a funding decision with TPM and CPO roles.
 
 **Flow**:
-1. User provides text input (any format) containing the product concept
-2. Workflow extracts the core project proposal
-3. TPM presents opening arguments for why this project should launch
-4. Fact-checker validates any market/competitive/technical claims
-5. CPO rebuts with concerns about completeness, value, and resource impact
-6. Fact-checker validates CPO's counter-claims
-7. TPM counters with additional evidence
-8. Fact-checker validates TPM's counter-arguments
-9. CPO delivers final argument maintaining skeptical position
-10. Fact-checker validates final claims
-11. Judge renders verdict: Approve funding or Deny
+1. User prepares two prompt files: `tpm_prompt.txt` and `cpo_prompt.txt`
+2. User runs: `python3 document_debate_cli.py --text "Build AI-powered feature X" --pro-prompt tpm_prompt.txt --con-prompt cpo_prompt.txt`
+3. Workflow reads custom prompts and validates them
+4. TPM prompt is injected into PRO system prompt
+5. CPO prompt is injected into CON system prompt
+6. Debate proceeds with role-specific arguments
+7. Judge renders verdict with role context
 
-**Acceptance**: Workflow completes with a clear verdict and reasoning
+**Acceptance**: Debate reflects TPM and CPO perspectives throughout all stages
 
-### Scenario 2: Full PRD Document Evaluation
+### Scenario 2: Standard Debate (No Custom Prompts)
 
-**User**: A product manager submits a comprehensive 20-page PRD document (markdown, text, or pasted content).
+**User**: User wants a standard debate without custom roles.
 
-**Flow**: Same as Scenario 1, but the TPM and CPO engage in deeper debate covering more aspects of the detailed specification.
+**Flow**:
+1. User runs: `python3 document_debate_cli.py --text "GitHub полезен для разработчиков"`
+2. No custom prompts are provided
+3. Debate uses default PRO/CON system prompts
+4. Workflow proceeds normally
 
-**Acceptance**: Workflow handles longer input without breaking; debate references specific sections of the PRD
+**Acceptance**: System works exactly as before without custom prompts
 
-### Scenario 3: PRD with Verifiable Claims
+### Scenario 3: PRO-Only Custom Prompt
 
-**User**: PRD contains specific market size numbers, competitor references, or technical assertions.
+**User**: User wants to customize only the PRO debater with a specific role.
 
-**Flow**: Fact-checker nodes verify these claims against available data sources and report on accuracy.
+**Flow**:
+1. User runs: `python3 document_debate_cli.py --docx prd.docx --pro-prompt engineer_prompt.txt`
+2. Only PRO debater uses custom prompt
+3. CON debater uses default system prompt
+4. Debate proceeds with mixed roles
 
-**Acceptance**: Fact-check results are included in the debate output; unverified claims are flagged
+**Acceptance**: System handles single-side customization correctly
+
+### Scenario 4: Invalid Prompt File
+
+**User**: User provides a prompt file that doesn't exist or is empty.
+
+**Flow**:
+1. User runs with `--pro-prompt missing.txt`
+2. System validates file existence and content
+3. System displays clear error message
+4. Workflow exits without starting
+
+**Acceptance**: Validation prevents invalid inputs with helpful error messages
 
 ## Functional Requirements
 
-### FR1: PRD Input Handling
-- The system MUST accept PRD content as plain text input
-- The system MUST handle PRD documents ranging from short ideas to full specifications
-- The system MUST extract the project concept from the provided text
+### FR1: CLI Custom Prompt Flags
+- The system MUST add `--pro-prompt <path>` flag to `document_debate_cli.py`
+- The system MUST add `--con-prompt <path>` flag to `document_debate_cli.py`
+- The system MUST treat both flags as optional
+- The system MUST treat both flags as independent (can specify one, both, or neither)
+- The system MUST validate file paths before starting workflow
 
-### FR2: Role-Based Debate Orchestration
-- The system MUST implement a TPM agent that advocates for project funding
-- The system MUST implement a CPO agent that challenges project value and resource allocation
-- The system MUST follow the debate sequence: TPM opening → Fact-check → CPO rebuttal → Fact-check → TPM counter → Fact-check → CPO final → Fact-check → Judge verdict
+### FR2: Prompt Injection into System Prompts
+- The system MUST read custom prompt content from provided file paths
+- The system MUST inject custom prompts into existing SYSTEM_PROMPT
+- The system MUST NOT replace base system prompts
+- The system MUST preserve existing debate flow and logic
+- Custom prompts SHOULD add character personality, role context, and perspective
 
-### FR3: Fact-Checking
-- The system MUST verify claims made by both TPM and CPO
-- The system MUST report verification status for factual claims
-- The system MUST identify unverified or unverifiable claims
+### FR3: State Extension for Custom Prompts
+- The system MUST add `pro_custom_prompt` field to `DebateState`
+- The system MUST add `con_custom_prompt` field to `DebateState`
+- The system MUST propagate custom prompts through workflow to debater nodes
+- The system MUST handle None values for missing custom prompts
 
-### FR4: Judge Verdict
-- The system MUST render a final decision (Approve/Deny)
-- The system MUST provide reasoning for the verdict
-- The system MUST summarize key points from the debate
+### FR4: Debater Node Modifications
+- The system MUST modify `pro_debater_node.py` to accept and use `pro_custom_prompt`
+- The system MUST modify `con_debater_node.py` to accept and use `con_custom_prompt`
+- The system MUST inject custom prompt into chain creation when present
+- The system MUST work normally when custom prompt is None
 
-### FR5: Workflow Structure
-- The system MUST be implemented as a separate workflow file `tpm_cpo_debate_workflow.py`
-- The system MUST reuse the LangGraph StateGraph orchestration pattern from `debate_workflow.py`
-- The system MUST use the existing state management and node patterns
+### FR5: File Validation
+- The system MUST validate custom prompt file exists
+- The system MUST validate file is not empty
+- The system MUST validate file size <= 5000 characters
+- The system MUST provide clear error messages for validation failures
+- The system MUST accept plain text (.txt) files
+
+### FR6: Backward Compatibility
+- The system MUST work without custom prompts (default behavior)
+- The system MUST NOT break existing tests
+- The system MUST NOT change behavior when flags are not provided
+- The system MUST maintain all existing functionality
 
 ## Non-Functional Requirements
 
-### NFR1: Extensibility
-- Node implementations should follow the existing pattern for consistency
-- New agent roles should be swappable following the current architecture
+### NFR1: Simplicity
+- No new node classes should be created
+- No new workflow files should be created
+- Implementation should reuse existing patterns
 
-### NFR2: Observability
-- Debate progress should be logged at each stage
-- Fact-check results should be clearly indicated
+### NFR2: Usability
+- Error messages should clearly indicate what went wrong
+- Validation should happen before workflow starts
+- CLI help should document the new flags
+
+### NFR3: Observability
+- Custom prompt usage should be logged when present
+- Debate progress should remain observable
 
 ## Success Criteria
 
-- Workflow successfully processes PRD text input and produces a funding decision verdict
-- TPM agent consistently argues for project launch based on provided PRD content
-- CPO agent consistently challenges completeness, value, and resource allocation
-- Fact-checking validates claims and reports verification status
-- Final verdict includes clear reasoning
-- Workflow reuses existing LangGraph StateGraph patterns without duplicating core orchestration logic
+- CLI accepts `--pro-prompt` and `--con-prompt` flags independently
+- Custom prompts are injected into system prompts correctly
+- TPM vs CPO debate demonstrates role-specific arguments
+- Standard debates work exactly as before (backward compatibility)
+- File validation prevents invalid inputs
+- All existing tests continue to pass
+- No new node classes or workflow files are created
+- Single-side customization (PRO-only or CON-only) works correctly
+
+## Implementation Details
+
+### Prompt File Format
+- Plain text files (.txt)
+- Read content as-is from file path
+- Content should describe role, personality, and context
+- Example TPM prompt: "You are a Technical Product Manager advocating for project funding. Focus on technical feasibility, market opportunity, and user value."
+- Example CPO prompt: "You are a Chief Product Officer evaluating resource allocation. Focus on completeness, strategic alignment, and ROI."
+
+### Prompt Injection Strategy
+- Custom prompt is prepended or appended to base SYSTEM_PROMPT
+- Base prompt structure remains unchanged
+- Custom prompt provides role-specific context
+- LLM receives combined prompt during chain creation
+
+### State Changes
+- Add to `DebateState` in `debate_state.py`:
+  ```python
+  pro_custom_prompt: Optional[str] = None
+  con_custom_prompt: Optional[str] = None
+  ```
+
+### Node Changes
+- Modify `pro_debater_node.py`:
+  - Accept `pro_custom_prompt` from state
+  - Inject into system prompt during chain creation
+  - Handle None value (no custom prompt)
+
+- Modify `con_debater_node.py`:
+  - Accept `con_custom_prompt` from state
+  - Inject into system prompt during chain creation
+  - Handle None value (no custom prompt)
+
+### CLI Changes
+- Add to `document_debate_cli.py`:
+  ```python
+  parser.add_argument('--pro-prompt', type=str, help='Path to custom PRO debater prompt file')
+  parser.add_argument('--con-prompt', type=str, help='Path to custom CON debater prompt file')
+  ```
+- Implement validation function for prompt files
+- Pass validated prompts to state initialization
 
 ## Assumptions
 
-- Input PRD is in a text-parseable format (plain text, markdown, or paste from .docx)
-- Fact-checking has access to relevant data sources for verification
-- The existing `debate_workflow.py` provides a valid architectural pattern to follow
-- LLM configuration uses the same pattern as existing nodes (`requesty_llm_config_map`)
+- Custom prompts are text files containing role context
+- Base system prompts remain compatible with prompt injection
+- Existing nodes can be modified without breaking other workflows
+- File I/O for prompt reading is acceptable
 
 ## Dependencies
 
-- Existing `debate_workflow.py` as architectural reference
-- LangGraph for state management and orchestration
-- Existing LLM configuration patterns
-- Fact-checking infrastructure (already implemented)
+- Existing `document_debate_workflow.py` for debate orchestration
+- Existing `pro_debater_node.py` and `con_debater_node.py` for modification
+- Existing `DebateState` for state extension
+- Existing `document_debate_cli.py` for CLI enhancement
 
 ## Risks & Mitigations
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| PRD parsing fails on complex formatting | Medium | Accept plain text input; advise users to paste text content |
-| TPM role becomes too optimistic | Low | Judge role balances by requiring evidence |
-| CPO role becomes too skeptical | Low | Judge role considers both arguments fairly |
-| Fact-checking cannot verify claims | Medium | Flag unverifiable claims rather than failing |
+| Prompt injection breaks base system prompt | Medium | Test injection with various prompt styles |
+| File I/O errors during prompt reading | Low | Validate files exist before workflow starts |
+| Custom prompt makes debaters ignore instructions | Low | Keep base system prompt structure intact |
+| Backward compatibility broken | High | Run all existing tests after changes |
+| Performance impact from file reading | Low | Read files once at startup, cache in state |

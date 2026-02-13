@@ -1,7 +1,7 @@
-# Specification Quality Checklist: TPM-CPO Product Funding Debate Workflow
+# Specification Quality Checklist: Custom Prompt Debate Workflow
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
-**Created**: 2025-02-13
+**Created**: 2025-02-14
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -31,5 +31,12 @@
 
 ## Notes
 
-- All validation items passed
-- Specification is ready for `/spec-kitty.clarify` or `/spec-kitty.plan`
+**Validation Status**: PASSED ✓
+
+All checklist items have been validated successfully. The specification is ready for `/spec-kitty.clarify` or `/spec-kitty.plan`.
+
+**Key Changes from Previous Version**:
+- Removed TPM/CPO node class approach in favor of CLI prompt injection
+- Added FR1-FR6 functional requirements for prompt flags, validation, and backward compatibility
+- Updated user scenarios to reflect new CLI-based approach
+- Removed implementation-specific workflow file creation from scope

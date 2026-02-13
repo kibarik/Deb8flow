@@ -1,10 +1,11 @@
 {
   "feature_number": "003",
-  "slug": "tpm-cpo-product-funding-debate-workflow",
-  "friendly_name": "TPM-CPO Product Funding Debate Workflow",
+  "slug": "custom-prompt-debate-workflow",
+  "friendly_name": "Custom Prompt Debate Workflow",
   "mission": "software-dev",
-  "source_description": "помоги спроектировать Workflow дебатов между TechnicalProductManager который хочет получить финансирование и запустить новый проект Vs CPO который хочет проверить полноту и ценность идеи, не хочет выделять ресурсы чтобы не расфокусировать команду. На вход отправляю ProductRequirementDoucument документ в формате PRD (см. эту фичу в другой спецификации), раунд начинает Technical Product Manager и высказывает сильные стороны идеи, пытается сказать почему этот продукт должен запуститься. CPO возражает ему и не согласен на запуск. В остальном такой же процесс как debate_workflow, нужно оформить в отдельный workflow tpm_cpo_debate_workflow.py",
-  "created_at": "2025-02-13T10:00:00Z",
+  "source_description": "Custom prompt injection for PRO/CON debaters via CLI flags --pro-prompt and --con-prompt. Enables flexible role-based debates (e.g., TPM vs CPO) without creating separate node classes.",
+  "created_at": "2025-02-14T00:00:00Z",
+  "updated_at": "2025-02-14T00:00:00Z",
   "target_branch": "main",
   "vcs": "git"
 }
