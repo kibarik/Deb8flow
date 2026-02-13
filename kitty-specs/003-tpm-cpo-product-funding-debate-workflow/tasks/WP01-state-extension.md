@@ -2,7 +2,7 @@
 work_package_id: "WP01"
 title: "Debate State Extension for Custom Prompts"
 phase: "Phase 2 - Implementation"
-lane: "planned"
+lane: "for_review"
 assignee: ""
 agent: ""
 shell_pid: ""
@@ -340,3 +340,4 @@ The CLI command updates both frontmatter and activity log automatically.
 ### Optional Phase Subdirectories
 
 For large features, organize prompts under `tasks/` to keep bundles grouped while maintaining lexical ordering.
+- 2026-02-13T23:55:16Z – unknown – lane=for_review – Ready for review: DebateState extended with pro_custom_prompt and con_custom_prompt fields
