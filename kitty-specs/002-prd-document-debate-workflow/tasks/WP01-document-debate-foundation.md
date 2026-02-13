@@ -21,6 +21,7 @@ subtasks:
 description: Document Debate Workflow Foundation - Establish state extensions, document processing node, and CLI integration
 shell_pid: "32923"
 agent: "claude"
+assignee: "claude"
 reviewed_by: "ALeks ishmanov"
 review_status: "approved"
 ---
