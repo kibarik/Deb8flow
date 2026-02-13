@@ -1,5 +1,5 @@
 import os
-from typing import TypedDict, List, Dict, Literal
+from typing import TypedDict, List, Dict, Literal, Optional
 from typing_extensions import NotRequired
 
 
@@ -23,3 +23,6 @@ class DebateState(TypedDict):
     document_input: NotRequired[str]  # Document text or .docx file path for document-based debates
     direct_topic: NotRequired[str]  # Direct topic input (bypasses topic generation from --text CLI argument)
     document_context: NotRequired[str]  # Document text provided as context for debaters when using --docx with --request
+    # Custom prompt fields for role-based debates (Feature 003)
+    pro_custom_prompt: NotRequired[Optional[str]]  # Custom PRO debater prompt content (e.g., TPM role)
+    con_custom_prompt: NotRequired[Optional[str]]  # Custom CON debater prompt content (e.g., CPO role)
