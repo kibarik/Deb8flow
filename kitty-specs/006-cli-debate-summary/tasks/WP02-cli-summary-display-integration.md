@@ -2,7 +2,7 @@
 work_package_id: WP02
 title: CLI Summary Display Integration
 lane: planned
-dependencies: [WP01]
+dependencies: []
 subtasks: [T006, T007, T008, T009, T010]
 history:
 - date: 2026-02-14

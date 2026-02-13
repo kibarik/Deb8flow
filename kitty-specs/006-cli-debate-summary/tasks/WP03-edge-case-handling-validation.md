@@ -2,7 +2,7 @@
 work_package_id: WP03
 title: Edge Case Handling & Validation
 lane: planned
-dependencies: [WP02]
+dependencies: []
 subtasks: [T011, T012, T013, T014]
 history:
 - date: 2026-02-14
