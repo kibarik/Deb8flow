@@ -21,16 +21,26 @@ from configurations.debate_constants import (
 class ProDebaterNode(BaseComponent):
     def __init__(self, llm_config, temperature: float = 0.7):
         super().__init__(llm_config, temperature)
-        self.opening_chain = self.create_chain(SYSTEM_PROMPT, OPENING_HUMAN_PROMPT)
-        self.opening_retry_chain = self.create_chain(SYSTEM_PROMPT, OPENING_RETRY_HUMAN_PROMPT)
-        self.counter_chain = self.create_chain(SYSTEM_PROMPT, COUNTER_HUMAN_PROMPT)
-        self.counter_retry_chain = self.create_chain(SYSTEM_PROMPT, COUNTER_RETRY_HUMAN_PROMPT)
-        # Document-aware chains
-        self.document_opening_chain = self.create_chain(SYSTEM_PROMPT, DOCUMENT_OPENING_HUMAN_PROMPT)
-        self.document_counter_chain = self.create_chain(SYSTEM_PROMPT, DOCUMENT_COUNTER_HUMAN_PROMPT)
+        # Create chains dynamically for each call to avoid variable caching issues
+        self.llm_config = llm_config
+        self.temperature = temperature
+        self.chains_initialized = False
+
+    def _ensure_chains_initialized(self):
+        """Initialize chains lazily when first needed."""
+        if not self.chains_initialized:
+            self.opening_chain = self.create_chain(SYSTEM_PROMPT, OPENING_HUMAN_PROMPT)
+            self.opening_retry_chain = self.create_chain(SYSTEM_PROMPT, OPENING_RETRY_HUMAN_PROMPT)
+            self.counter_chain = self.create_chain(SYSTEM_PROMPT, COUNTER_HUMAN_PROMPT)
+            self.counter_retry_chain = self.create_chain(SYSTEM_PROMPT, COUNTER_RETRY_HUMAN_PROMPT)
+            # Document-aware chains - created separately to avoid variable overlap
+            self.document_opening_chain = self.create_chain(SYSTEM_PROMPT, DOCUMENT_OPENING_HUMAN_PROMPT)
+            self.document_counter_chain = self.create_chain(SYSTEM_PROMPT, DOCUMENT_COUNTER_HUMAN_PROMPT)
+            self.chains_initialized = True
 
     def __call__(self, state: DebateState) -> Dict[str, Any]:
         super().__call__(state)
+        self._ensure_chains_initialized()
 
         debate_topic = state.get("debate_topic")
         messages = state.get("messages", [])
