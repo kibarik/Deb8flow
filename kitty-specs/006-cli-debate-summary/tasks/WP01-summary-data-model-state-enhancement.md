@@ -1,13 +1,17 @@
 ---
-work_package_id: "WP01"
-title: "Summary Data Model & State Enhancement"
-lane: "planned"
+work_package_id: WP01
+title: Summary Data Model & State Enhancement
+lane: "doing"
 dependencies: []
-subtasks: ["T001", "T002", "T003", "T004", "T005"]
+base_branch: main
+base_commit: 3ecea4ff3618acf623bc6b6ee9933e30a725c9e5
+created_at: '2026-02-13T23:46:39.073070+00:00'
+subtasks: [T001, T002, T003, T004, T005]
+shell_pid: "48535"
 history:
-  - date: 2026-02-14
-    action: "Created"
-    author: "spec-kitty.tasks"
+- date: 2026-02-14
+  action: Created
+  author: spec-kitty.tasks
 ---
 
 # Work Package: Summary Data Model & State Enhancement
