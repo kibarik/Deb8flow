@@ -48,16 +48,13 @@ class DocumentDebateWorkflow:
         # Entry point - start with document topic generation
         workflow.set_entry_point("document_topic_node")
 
-        # Flow
+        # Flow - only PRO starts after topic generation
         workflow.add_edge("document_topic_node", "pro_debater_node")
         workflow.add_edge("pro_debater_node", "fact_check_node")
         workflow.add_edge("con_debater_node", "fact_check_node")
         workflow.add_edge("fact_check_node", "fact_check_router_node")
-        # Router directs back to appropriate debater
-        workflow.add_edge("fact_check_router_node", "pro_debater_node")
-        workflow.add_edge("fact_check_router_node", "con_debater_node")
-        # Router can also end debate after max rounds (4 per side = 8 messages)
-        workflow.add_edge("fact_check_router_node", "judge_node")
+        # Note: fact_check_router_node uses Command(goto=...) for dynamic routing
+        # No static edges needed from router - it routes to: pro/con/judge dynamically
         workflow.add_edge("judge_node", END)
 
         return workflow

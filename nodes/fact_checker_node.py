@@ -3,10 +3,9 @@ import json
 import re
 from typing import Dict, Any
 from debate_state import DebateState
-from configurations.debate_constants import SPEAKER_PRO, SPEAKER_CON
+from configurations.debate_constants import SPEAKER_PRO, SPEAKER_CON, STAGE_REBUTTAL, STAGE_COUNTER
 from configurations.llm_config import requesty_llm_config_map, LLMConfig
 from utils import create_debate_message
-
 from nodes.base_component import BaseComponent
 
 
@@ -18,9 +17,9 @@ class FactCheckNode(BaseComponent):
         super().__init__(llm_config=llm_config, temperature=0.0)
 
     def _parse_fact_check_response(self, response: str) -> Dict[str, str]:
-        """Parse the LLM response to extract binary_score and justification."""
+        """Parse LLM response to extract binary_score and justification."""
         # Try to extract JSON from response
-        json_match = re.search(r'\{[^}]*"binary_score"\s*:\s*"[^"]*"[^}]*"justification"\s*:\s*"[^"]*"[^}]*\}', response, re.DOTALL)
+        json_match = re.search(r'\{[^}]*"binary_score"\s*:\s*"[^"]*"[^}]*"justification"\s*:\s*"[^}]*\}', response, re.DOTALL)
         if json_match:
             try:
                 return json.loads(json_match.group())
@@ -51,7 +50,7 @@ class FactCheckNode(BaseComponent):
 
     def __call__(self, state: DebateState) -> Dict[str, Any]:
         messages = state.get("messages", [])
-        last_message = messages[-1]
+        last_message = messages[-1] if messages else None
         claim = last_message["content"]
         speaker = last_message["speaker"]
         stage = state["stage"]
@@ -74,12 +73,12 @@ class FactCheckNode(BaseComponent):
                 "{{\n"
                 '  "binary_score": "yes" or "no",\n'
                 '  "justification": "your reasoning here"\n'
-                "}}\n\n"
                 "Guidelines:\n"
                 '- Use "yes" if the statement is plausible or has no specific factual claims\n'
                 '- Use "no" if it contains suspicious numbers or questionable claims\n'
                 "- If the statement doesn't contain references to studies or numbers, "
                 'consider it successfully fact-checked with a "yes" score.'
+                "}}\n\n"
             )
         )
 
@@ -94,25 +93,26 @@ class FactCheckNode(BaseComponent):
                 "validated": True
             }
         else:
-            self.log_debate_event(
-                f"Disputed\nReason: {result['justification']}\n"
-                f"{speaker.upper()} now has {state.get(f'times_{speaker}_fact_checked', 0) + 1}/3 failed checks",
-                prefix="FACT"
-            )
             fact_checker_msg = create_debate_message(
                 speaker="fact_checker",
                 content=result["binary_score"],
                 stage=state["stage"]
             )
             if speaker == SPEAKER_PRO:
+                # PRO debater just finished, next is CON's rebuttal
                 return {
                     "messages": messages + [fact_checker_msg],
                     "validated": False,
+                    "stage": STAGE_REBUTTAL,
+                    "speaker": SPEAKER_CON,
                     "times_pro_fact_checked": state.get("times_pro_fact_checked", 0) + 1,
                 }
             elif speaker == SPEAKER_CON:
+                # CON debater just finished or presented counter, next is PRO's counter argument
                 return {
                     "messages": messages + [fact_checker_msg],
                     "validated": False,
+                    "stage": STAGE_COUNTER,
+                    "speaker": SPEAKER_PRO,
                     "times_con_fact_checked": state.get("times_con_fact_checked", 0) + 1,
                 }

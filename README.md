@@ -108,6 +108,35 @@ LANGCHAIN_PROJECT
 
 python main.py
 
+## Document Debate CLI Usage
+
+The `document_debate_cli.py` provides a CLI for document-based AI debates:
+
+```bash
+# Activate virtual environment first
+source venv/bin/activate
+
+# Run debate with a direct text topic
+python3 document_debate_cli.py --text "GitHub полезен для разработчиков"
+
+# Run debate with a DOCX document and a specific request/question
+python3 document_debate_cli.py --docx '/path/to/document.docx' --request "какой потенциал у этого проекта?"
+```
+
+**Arguments:**
+- `--text <topic>` - Direct debate topic input (quick mode)
+- `--docx <file>` - Path to .docx file for document context
+- `--request <question>` - Debate topic/question (required when using --docx)
+
+**Examples:**
+```bash
+# Quick debate on a topic
+python3 document_debate_cli.py --text "Linkedin обязательный инструмент для получения высокой ЗП"
+
+# Document-based debate with context
+python3 document_debate_cli.py --docx '/Users/username/Downloads/PRD.docx' --request "какой потенциал у этого проекта?"
+```
+
 5) [View example output, which includes a fact-check.](./examples/example_output.txt)
 
 ## Project Structure
