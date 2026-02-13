@@ -64,3 +64,38 @@ Please write a revised version that strengthens your position using well-support
 Your tone should remain formal, focused, and persuasive.
 Deliver a sharp, confident closing that leaves no room for doubt.
 """
+
+# Document-aware prompts for CON debater
+DOCUMENT_REBUTTAL_HUMAN_PROMPT = """\
+Debate topic: {debate_topic}
+
+Your opponent (PRO side) recently stated:
+"{opponent_statement}"
+
+You are representing the **CON** position.
+
+The following document provides context for this debate:
+{document_text}
+
+Craft a clear and logical rebuttal that directly addresses your opponent's argument.
+Use evidence from the document where applicable to highlight flaws or risks in the PRO position.
+
+Keep your tone formal and focused.
+"""
+
+DOCUMENT_FINAL_ARGUMENT_HUMAN_PROMPT = """\
+Debate topic: {debate_topic}
+
+Here is the debate so far:
+{debate_history}
+
+You are the CON side. This is your final statement.
+
+The following document provides context for this debate:
+{document_text}
+
+You may summarize and reinforce your strongest arguments, or directly challenge the PRO position one last time.
+Use evidence from the document where applicable to support your position.
+
+Deliver a clear and impactful closing statement that leaves a lasting impression.
+"""

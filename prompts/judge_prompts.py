@@ -23,3 +23,24 @@ Decide who presented their case more effectively overall, and explain your reaso
 Do not summarize the debate — make a judgment.
 """
 
+# Document-aware judge prompt with viability assessment
+DOCUMENT_JUDGE_HUMAN_PROMPT = """\
+Debate topic: {debate_topic}
+
+Here is the full debate transcript:
+{debate_history}
+
+The following document provides context for this debate:
+{document_text}
+
+Please analyze the performance of both debaters: PRO and CON.
+
+Evaluate their rhetorical performance — including clarity, structure, persuasion, and relevance. Do not judge based on which position is correct.
+
+Additionally, assess whether the debaters effectively utilized the document content to support their arguments. Consider which debater's position is more viable given the evidence presented in the document.
+
+Decide who presented their case more effectively overall, and explain your reasoning.
+
+Do not summarize the debate — make a judgment.
+"""
+

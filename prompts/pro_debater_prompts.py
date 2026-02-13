@@ -33,7 +33,7 @@ Here is the debate so far:
 
 As the PRO side, craft a persuasive and logical counter-argument.
 
-Address your opponent’s key points directly, and reinforce the strength of your own stance. Keep your tone formal and factual, and aim to strengthen your case.
+Address your opponent's key points directly, and reinforce the strength of your own stance. Keep your tone formal and factual, and aim to strengthen your case.
 """
 
 
@@ -48,7 +48,36 @@ Here is the debate so far:
 
 Your previous counter-argument was flagged for factual inaccuracy.
 
-Please rewrite your counter-argument, carefully verifying any facts or studies you reference. Focus on addressing your opponent’s key claims using sound logic and credible information.
+Please rewrite your counter-argument, carefully verifying any facts or studies you reference. Focus on addressing your opponent's key claims using sound logic and credible information.
 
 Maintain a formal, persuasive tone. Stay focused, direct, and factual.
+"""
+
+# Document-aware prompts for PRO debater
+DOCUMENT_OPENING_HUMAN_PROMPT = """\
+Debate topic: {debate_topic}
+
+You are arguing the PRO side.
+
+The following document provides context for this debate:
+{document_text}
+
+Give your opening statement. Keep it concise, persuasive, and factual.
+Reference the document content where relevant to support your position.
+"""
+
+DOCUMENT_COUNTER_HUMAN_PROMPT = """\
+Debate topic: {debate_topic}
+
+Your opponent (CON) recently said:
+"{opponent_statement}"
+
+Here is the debate so far:
+{debate_history}
+
+The following document provides context for this debate:
+{document_text}
+
+As the PRO side, craft a persuasive and logical counter-argument.
+Use evidence from the document where applicable to address your opponent's points directly.
 """

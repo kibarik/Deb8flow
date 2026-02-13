@@ -11,6 +11,8 @@ from prompts.con_debater_prompts import (
     REBUTTAL_RETRY_HUMAN_PROMPT,
     FINAL_ARGUMENT_HUMAN_PROMPT,
     FINAL_ARGUMENT_RETRY_HUMAN_PROMPT,
+    DOCUMENT_REBUTTAL_HUMAN_PROMPT,
+    DOCUMENT_FINAL_ARGUMENT_HUMAN_PROMPT
 )
 from utils import create_debate_message, get_debate_history
 
@@ -21,6 +23,9 @@ class ConDebaterNode(BaseComponent):
         self.rebuttal_retry_chain = self.create_chain(SYSTEM_PROMPT, REBUTTAL_RETRY_HUMAN_PROMPT)
         self.final_argument_chain = self.create_chain(SYSTEM_PROMPT, FINAL_ARGUMENT_HUMAN_PROMPT)
         self.final_argument_retry_chain = self.create_chain(SYSTEM_PROMPT, FINAL_ARGUMENT_RETRY_HUMAN_PROMPT)
+        # Document-aware chains
+        self.document_rebuttal_chain = self.create_chain(SYSTEM_PROMPT, DOCUMENT_REBUTTAL_HUMAN_PROMPT)
+        self.document_final_argument_chain = self.create_chain(SYSTEM_PROMPT, DOCUMENT_FINAL_ARGUMENT_HUMAN_PROMPT)
 
     def __call__(self, state: DebateState) -> Dict[str, Any]:
         super().__call__(state)
@@ -28,6 +33,7 @@ class ConDebaterNode(BaseComponent):
         messages = state.get("messages", [])
         stage = state["stage"]
         speaker = state["speaker"]
+        document_context = state.get("document_context")
 
         # Determine if the CON agent is retrying due to a failed fact check
         last_msg = messages[-1] if messages else None
@@ -35,19 +41,37 @@ class ConDebaterNode(BaseComponent):
 
         if stage == STAGE_REBUTTAL and speaker == SPEAKER_CON:
             opponent_msg = self._get_last_message_by(SPEAKER_PRO, messages)
-            chain = self.rebuttal_retry_chain if retrying else self.rebuttal_chain
-            result = chain.invoke({
-                "debate_topic": debate_topic,
-                "opponent_statement": opponent_msg
-            })
+            if document_context and document_context.strip():
+                # Use document-aware prompt
+                chain = self.rebuttal_retry_chain if retrying else self.document_rebuttal_chain
+                result = chain.invoke({
+                    "debate_topic": debate_topic,
+                    "opponent_statement": opponent_msg,
+                    "document_text": document_context
+                })
+            else:
+                chain = self.rebuttal_retry_chain if retrying else self.rebuttal_chain
+                result = chain.invoke({
+                    "debate_topic": debate_topic,
+                    "opponent_statement": opponent_msg
+                })
 
         elif stage == STAGE_FINAL_ARGUMENT and speaker == SPEAKER_CON:
             debate_history = get_debate_history(messages)
-            chain = self.final_argument_retry_chain if retrying else self.final_argument_chain
-            result = chain.invoke({
-                "debate_topic": debate_topic,
-                "debate_history": debate_history
-            })
+            if document_context and document_context.strip():
+                # Use document-aware prompt
+                chain = self.final_argument_retry_chain if retrying else self.document_final_argument_chain
+                result = chain.invoke({
+                    "debate_topic": debate_topic,
+                    "debate_history": debate_history,
+                    "document_text": document_context
+                })
+            else:
+                chain = self.final_argument_retry_chain if retrying else self.final_argument_chain
+                result = chain.invoke({
+                    "debate_topic": debate_topic,
+                    "debate_history": debate_history
+                })
 
         else:
             raise ValueError(f"Unknown turn for ConDebater: stage={stage}, speaker={speaker}")

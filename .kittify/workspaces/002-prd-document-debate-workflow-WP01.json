@@ -1,0 +1,12 @@
+{
+  "wp_id": "WP01",
+  "feature_slug": "002-prd-document-debate-workflow",
+  "worktree_path": ".worktrees/002-prd-document-debate-workflow-WP01",
+  "branch_name": "002-prd-document-debate-workflow-WP01",
+  "base_branch": "main",
+  "base_commit": "16ba55b33084323debb536425288c6df02fa10ba",
+  "dependencies": [],
+  "created_at": "2026-02-12T21:26:28.342098+00:00",
+  "created_by": "implement-command",
+  "vcs_backend": "git"
+}
