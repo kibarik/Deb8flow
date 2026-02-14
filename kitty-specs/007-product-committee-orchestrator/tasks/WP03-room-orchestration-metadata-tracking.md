@@ -1,7 +1,7 @@
 ---
 work_package_id: WP03
 title: Room Orchestration & Metadata Tracking
-lane: "for_review"
+lane: "doing"
 dependencies: []
 subtasks:
 - T015
@@ -11,6 +11,8 @@ subtasks:
 - T019
 - T020
 phase: Foundation
+agent: "claude"
+shell_pid: "73239"
 ---
 
 ## Work Package Prompt: WP03 – Room Orchestration & Metadata Tracking
@@ -325,3 +327,4 @@ Not applicable for this WP (tested in WP06).
 
 - 2026-02-14T08:38:48Z – unknown – lane=doing – Starting implementation
 - 2026-02-14T08:39:00Z – unknown – lane=for_review – Implementation complete, ready for review
+- 2026-02-14T08:39:07Z – claude – shell_pid=73239 – lane=doing – Started review via workflow command
