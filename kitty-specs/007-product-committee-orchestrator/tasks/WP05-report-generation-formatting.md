@@ -1,7 +1,7 @@
 ---
 work_package_id: WP05
 title: Report Generation & Formatting
-lane: planned
+lane: "doing"
 dependencies: []
 subtasks:
 - T025
@@ -302,3 +302,7 @@ Not applicable for this WP (tested in WP06).
 - Report quality directly impacts user satisfaction
 - Test with 0, 1, 2, 3, and 4 successful rooms to verify formatting
 - Verify failed room handling produces clear messages
+
+## Activity Log
+
+- 2026-02-14T08:38:49Z – unknown – lane=doing – Starting implementation
