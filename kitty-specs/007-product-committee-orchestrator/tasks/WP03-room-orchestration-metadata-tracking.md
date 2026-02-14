@@ -1,7 +1,7 @@
 ---
 work_package_id: WP03
 title: Room Orchestration & Metadata Tracking
-lane: "doing"
+lane: "for_review"
 dependencies: []
 subtasks:
 - T015
@@ -324,3 +324,4 @@ Not applicable for this WP (tested in WP06).
 ## Activity Log
 
 - 2026-02-14T08:38:48Z – unknown – lane=doing – Starting implementation
+- 2026-02-14T08:39:00Z – unknown – lane=for_review – Implementation complete, ready for review
