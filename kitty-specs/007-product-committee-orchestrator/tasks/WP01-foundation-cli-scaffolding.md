@@ -1,17 +1,21 @@
 ---
-work_package_id: "WP01"
-title: "Foundation & CLI Scaffolding"
-phase: "Foundation"
-lane: "planned"
-subtasks:
-  - "T001"
-  - "T002"
-  - "T003"
-  - "T004"
-  - "T005"
-  - "T006"
-  - "T007"
+work_package_id: WP01
+title: Foundation & CLI Scaffolding
+lane: "doing"
 dependencies: []
+base_branch: main
+base_commit: 68851a5663dd0af255eb97f3cc86f99d76ed5536
+created_at: '2026-02-14T01:08:21.189494+00:00'
+subtasks:
+- T001
+- T002
+- T003
+- T004
+- T005
+- T006
+- T007
+phase: Foundation
+shell_pid: "67247"
 ---
 
 ## Work Package Prompt: WP01 – Foundation & CLI Scaffolding
