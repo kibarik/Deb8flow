@@ -153,3 +153,4 @@ cython_debug/
 .kittify/.dashboard
 # Excluded via sparse-checkout
 kitty-specs/
+.kittify/workspaces/
