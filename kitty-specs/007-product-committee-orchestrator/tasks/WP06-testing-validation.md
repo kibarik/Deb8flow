@@ -1,7 +1,7 @@
 ---
 work_package_id: WP06
 title: Testing & Validation
-lane: planned
+lane: "doing"
 dependencies: []
 subtasks:
 - T031
@@ -441,3 +441,7 @@ tests/
 
 **Critical Success Factor**:
 All tests passing is not sufficient - they must actually verify the requirements. Ensure tests are meaningful and cover edge cases, not just "checkboxes".
+
+## Activity Log
+
+- 2026-02-14T08:38:50Z – unknown – lane=doing – Starting implementation
