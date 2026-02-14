@@ -96,7 +96,8 @@ class ProDebaterNode(BaseComponent):
         pro_custom_prompt = state.get("pro_custom_prompt")
 
         # Initialize or re-create chains with custom prompt
-        if pro_custom_prompt != getattr(self, "_last_custom_prompt", None):
+        # Re-initialize if chains aren't initialized OR if custom prompt has changed
+        if not self.chains_initialized or pro_custom_prompt != getattr(self, "_last_custom_prompt", None):
             self._init_chains_with_custom_prompt(pro_custom_prompt)
             self._last_custom_prompt = pro_custom_prompt
 

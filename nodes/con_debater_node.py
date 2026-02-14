@@ -21,6 +21,7 @@ class ConDebaterNode(BaseComponent):
         super().__init__(llm_config, temperature)
         self.base_system_prompt = SYSTEM_PROMPT
         self._last_custom_prompt = None
+        self.chains_initialized = False
         # Note: CON node creates chains in __init__, not lazily
         # We'll update this pattern to support custom prompts
 
@@ -77,6 +78,7 @@ class ConDebaterNode(BaseComponent):
         self.document_final_argument_chain = self._create_chain_with_custom_prompt(
             custom_prompt, base_system_prompt, DOCUMENT_FINAL_ARGUMENT_HUMAN_PROMPT
         )
+        self.chains_initialized = True
 
     def __call__(self, state: DebateState) -> Dict[str, Any]:
         super().__call__(state)
@@ -85,7 +87,8 @@ class ConDebaterNode(BaseComponent):
         con_custom_prompt = state.get("con_custom_prompt")
 
         # Initialize or re-create chains with custom prompt
-        if con_custom_prompt != getattr(self, "_last_custom_prompt", None):
+        # Re-initialize if chains aren't initialized OR if custom prompt has changed
+        if not self.chains_initialized or con_custom_prompt != getattr(self, "_last_custom_prompt", None):
             self._init_chains_with_custom_prompt(con_custom_prompt)
             self._last_custom_prompt = con_custom_prompt
 

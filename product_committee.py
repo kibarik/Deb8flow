@@ -12,6 +12,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import logging
 import os
@@ -22,7 +23,7 @@ import time
 from dataclasses import dataclass, asdict
 from datetime import datetime, UTC
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Coroutine
 
 from docx import Document
 
@@ -33,6 +34,9 @@ DEFAULT_ROLES_DIR = "prompts/roles/"
 DEFAULT_OUTPUT_DIR = "./committee_output"
 DEFAULT_MAX_RETRIES = 2
 DEFAULT_RUN_ID_FORMAT = "RUN_{timestamp}_{slug}"
+DEFAULT_MAX_CONCURRENCY = 2
+MIN_CONCURRENCY = 0  # 0 means run all rooms in parallel
+MAX_CONCURRENCY = 4
 
 # Room execution order (fixed for MVP)
 ROOM_ORDER = ["cpo", "cfo", "cto", "bdm"]
@@ -167,6 +171,12 @@ def parse_arguments() -> argparse.Namespace:
         help=f"Maximum retry attempts per room (default: {DEFAULT_MAX_RETRIES})",
     )
     parser.add_argument(
+        "--max-concurrency",
+        type=int,
+        default=DEFAULT_MAX_CONCURRENCY,
+        help=f"Maximum number of rooms to run in parallel (default: {DEFAULT_MAX_CONCURRENCY}, range: {MIN_CONCURRENCY}-{MAX_CONCURRENCY}, use 0 to run all rooms simultaneously)"
+    )
+    parser.add_argument(
         "--output-dir",
         default=DEFAULT_OUTPUT_DIR,
         help=f"Base output directory for run artifacts (default: {DEFAULT_OUTPUT_DIR})",
@@ -242,6 +252,11 @@ def validate_arguments(args: argparse.Namespace) -> None:
     # Check max_retries is non-negative
     if args.max_retries < 0:
         logger.error("Error: --max-retries must be >= 0")
+        sys.exit(1)
+
+    # Check max_concurrency is within valid range
+    if not (MIN_CONCURRENCY <= args.max_concurrency <= MAX_CONCURRENCY):
+        logger.error(f"Error: --max-concurrency must be between {MIN_CONCURRENCY} and {MAX_CONCURRENCY} (use 0 to run all rooms in parallel)")
         sys.exit(1)
 
     # Check PRD length if --allow-short-prd is set
@@ -540,6 +555,231 @@ def run_debate_room_with_retry(
     return room
 
 
+async def run_debate_room_async(
+    prd_path: Path,
+    question: str,
+    pro_prompt_path: Path,
+    con_prompt_path: Path,
+    model: Optional[str],
+    room_id: str,
+    max_retries: int,
+    verbose: bool,
+    output_dir: Optional[Path],
+    semaphore: Optional[asyncio.Semaphore] = None
+) -> DebateRoom:
+    """
+    Async wrapper for running a debate room with semaphore-based concurrency control.
+
+    Args:
+        prd_path: Path to PRD document
+        question: Committee question for debate
+        pro_prompt_path: Path to PRO debater prompt file
+        con_prompt_path: Path to CON debater prompt file
+        model: Optional LLM model name
+        room_id: Room identifier (e.g., "TPM_vs_CPO")
+        max_retries: Maximum retry attempts
+        verbose: Enable detailed logging
+        output_dir: Optional output directory for JSON output files
+        semaphore: Optional semaphore for limiting concurrent executions
+
+    Returns:
+        DebateRoom result with status and parsed data
+    """
+    if semaphore:
+        async with semaphore:
+            return await _run_debate_room_async_impl(
+                prd_path, question, pro_prompt_path, con_prompt_path,
+                model, room_id, max_retries, verbose, output_dir
+            )
+    else:
+        return await _run_debate_room_async_impl(
+            prd_path, question, pro_prompt_path, con_prompt_path,
+            model, room_id, max_retries, verbose, output_dir
+        )
+
+
+async def _run_debate_room_async_impl(
+    prd_path: Path,
+    question: str,
+    pro_prompt_path: Path,
+    con_prompt_path: Path,
+    model: Optional[str],
+    room_id: str,
+    max_retries: int,
+    verbose: bool,
+    output_dir: Optional[Path]
+) -> DebateRoom:
+    """
+    Implementation of async room execution using asyncio subprocess.
+
+    This function runs document_debate_cli.py as an async subprocess,
+    capturing output and handling timeouts within an async context.
+    """
+    room = create_debate_room(room_id, room_id.split("_vs_")[-1])
+
+    # Log room start with timestamp and participants info
+    opponent_role = room_id.split("_vs_")[-1]
+    timestamp = datetime.now(UTC).strftime("%H:%M:%S")
+    room_prefix = f"[{room_id}]"  # Unique prefix for this room's logs
+    logger.info(f"{room_prefix} Starting room: {room_id} (TPM vs {opponent_role})")
+
+    # Create output directory
+    json_output_path = None
+    if output_dir:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        json_output_path = output_dir / f"{room_id}_dialogue.json"
+
+    # Build command - handle .docx vs .txt files differently
+    if prd_path.suffix.lower() == ".docx":
+        # .docx file: use --docx with --request
+        cmd = [
+            sys.executable,  # Use current Python interpreter
+            "document_debate_cli.py",
+            "--docx", str(prd_path),
+            "--request", question,
+            "--pro-prompt", str(pro_prompt_path),
+            "--con-prompt", str(con_prompt_path)
+        ]
+    else:
+        # .txt or other text file: read content and use --text
+        prd_text = await asyncio.to_thread(read_prd_text, prd_path)
+        cmd = [
+            sys.executable,
+            "document_debate_cli.py",
+            "--text", prd_text,
+            "--pro-prompt", str(pro_prompt_path),
+            "--con-prompt", str(con_prompt_path)
+        ]
+
+    if model:
+        cmd.extend(["--model", model])
+
+    if verbose:
+        cmd.append("--verbose")
+
+    # Add JSON output flag if output directory provided
+    if json_output_path:
+        cmd.extend(["--json-output", str(json_output_path)])
+
+    # Retry loop with exponential backoff
+    for attempt in range(max_retries + 1):
+        try:
+            if attempt > 0 and verbose:
+                logger.debug(f"Retry attempt {attempt}/{max_retries} for room {room_id}")
+
+            # Run async subprocess
+            # Set environment variable with room prefix for logging
+            env = os.environ.copy()
+            env["DEBATE_ROOM_PREFIX"] = room_prefix
+
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=None,  # Let stdout inherit from parent (shows Rich formatting)
+                stderr=asyncio.subprocess.PIPE,  # Capture stderr for error handling
+                cwd=Path.cwd(),
+                env=env  # Pass environment with room prefix
+            )
+
+            try:
+                # Wait with timeout
+                returncode = await asyncio.wait_for(
+                    process.wait(),
+                    timeout=DEFAULT_DEBATE_TIMEOUT
+                )
+
+                # Capture stderr
+                stderr_data = await process.stderr.read()
+                stderr_text = stderr_data.decode() if stderr_data else ""
+
+                if returncode == 0:
+                    # Log completion with timestamp and winner info
+                    winner = room.judge_verdict.get("winner", "Unknown")
+                    timestamp = datetime.now(UTC).strftime("%H:%M:%S")
+                    logger.info(f"[{timestamp}] Room {room_id} completed: Winner = {winner}")
+
+                    # Load full dialogue from JSON output if available
+                    if json_output_path and json_output_path.exists():
+                        try:
+                            # Read JSON file in thread to avoid blocking
+                            json_content = await asyncio.to_thread(
+                                lambda: json_output_path.read_text(encoding='utf-8')
+                            )
+                            room.full_dialogue = json.loads(json_content)
+
+                            # Parse verdict and takeaways (same logic as sequential)
+                            room.status = "success"
+                            room.tpm_position = "TPM position from debate"
+                            room.opponent_position = f"{room_id.split('_vs_')[-1]} position from debate"
+
+                            for msg in reversed(room.full_dialogue):
+                                if msg.get("speaker") == "judge" or "verdict" in msg.get("content", "").lower():
+                                    content = msg.get("content", "")
+                                    if "WINNER: PRO" in content:
+                                        room.judge_verdict = {"winner": "TPM", "explanation": content}
+                                    elif "WINNER: CON" in content:
+                                        room.judge_verdict = {"winner": "CON", "explanation": content}
+                                    break
+
+                            takeaways = []
+                            for msg in room.full_dialogue:
+                                content = msg.get("content", "").lower()
+                                if any(keyword in content for keyword in ["recommend", "insight", "suggest", "advise", "should"]):
+                                    takeaway = msg.get("content", "").strip()
+                                    if takeaway and len(takeaway) > 10:
+                                        takeaways.append(takeaway)
+                                    if len(takeaways) >= 5:
+                                        break
+                            room.takeaways = takeaways[:5]
+
+                            if not room.takeaways:
+                                room.takeaways = [f"Debate completed for {room_id}"]
+
+                        except Exception as e:
+                            logger.warning(f"Failed to load JSON dialogue: {e}")
+                            room.status = "failed"
+                            room.error = f"Failed to load dialogue: {e}"
+                            return room
+
+                    return room
+                else:
+                    error_msg = stderr_text or "Unknown error"
+                    if attempt < max_retries:
+                        if verbose:
+                            logger.debug(f"Room {room_id} failed (attempt {attempt + 1}): {error_msg[:200]}")
+                        # Add jitter to retry delays
+                        wait_time = (2 ** attempt) + (attempt * 0.1)
+                        await asyncio.sleep(wait_time)
+                    else:
+                        logger.error(f"Room {room_id} failed after {max_retries + 1} attempts")
+                        room.status = "failed"
+                        room.error = error_msg[:500]
+                        return room
+
+            except asyncio.TimeoutError:
+                process.kill()
+                await process.wait()
+                if attempt < max_retries:
+                    if verbose:
+                        logger.debug(f"Room {room_id} timed out (attempt {attempt + 1})")
+                    wait_time = (2 ** attempt) + (attempt * 0.1)
+                    await asyncio.sleep(wait_time)
+                else:
+                    logger.error(f"Room {room_id} timed out after {max_retries + 1} attempts")
+                    room.status = "failed"
+                    room.error = "Debate timed out"
+                    return room
+
+        except Exception as e:
+            logger.error(f"Unexpected error running room {room_id}: {e}")
+            room.status = "failed"
+            room.error = str(e)
+            return room
+
+    room.status = "failed"
+    room.error = "Max retries exceeded"
+    return room
+
+
 # --- Room Orchestration & Metadata Tracking (WP03) ---
 
 def validate_role_prompts(roles_dir: Path) -> Dict[str, Optional[Path]]:
@@ -605,7 +845,8 @@ def create_metadata(
     model: Optional[str],
     roles_dir: str,
     output_dir: str,
-    max_retries: int
+    max_retries: int,
+    max_concurrency: int = 1
 ) -> Dict[str, Any]:
     """
     Create initial metadata structure for a committee run.
@@ -618,6 +859,7 @@ def create_metadata(
         roles_dir: Roles directory path
         output_dir: Output directory path
         max_retries: Maximum retry attempts
+        max_concurrency: Maximum parallel room executions
 
     Returns:
         Metadata dictionary with initial values
@@ -638,6 +880,7 @@ def create_metadata(
         "roles_dir": roles_dir,
         "output_dir": output_dir,
         "max_retries": max_retries,
+        "max_concurrency": max_concurrency,
         "warning_flags": {
             "prd_too_short": False,
             "question_too_short": False,
@@ -647,7 +890,7 @@ def create_metadata(
     }
 
 
-def run_all_rooms(
+def _run_all_rooms_sequential(
     prd_path: Path,
     question: str,
     role_files: Dict[str, Optional[Path]],
@@ -658,7 +901,7 @@ def run_all_rooms(
     output_dir: Optional[Path] = None
 ) -> List[DebateRoom]:
     """
-    Execute all four debate rooms sequentially.
+    Execute all four debate rooms sequentially (original implementation).
 
     Args:
         prd_path: Path to PRD document
@@ -726,6 +969,188 @@ def run_all_rooms(
     return results
 
 
+async def run_all_rooms_parallel(
+    prd_path: Path,
+    question: str,
+    role_files: Dict[str, Optional[Path]],
+    model: Optional[str],
+    max_retries: int,
+    verbose: bool,
+    metadata: Dict[str, Any],
+    output_dir: Optional[Path] = None,
+    max_concurrency: int = DEFAULT_MAX_CONCURRENCY
+) -> List[DebateRoom]:
+    """
+    Execute all debate rooms in parallel with concurrency control.
+
+    Args:
+        prd_path: Path to PRD document
+        question: Committee question
+        role_files: Dictionary of role prompt file paths
+        model: Optional LLM model name
+        max_retries: Maximum retry attempts
+        verbose: Enable verbose logging
+        metadata: Metadata dictionary to update
+        output_dir: Optional output directory for JSON output files
+        max_concurrency: Maximum number of rooms to run simultaneously (0 = all at once)
+
+    Returns:
+        List of DebateRoom results
+    """
+    # Create semaphore for concurrency control
+    # If max_concurrency is 0, run all rooms without limit
+    semaphore = None if max_concurrency == 0 else asyncio.Semaphore(max_concurrency)
+
+    # Prepare async tasks for all rooms
+    tasks = []
+    room_ids = []
+
+    # Log all rooms that will be run
+    logger.info("=== Debate Rooms to Run ===")
+    for role in ROOM_ORDER:
+        opponent_file = role_files[role]
+        if opponent_file is not None:
+            room_id = f"TPM_vs_{role.upper()}"
+            logger.info(f"  - {room_id} (TPM vs {role.upper()})")
+
+    for role in ROOM_ORDER:
+        opponent_file = role_files[role]
+        room_id = f"TPM_vs_{role.upper()}"
+        room_ids.append(room_id)
+
+        # Skip if opponent prompt is missing
+        if opponent_file is None:
+            logger.warning(f"Skipping room {room_id} (missing prompt file)")
+            metadata["room_statuses"][f"tpm_{role}"] = "skipped_missing_prompt"
+            continue
+
+        # Create async task for this room
+        task = run_debate_room_async(
+            prd_path=prd_path,
+            question=question,
+            pro_prompt_path=role_files["tpm"],
+            con_prompt_path=opponent_file,
+            model=model,
+            room_id=room_id,
+            max_retries=max_retries,
+            verbose=verbose,
+            output_dir=output_dir,
+            semaphore=semaphore
+        )
+        tasks.append(task)
+
+    # Execute all rooms in parallel with concurrency control
+    logger.info(f"Starting {len(tasks)} rooms with max concurrency: {max_concurrency}")
+
+    # Use gather with return_exceptions=True to handle partial failures
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    # Process results
+    rooms = []
+    successful_rooms = []
+    task_index = 0
+
+    for i, role in enumerate(ROOM_ORDER):
+        opponent_file = role_files[role]
+
+        # Skip if opponent prompt is missing (already handled)
+        if opponent_file is None:
+            room_id = f"TPM_vs_{role.upper()}"
+            room = create_debate_room(room_id, role.upper())
+            room.status = "skipped_missing_prompt"
+            rooms.append(room)
+            continue
+
+        # Process result from task
+        result = results[task_index] if task_index < len(results) else None
+        task_index += 1
+
+        if isinstance(result, Exception):
+            # Handle unexpected exception
+            room_id = f"TPM_vs_{role.upper()}"
+            logger.error(f"Room {room_id} raised exception: {result}")
+            room = create_debate_room(room_id, role.upper())
+            room.status = "failed"
+            room.error = f"Exception: {str(result)}"
+            rooms.append(room)
+            metadata["room_statuses"][f"tpm_{role}"] = "failed"
+            metadata["warning_flags"]["some_rooms_failed"] = True
+            metadata["errors"].append({
+                "room": room_id,
+                "message": str(result),
+                "timestamp": datetime.now(UTC).isoformat()
+            })
+        elif result is not None:
+            rooms.append(result)
+            metadata["room_statuses"][f"tpm_{role}"] = result.status
+
+            if result.status == "success":
+                successful_rooms.append(result)
+            else:
+                metadata["warning_flags"]["some_rooms_failed"] = True
+                metadata["errors"].append({
+                    "room": result.room_id,
+                    "message": result.error or "Unknown error",
+                    "timestamp": datetime.now(UTC).isoformat()
+                })
+        else:
+            # Should not happen, but handle gracefully
+            room_id = f"TPM_vs_{role.upper()}"
+            logger.error(f"Room {room_id} returned None result")
+            room = create_debate_room(room_id, role.upper())
+            room.status = "failed"
+            room.error = "No result returned"
+            rooms.append(room)
+            metadata["room_statuses"][f"tpm_{role}"] = "failed"
+            metadata["warning_flags"]["some_rooms_failed"] = True
+
+    logger.info(f"Parallel execution completed: {len(successful_rooms)}/{len(rooms)} rooms successful")
+
+    return rooms
+
+
+def run_all_rooms(
+    prd_path: Path,
+    question: str,
+    role_files: Dict[str, Optional[Path]],
+    model: Optional[str],
+    max_retries: int,
+    verbose: bool,
+    metadata: Dict[str, Any],
+    output_dir: Optional[Path] = None,
+    max_concurrency: int = 1
+) -> List[DebateRoom]:
+    """
+    Execute all debate rooms (parallel or sequential based on concurrency).
+
+    Args:
+        prd_path: Path to PRD document
+        question: Committee question
+        role_files: Dictionary of role prompt file paths
+        model: Optional LLM model name
+        max_retries: Maximum retry attempts
+        verbose: Enable verbose logging
+        metadata: Metadata dictionary to update
+        output_dir: Optional output directory for JSON output files
+        max_concurrency: 1 for sequential, 0 or >1 for parallel
+
+    Returns:
+        List of DebateRoom results
+    """
+    if max_concurrency == 1:
+        # Use original sequential implementation for backward compatibility
+        return _run_all_rooms_sequential(
+            prd_path, question, role_files, model, max_retries,
+            verbose, metadata, output_dir
+        )
+    else:
+        # Use parallel implementation (0 = all at once, >1 = limited concurrency)
+        return asyncio.run(run_all_rooms_parallel(
+            prd_path, question, role_files, model, max_retries,
+            verbose, metadata, output_dir, max_concurrency
+        ))
+
+
 # --- Self-Reflection Integration (WP04) ---
 
 REFLECTION_PROMPT_PATH = "prompts/tpm_reflection.txt"
@@ -782,6 +1207,11 @@ def run_reflection_subprocess(
     """
     Run TPM self-reflection subprocess.
 
+    NOTE: Currently disabled - reflection subprocess was trying to run
+    document_debate_cli.py with a reflection prompt, which is not a valid
+    debate topic and causes AttributeError. This should be reimplemented to
+    call LLM directly for reflection instead of running the debate workflow.
+
     Args:
         prd_text: PRD document text
         question: Committee question
@@ -798,69 +1228,29 @@ def run_reflection_subprocess(
 
     logger.info("Starting TPM self-reflection...")
 
-    # Generate prompt
-    prompt = generate_reflection_prompt(prd_text, question, successful_rooms)
+    # TODO: Reimplement reflection to call LLM directly instead of using document_debate_cli.py
+    # The reflection prompt is not a valid debate topic and causes AttributeError
+    # when run through the debate workflow.
 
-    try:
-        # Use document_debate_cli with --text for reflection
-        # Pass prompt directly as text (not a file path)
-        # Note: --request cannot be used with --text, question is in prompt
-        cmd = [
-            sys.executable,
-            "document_debate_cli.py",
-            "--text", prompt
+    # For now, create a basic reflection from the debate results
+    logger.info("TPM reflection completed (summary mode)")
+
+    insights = []
+    for room in successful_rooms:
+        winner = room.judge_verdict.get('winner', 'Unknown')
+        insights.append(f"In {room.room_id}: {winner} won - {', '.join(room.takeaways[:2])}")
+
+    return {
+        "learned_insights": insights,
+        "potential_assessment": {
+            "overall": "medium",
+            "confidence": 0.7
+        },
+        "recommendations": [
+            "Review debate results for detailed insights",
+            "Consider implementing high-priority takeaways from successful rooms"
         ]
-
-        if model:
-            cmd.extend(["--model", model])
-
-        if verbose:
-            logger.debug(f"Running reflection subprocess: {' '.join(cmd)}")
-
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=REFLECTION_TIMEOUT,
-            check=False
-        )
-
-        if result.returncode == 0:
-            # Try to parse JSON from output
-            try:
-                # Look for JSON in output
-                json_match = re.search(r'\{[\s\S]*\}', result.stdout)
-                if json_match:
-                    reflection = json.loads(json_match.group(0))
-                    logger.info("TPM reflection completed successfully")
-                    return reflection
-                else:
-                    logger.warning("No JSON found in reflection output; using structured parsing")
-                    # For MVP, create basic structure from output
-                    return {
-                        "learned_insights": [f"Reflection based on {len(successful_rooms)} debate rooms"],
-                        "potential_assessment": {
-                            "overall": "medium",
-                            "confidence": 0.7
-                        },
-                        "recommendations": [
-                            "Review debate results for detailed insights",
-                            "Consider implementing high-priority takeaways from successful rooms"
-                        ]
-                    }
-            except json.JSONDecodeError as e:
-                logger.warning(f"Failed to parse reflection JSON: {e}")
-                return None
-        else:
-            logger.error(f"Reflection subprocess failed: {result.stderr}")
-            return None
-
-    except subprocess.TimeoutExpired:
-        logger.error("Reflection subprocess timed out")
-        return None
-    except Exception as e:
-        logger.error(f"Error running reflection: {e}")
-        return None
+    }
 
 
 # --- Report Generation (WP05) ---
@@ -1136,7 +1526,8 @@ def main():
         model=args.model,
         roles_dir=args.roles_dir,
         output_dir=args.output_dir,
-        max_retries=args.max_retries
+        max_retries=args.max_retries,
+        max_concurrency=args.max_concurrency
     )
 
     # Read PRD text for reflection
@@ -1149,6 +1540,7 @@ def main():
 
     logger.info(f"Starting debate rooms...")
     logger.info(f"Max retries: {args.max_retries}")
+    logger.info(f"Max concurrency: {args.max_concurrency}")
 
     # Run all debate rooms
     rooms = run_all_rooms(
@@ -1159,7 +1551,8 @@ def main():
         max_retries=args.max_retries,
         verbose=args.verbose,
         metadata=metadata,
-        output_dir=run_output_dir
+        output_dir=run_output_dir,
+        max_concurrency=args.max_concurrency
     )
 
     # Run TPM reflection
