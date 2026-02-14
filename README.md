@@ -1,213 +1,133 @@
-# deb8flow: Multi-Agent Debate Simulation with LangGraph
+# Deb8flow: Multi-Agent AI Debate Framework
 
-**deb8flow** is a full-stack, multi-agent AI debate framework built with [LangGraph](https://github.com/langchain-ai/langgraph). It simulates a structured and fact-checked formal debate between two autonomous AI agents — one PRO and one CON — orchestrated by a moderator and finalized with a judge's verdict.
+**Deb8flow** is a multi-agent AI debate framework built with [LangGraph](https://github.com/langchain-ai/langgraph). It simulates structured debates between two autonomous AI agents (PRO and CON), orchestrated by a moderator and finalized with a judge's verdict. The system includes integrated fact-checking and supports both standard and document-based debates.
 
-This project showcases complex agentic flows, runtime control logic, fact verification, and dynamic decision-making in a fully controlled LangGraph workflow. If you're exploring how to build serious multi-agent systems with memory, routing, retries, and arbitration, **deb8flow** is your guide.
-
----
-
-## Features
-
-- **Dynamic Multi-Agent Debate Flow**  
-  PRO vs CON debaters exchange structured arguments, rebuttals, counters, and final remarks.
-
-- **LLM-Powered Agents**  
-  Built using OpenAI’s GPT-4.1 (with web search) and LangChain runtimes.
-
-- **Fact Checker Agent**  
-  Validates claims using OpenAI's integrated web search; enforces accuracy with retry logic and disqualification if falsehoods persist.
-
-- **Moderator & Router Nodes**  
-  Uses `Command` objects to orchestrate debate flow and enforce stage transitions.
-
-- **Judge Agent**  
-  Concludes the debate with a verdict based on clarity, structure, and persuasive merit.
-
-- **Fully Modular LangGraph Architecture**  
-  Clean separation of nodes: topic generator, debaters, fact checker, routers, and judge.
+**Inspired by the original framework by [Iason Solomos](https://github.com/iason-solomos)** — thank you for creating this foundational project!
 
 ---
 
+## Quick Start
 
-## Flow
-
-![Debate Workflow](assets/workflow.png)
-
-
-## Debate Flow Overview
-
-- **Topic Generator**: Produces a nuanced, debatable topic for the session.
-
----
-
-### Opening Phase
-- **Pro Agent**: Delivers the **opening statement** in support of the topic.
-- **Moderator**: Passes the floor to the **Con Agent**.
-- **Con Agent**: Responds with a **rebuttal** to the Pro’s opening statement.
-
----
-
-### Counter Phase
-- **Moderator**: Returns the floor to the **Pro Agent**.
-- **Pro Agent**: Offers a **counterargument** to the Con Agent's rebuttal.
-
----
-
-### Closing Phase
-- **Moderator**: Passes the floor to the **Con Agent** again.
-- **Con Agent**: Presents their **final closing statement**.
-- **Moderator**: Wraps up and hands off to the **Judge Agent**.
-
----
-
-## Fact-Checker Agent Rules
-
-- After **every speaker**, the Fact Checker **evaluates each claim** for accuracy.
-- If a statement **fails the fact-check**, the speaker must **restate** or **correct** their argument.
-- Any debater who fails **three fact-checks** automatically **loses** the debate.
-
----
-
-## Judging Criteria
-
-- The **Judge Agent** reviews the full debate history and evaluates both sides based on:
-  - Argument **quality**
-  - Logical **clarity**
-  - Structural **coherence**
-- The most persuasive, well-reasoned side **wins**.
-
-
-
-## Installation & Usage
-
-1) Clone the repository:
-
-git clone https://github.com/iason-solomos/Deb8flow.git
-
-cd deb8flow
-
-2) Install Dependencies
-
-pip install -r requirements.txt
-
-3) Set up your .env file
-
-Should include those keys:
-
-OPENAI_API_KEY
-
-and optionally (but recommended) for tracing:
-
-LANGCHAIN_API_KEY
-
-LANGCHAIN_TRACING_V2
-
-LANGCHAIN_PROJECT
-
-4) Run the debate
-
-python main.py
-
-## Document Debate CLI Usage
-
-The `document_debate_cli.py` provides a CLI for document-based AI debates:
+### 1. Install Dependencies
 
 ```bash
-# Activate virtual environment first
-source venv/bin/activate
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
 
-# Run debate with a direct text topic
+### 2. Configure Environment
+
+Create a `.env` file with your API key:
+
+```
+OPENAI_API_KEY=your_openai_key_here
+```
+
+Optional (for tracing):
+```
+LANGCHAIN_API_KEY=your_langchain_key
+LANGCHAIN_TRACING_V2=true
+LANGCHAIN_PROJECT=deb8flow
+```
+
+### 3. Run a Standard Debate
+
+```bash
+python main.py
+```
+
+---
+
+## Document-Based Debates
+
+The `document_debate_cli.py` enables debates based on documents or custom topics.
+
+### Basic Usage
+
+```bash
+# Quick debate on a direct topic
 python3 document_debate_cli.py --text "GitHub полезен для разработчиков"
 
-# Run debate with a DOCX document and a specific request/question
+# Debate based on a document with a specific question
 python3 document_debate_cli.py --docx '/path/to/document.docx' --request "какой потенциал у этого проекта?"
 ```
 
-## Custom Role-Based Debates
+### Custom Role-Based Debates
 
-You can customize debater roles using prompt files to enable professional perspective debates like TPM vs CPO, Developer vs Designer, or any custom roles you need.
-```
+Customize debater roles using prompt files (e.g., TPM vs CPO, Developer vs Designer):
 
-**Arguments:**
-- `--text <topic>` - Direct debate topic input (quick mode)
-- `--docx <file>` - Path to .docx file for document context
-- `--request <question>` - Debate topic/question (required when using --docx)
-
-**Examples:**
 ```bash
-# Quick debate on a topic
-python3 document_debate_cli.py --text "Linkedin обязательный инструмент для получения высокой ЗП"
-
-# Document-based debate with context
-python3 document_debate_cli.py --docx '/Users/username/Downloads/PRD.docx' --request "какой потенциал у этого проекта?"
+python3 document_debate_cli.py \
+  --docx '/path/to/PRD.docx' \
+  --request "какой потенциал у этого проекта?" \
+  --pro-prompt 'prompts/tpm.txt' \
+  --con-prompt 'prompts/cpo.txt'
 ```
 
-5) [View example output, which includes a fact-check.](./examples/example_output.txt)
+#### CLI Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `--text <topic>` | Direct debate topic (quick mode) |
+| `--docx <file>` | Path to .docx file for context |
+| `--request <question>` | Debate topic/question (required with --docx) |
+| `--pro-prompt <file>` | Path to custom PRO debater prompt file |
+| `--con-prompt <file>` | Path to custom CON debater prompt file |
+| `--verbose` | Show detailed prompt content for verification |
+
+---
+
+## Debate Structure
+
+```
+topic_generation → opening (PRO) → fact_check → rebuttal (CON) → fact_check
+→ counter (PRO) → fact_check → final_argument (CON) → fact_check → judge_verdict
+```
+
+### Key Features
+
+- **Multi-LLM Support**: OpenAI, Azure OpenAI, Zhipu AI, Requesty/DeepSeek
+- **Fact-Checking**: Validates every claim with web search; 3 failures = disqualification
+- **Custom Prompts**: Inject custom role-based prompts for specialized debates
+
+---
 
 ## Project Structure
 
-```markdown
-deb8flow/
-├──configurations/             # Debate constants and LLM configs
-├──nodes/                     # LangGraph nodes (debater, fact checker, etc.)
-├──prompts/                   # System and human prompts per agent                 
-├──tests/                      # Tests
-├──workflow/                   # Langgraph workflow
-├──debate_state.py            # Typed state definitions (DebateState, DebateMessage)
-├──main.py                    # Entry point to run the debate
-├──README.md
-├──requirements.txt
-├──utils.py                    # Some common utilities like getting the debate history
-└──workflow_graph.png
+```
+Deb8flow/
+├── nodes/              # LangGraph node implementations
+├── prompts/            # System prompts for each agent role
+├── workflow/           # LangGraph workflow definitions
+├── configurations/     # LLM configs and debate constants
+├── tests/              # E2E tests (19/19 passing)
+├── main.py             # Entry point for standard debates
+├── document_debate_cli.py  # CLI for document-based debates
+└── debate_state.py     # TypedDict state definitions
 ```
 
-## Built with:
+---
 
-[LangGraph](https://langchain-ai.github.io/langgraph/tutorials/introduction/) <br/>
+## Testing
 
-[LangChain](https://python.langchain.com/docs/introduction/) <br/>
+```bash
+# Run all tests
+pytest
 
-OpenAI GPT-4.1
+# Run specific test file
+pytest tests/test_full_workflow.py
+```
 
-Python 3.10+
+---
 
-Pydantic
+## Built With
 
-dotenv
-
-## Use Cases
-
-Argument Generation or Position Testing
-
-Fact Checking + Self-Correction Pipelines
-
-Multi-Agent Workflow Demos
-
-LangGraph Pattern Reference
-
-AI Safety / Alignment Experiments
-
-## Future Ideas
-Add scoring by a panel of judges and decide winner based on majority voting
-
-Add multiple debate rounds or crossfire
-
-Export debate timeline to Markdown or HTML
-
-## Contributing
-Want to add a new node, logic layer, or feature? PRs welcome!
-
-## Fork the repo
-
-Create your branch: git checkout -b feature/your-feature
-
-Commit your changes
-
-Push and open a pull request
+- [LangGraph](https://langchain-ai.github.io/langgraph/)
+- [LangChain](https://python.langchain.com/)
+- OpenAI GPT-4.1
+- Python 3.12+
 
 ## License
-MIT License.
-© 2025 [Iason Solomos]
 
-## 🌟 Show Your Support
-If you find this useful, star the repo ⭐ and share it with your LangChain, LLM, or AI dev friends!
+MIT License
