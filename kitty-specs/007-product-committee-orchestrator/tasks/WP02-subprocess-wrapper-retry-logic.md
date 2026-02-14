@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: Subprocess Wrapper & Retry Logic
-lane: "doing"
+lane: "for_review"
 dependencies: []
 subtasks:
 - T008
@@ -328,3 +328,4 @@ Not applicable for this WP (unit tests in WP06).
 ## Activity Log
 
 - 2026-02-14T08:38:48Z – unknown – lane=doing – Starting implementation
+- 2026-02-14T08:39:00Z – unknown – lane=for_review – Implementation complete, ready for review
