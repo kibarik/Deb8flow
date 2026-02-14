@@ -1,7 +1,7 @@
 ---
 work_package_id: WP04
 title: Self-Reflection Integration
-lane: "for_review"
+lane: "doing"
 dependencies: []
 subtasks:
 - T021
@@ -9,6 +9,8 @@ subtasks:
 - T023
 - T024
 phase: Foundation
+agent: "claude"
+shell_pid: "73239"
 ---
 
 ## Work Package Prompt: WP04 – Self-Reflection Integration
@@ -231,3 +233,4 @@ Not applicable for this WP (tested in WP06).
 
 - 2026-02-14T08:38:49Z – unknown – lane=doing – Starting implementation
 - 2026-02-14T08:39:01Z – unknown – lane=for_review – Implementation complete, ready for review
+- 2026-02-14T08:39:08Z – claude – shell_pid=73239 – lane=doing – Started review via workflow command
