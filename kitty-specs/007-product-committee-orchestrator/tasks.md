@@ -54,7 +54,7 @@ This document outlines all work packages for implementing the Product Committee 
 
 **Subtasks**:
 - [x] T001: Create `product_committee.py` with basic structure
-- [ ] T002: Implement argparse/click argument parsing
+- [x] T002: Implement argparse/click argument parsing
 - [ ] T003: Add `--prd`/`--docx` required argument with validation
 - [ ] T004: Add `--question` required argument with validation
 - [ ] T005: Add optional arguments: `--model`, `--max-retries`, `--output-dir`, `--roles-dir`, `--run-id`, `--allow-short-prd`, `--verbose`, `--quiet`
