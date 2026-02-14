@@ -123,6 +123,11 @@ python3 document_debate_cli.py --text "GitHub полезен для разраб
 python3 document_debate_cli.py --docx '/path/to/document.docx' --request "какой потенциал у этого проекта?"
 ```
 
+## Custom Role-Based Debates
+
+You can customize debater roles using prompt files to enable professional perspective debates like TPM vs CPO, Developer vs Designer, or any custom roles you need.
+```
+
 **Arguments:**
 - `--text <topic>` - Direct debate topic input (quick mode)
 - `--docx <file>` - Path to .docx file for document context
