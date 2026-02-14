@@ -1,7 +1,7 @@
 ---
 work_package_id: WP06
 title: Testing & Validation
-lane: "for_review"
+lane: "doing"
 dependencies: []
 subtasks:
 - T031
@@ -12,6 +12,8 @@ subtasks:
 - T036
 - T037
 phase: Polish
+agent: "claude"
+shell_pid: "73239"
 ---
 
 ## Work Package Prompt: WP06 – Testing & Validation
@@ -446,3 +448,4 @@ All tests passing is not sufficient - they must actually verify the requirements
 
 - 2026-02-14T08:38:50Z – unknown – lane=doing – Starting implementation
 - 2026-02-14T08:39:02Z – unknown – lane=for_review – Implementation complete, ready for review
+- 2026-02-14T08:39:09Z – claude – shell_pid=73239 – lane=doing – Started review via workflow command
