@@ -1,7 +1,7 @@
 ---
 work_package_id: WP05
 title: Report Generation & Formatting
-lane: "for_review"
+lane: "doing"
 dependencies: []
 subtasks:
 - T025
@@ -11,6 +11,8 @@ subtasks:
 - T029
 - T030
 phase: Foundation
+agent: "claude"
+shell_pid: "73239"
 ---
 
 ## Work Package Prompt: WP05 – Report Generation & Formatting
@@ -307,3 +309,4 @@ Not applicable for this WP (tested in WP06).
 
 - 2026-02-14T08:38:49Z – unknown – lane=doing – Starting implementation
 - 2026-02-14T08:39:01Z – unknown – lane=for_review – Implementation complete, ready for review
+- 2026-02-14T08:39:08Z – claude – shell_pid=73239 – lane=doing – Started review via workflow command
