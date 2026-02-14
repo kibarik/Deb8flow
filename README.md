@@ -120,6 +120,7 @@ committee_output/
 | `--question <text>` | Committee question for all rooms |
 | `--model <name>` | LLM model name (passed through to debate CLI) |
 | `--max-retries <n>` | Maximum retry attempts per room (default: 2) |
+| `--max-concurrency <n>` | Maximum rooms to run in parallel (default: 2, range: 0-4, use 0 for unlimited) |
 | `--output-dir <path>` | Base output directory (default: ./committee_output) |
 | `--roles-dir <path>` | Directory containing role prompt files (default: prompts/roles/) |
 | `--run-id <id>` | Manual run identifier override |
