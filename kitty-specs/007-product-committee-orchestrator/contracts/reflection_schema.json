@@ -1,0 +1,172 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://deb8flow.dev/schemas/reflection.json",
+  "title": "TPMReflectionResult",
+  "description": "Structured output from TPM self-reflection step in the Product Committee Orchestrator",
+  "type": "object",
+  "required": [
+    "timestamp",
+    "learned_insights",
+    "potential_assessment",
+    "recommendations",
+    "argument_decisions"
+  ],
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "description": "ISO 8601 timestamp of reflection completion",
+      "format": "date-time"
+    },
+    "learned_insights": {
+      "type": "object",
+      "description": "What TPM learned from each role that participated",
+      "properties": {
+        "from_cpo": {
+          "type": "string",
+          "description": "Insights from CPO room (if room succeeded)"
+        },
+        "from_cfo": {
+          "type": "string",
+          "description": "Insights from CFO room (if room succeeded)"
+        },
+        "from_cto": {
+          "type": "string",
+          "description": "Insights from CTO room (if room succeeded)"
+        },
+        "from_bdm": {
+          "type": "string",
+          "description": "Insights from BDM room (if room succeeded)"
+        }
+      }
+    },
+    "potential_assessment": {
+      "type": "object",
+      "description": "TPM's updated view on the project's potential",
+      "required": ["overall", "confidence"],
+      "properties": {
+        "overall": {
+          "type": "string",
+          "description": "Overall potential assessment (e.g., 'high', 'moderate', 'low', 'uncertain')"
+        },
+        "confidence": {
+          "type": "string",
+          "description": "Confidence level in the assessment",
+          "enum": ["high", "moderate", "low"]
+        },
+        "reasoning": {
+          "type": "string",
+          "description": "Explanation for the potential assessment"
+        }
+      }
+    },
+    "recommendations": {
+      "type": "array",
+      "description": "Concrete recommendations for the PRD author",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["action", "priority"],
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "Specific recommended action or change"
+          },
+          "priority": {
+            "type": "string",
+            "description": "Priority level",
+            "enum": ["high", "medium", "low"]
+          },
+          "category": {
+            "type": "string",
+            "description": "Category of recommendation (e.g., 'strategy', 'product', 'technical', 'financial', 'go-to-market')",
+            "enum": ["strategy", "product", "technical", "financial", "go-to-market", "other"]
+          },
+          "related_to": {
+            "type": "string",
+            "description": "Which role's feedback prompted this recommendation (optional)"
+          }
+        }
+      }
+    },
+    "argument_decisions": {
+      "type": "array",
+      "description": "Which opponent arguments TPM accepts or rejects and why",
+      "items": {
+        "type": "object",
+        "required": ["argument", "decision", "reasoning"],
+        "properties": {
+          "argument": {
+            "type": "string",
+            "description": "Summary of the opponent's argument"
+          },
+          "from_role": {
+            "type": "string",
+            "description": "Which role made this argument"
+          },
+          "decision": {
+            "type": "string",
+            "description": "TPM's decision on this argument",
+            "enum": ["accept", "reject", "partial", "defer"]
+          },
+          "reasoning": {
+            "type": "string",
+            "description": "Why TPM made this decision"
+          }
+        }
+      }
+    },
+    "missing_perspectives": {
+      "type": "array",
+      "description": "Notes on which perspectives are missing and why",
+      "items": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "description": "Missing role name"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why this perspective is missing (e.g., 'room failed', 'prompt file missing')"
+          },
+          "impact": {
+            "type": "string",
+            "description": "How the absence of this perspective affects the analysis"
+          }
+        }
+      }
+    },
+    "hypotheses_to_test": {
+      "type": "array",
+      "description": "Suggested hypotheses for the PRD author to validate",
+      "minItems": 0,
+      "items": {
+        "type": "string",
+        "description": "A testable hypothesis statement"
+      }
+    },
+    "risks_prioritized": {
+      "type": "array",
+      "description": "Key risks identified, prioritized",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "properties": {
+          "risk": {
+            "type": "string",
+            "description": "Description of the risk"
+          },
+          "severity": {
+            "type": "string",
+            "description": "Severity level",
+            "enum": ["high", "medium", "low"]
+          },
+          "mitigation": {
+            "type": "string",
+            "description": "Suggested mitigation approach"
+          }
+        }
+      }
+    }
+  }
+}
