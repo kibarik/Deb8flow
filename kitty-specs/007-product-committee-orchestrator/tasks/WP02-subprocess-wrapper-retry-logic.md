@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: Subprocess Wrapper & Retry Logic
-lane: planned
+lane: "doing"
 dependencies: []
 subtasks:
 - T008
@@ -324,3 +324,7 @@ Not applicable for this WP (unit tests in WP06).
 - This WP is the core interface between orchestrator and existing debate system
 - Focus review on robustness of subprocess handling and retry logic
 - Verify parsing logic is resilient to debate CLI output variations
+
+## Activity Log
+
+- 2026-02-14T08:38:48Z – unknown – lane=doing – Starting implementation
