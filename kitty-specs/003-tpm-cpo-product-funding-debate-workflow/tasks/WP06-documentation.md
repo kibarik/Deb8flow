@@ -2,12 +2,12 @@
 work_package_id: "WP06"
 title: "Documentation and Quickstart Updates"
 phase: "Phase 2 - Implementation"
-lane: "planned"
+lane: "done"
 assignee: ""
 agent: ""
 shell_pid: ""
-review_status: ""
-reviewed_by: ""
+review_status: "approved"
+reviewed_by: "ALeks ishmanov"
 dependencies:
 - WP01
 - WP02
@@ -490,3 +490,4 @@ To change a work package's lane, either:
 The CLI command updates both frontmatter and activity log automatically.
 
 **Valid lanes**: `planned`, `doing`, `for_review`, `done`
+- 2026-02-14T00:01:06Z – unknown – lane=done – Documentation complete - added custom prompt examples to README
