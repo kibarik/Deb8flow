@@ -154,3 +154,5 @@ cython_debug/
 # Excluded via sparse-checkout
 kitty-specs/
 .kittify/workspaces/
+
+committee_output/

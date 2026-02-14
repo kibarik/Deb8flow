@@ -78,6 +78,90 @@ python3 document_debate_cli.py \
 
 ---
 
+## Product Committee Orchestrator
+
+The `product_committee.py` simulates a virtual product committee by running four sequential debate rooms (TPM vs CPO/CFO/CTO/BDM) followed by TPM self-reflection. This is designed for PRD review and strategic validation.
+
+### Basic Usage
+
+```bash
+# Run committee review with a PRD document
+python3 product_committee.py \
+  --prd '/path/to/prd.docx' \
+  --question "What is the potential of this project?"
+
+# With a text-based PRD
+python3 product_committee.py \
+  --prd '/path/to/prd.txt' \
+  --question "How should we prioritize features for Q1?"
+```
+
+### Output Structure
+
+The orchestrator creates a timestamped directory with:
+
+```
+committee_output/
+└── RUN_YYYYMMDD_HHMMSS_slug/
+    ├── TPM_vs_CPO.json      # CPO debate results
+    ├── TPM_vs_CFO.json      # CFO debate results
+    ├── TPM_vs_CTO.json      # CTO debate results
+    ├── TPM_vs_BDM.json      # BDM debate results
+    ├── tpm_reflection.json  # TPM synthesis (if rooms succeed)
+    ├── final_report.md      # Human-readable summary
+    └── metadata.json       # Run metadata and errors
+```
+
+### CLI Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `--prd <file>` / `--docx <file>` | Path to PRD document (.docx or .txt) |
+| `--question <text>` | Committee question for all rooms |
+| `--model <name>` | LLM model name (passed through to debate CLI) |
+| `--max-retries <n>` | Maximum retry attempts per room (default: 2) |
+| `--output-dir <path>` | Base output directory (default: ./committee_output) |
+| `--roles-dir <path>` | Directory containing role prompt files (default: prompts/roles/) |
+| `--run-id <id>` | Manual run identifier override |
+| `--allow-short-prd` | Enforce minimum PRD length (100 chars) |
+| `--verbose` | Enable detailed logging |
+| `--quiet` | Enable quiet mode (minimal output) |
+
+### Committee Rooms
+
+The orchestrator runs four debate rooms sequentially:
+
+1. **TPM vs CPO**: Product strategy, market fit, prioritization
+2. **TPM vs CFO**: Business model, unit economics, monetization
+3. **TPM vs CTO**: Technical feasibility, architecture, risks
+4. **TPM vs BDM**: Market potential, competition, go-to-market
+
+After all rooms complete, TPM performs self-reflection synthesizing insights from all perspectives.
+
+### Custom Role Prompts
+
+Role prompts are stored in `prompts/roles/`:
+
+```
+prompts/roles/
+├── tpm.txt  # Technical Product Manager (required)
+├── cpo.txt  # Chief Product Officer
+├── cfo.txt  # Chief Financial Officer
+├── cto.txt  # Chief Technology Officer
+└── bdm.txt  # Business Development Manager
+```
+
+Use `--roles-dir` to point to custom prompt files for industry-specific perspectives.
+
+### Error Handling
+
+- **Missing TPM prompt**: Fatal error (TPM is required)
+- **Missing other role prompts**: Room skipped with warning
+- **Room failures**: Logged in metadata, other rooms continue
+- **No successful rooms**: Final report generated without TPM reflection
+
+---
+
 ## Debate Structure
 
 ```

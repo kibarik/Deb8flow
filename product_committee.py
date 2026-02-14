@@ -20,9 +20,11 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass, asdict
-from datetime import datetime
+from datetime import datetime, UTC
 from pathlib import Path
 from typing import Optional, Dict, Any, List
+
+from docx import Document
 
 
 # --- Configuration Constants ---
@@ -83,7 +85,7 @@ def create_debate_room(room_id: str, opponent_role: str) -> DebateRoom:
     return DebateRoom(
         room_id=room_id,
         status="failed",
-        timestamp=datetime.utcnow().isoformat(),
+        timestamp=datetime.now(UTC).isoformat(),
         tpm_position="",
         opponent_position="",
         judge_verdict={"winner": "", "explanation": ""},
@@ -259,8 +261,22 @@ def read_prd_text(prd_path: Path) -> str:
         File content as string
     """
     try:
-        with open(prd_path, 'r', encoding='utf-8') as f:
-            return f.read()
+        # Handle .docx files using python-docx library
+        if prd_path.suffix.lower() == ".docx":
+            doc = Document(str(prd_path))
+            return "\n".join(p.text for p in doc.paragraphs)
+
+        # For text files, try UTF-8 first, then fallback to other encodings
+        encodings = ['utf-8', 'cp1251', 'iso-8859-1', 'windows-1252']
+        for encoding in encodings:
+            try:
+                with open(prd_path, 'r', encoding=encoding) as f:
+                    return f.read()
+            except (UnicodeDecodeError, UnicodeError):
+                continue
+
+        # If all encodings fail, raise error
+        raise RuntimeError(f"Could not decode file with any supported encoding: {encodings}")
     except Exception as e:
         logger.error(f"Error reading PRD file: {e}")
         sys.exit(1)
@@ -354,15 +370,27 @@ def run_debate_room_with_retry(
     """
     room = create_debate_room(room_id, room_id.split("_vs_")[-1])
 
-    # Build command
-    cmd = [
-        sys.executable,  # Use current Python interpreter
-        "document_debate_cli.py",
-        "--docx", str(prd_path),
-        "--request", question,
-        "--pro-prompt", str(pro_prompt_path),
-        "--con-prompt", str(con_prompt_path)
-    ]
+    # Build command - handle .docx vs .txt files differently
+    if prd_path.suffix.lower() == ".docx":
+        # .docx file: use --docx with --request
+        cmd = [
+            sys.executable,  # Use current Python interpreter
+            "document_debate_cli.py",
+            "--docx", str(prd_path),
+            "--request", question,
+            "--pro-prompt", str(pro_prompt_path),
+            "--con-prompt", str(con_prompt_path)
+        ]
+    else:
+        # .txt or other text file: read content and use --text
+        prd_text = read_prd_text(prd_path)
+        cmd = [
+            sys.executable,
+            "document_debate_cli.py",
+            "--text", prd_text,
+            "--pro-prompt", str(pro_prompt_path),
+            "--con-prompt", str(con_prompt_path)
+        ]
 
     if model:
         cmd.extend(["--model", model])
@@ -495,7 +523,7 @@ def generate_run_id(question: str, manual_id: Optional[str] = None) -> str:
     # Remove non-alphanumeric characters
     slug = re.sub(r'[^a-z0-9-]', '', slug)
 
-    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     return f"RUN_{timestamp}_{slug}"
 
 
@@ -528,7 +556,7 @@ def create_metadata(
         "prd_path": prd_path,
         "question": question,
         "model": model or "default",
-        "start_time": datetime.utcnow().isoformat(),
+        "start_time": datetime.now(UTC).isoformat(),
         "end_time": None,
         "room_statuses": {
             "tpm_cpo": "pending",
@@ -616,7 +644,7 @@ def run_all_rooms(
             metadata["errors"].append({
                 "room": room_id,
                 "message": room.error or "Unknown error",
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(UTC).isoformat()
             })
 
         logger.info(f"Room {room_id} completed with status: {room.status}")
@@ -699,14 +727,10 @@ def run_reflection_subprocess(
     # Generate prompt
     prompt = generate_reflection_prompt(prd_text, question, successful_rooms)
 
-    # Create temporary prompt file
-    import tempfile
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
-        f.write(prompt)
-        temp_prompt_path = f.name
-
     try:
         # Use document_debate_cli with --text for reflection
+        # Pass prompt directly as text (not a file path)
+        # Note: --request cannot be used with --text, question is in prompt
         cmd = [
             sys.executable,
             "document_debate_cli.py",
@@ -763,12 +787,6 @@ def run_reflection_subprocess(
     except Exception as e:
         logger.error(f"Error running reflection: {e}")
         return None
-    finally:
-        # Clean up temp file
-        try:
-            os.unlink(temp_prompt_path)
-        except:
-            pass
 
 
 # --- Report Generation (WP05) ---
@@ -1055,7 +1073,7 @@ def main():
         logger.warning("No successful rooms; skipping TPM reflection")
 
     # Update metadata
-    metadata["end_time"] = datetime.utcnow().isoformat()
+    metadata["end_time"] = datetime.now(UTC).isoformat()
 
     # Generate final report
     logger.info("Generating final report...")
