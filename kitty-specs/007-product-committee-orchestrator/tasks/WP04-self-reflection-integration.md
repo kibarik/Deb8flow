@@ -1,7 +1,7 @@
 ---
 work_package_id: WP04
 title: Self-Reflection Integration
-lane: "doing"
+lane: "for_review"
 dependencies: []
 subtasks:
 - T021
@@ -230,3 +230,4 @@ Not applicable for this WP (tested in WP06).
 ## Activity Log
 
 - 2026-02-14T08:38:49Z – unknown – lane=doing – Starting implementation
+- 2026-02-14T08:39:01Z – unknown – lane=for_review – Implementation complete, ready for review
