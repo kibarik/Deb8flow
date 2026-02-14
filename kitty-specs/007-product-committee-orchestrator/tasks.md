@@ -59,7 +59,7 @@ This document outlines all work packages for implementing the Product Committee 
 - [x] T004: Add `--question` required argument with validation
 - [x] T005: Add optional arguments: `--model`, `--max-retries`, `--output-dir`, `--roles-dir`, `--run-id`, `--allow-short-prd`, `--verbose`, `--quiet`
 - [x] T006: Implement Python logging infrastructure with configurable levels
-- [ ] T007: Add `--help` argument with descriptive usage message
+- [x] T007: Add `--help` argument with descriptive usage message
 
 **Implementation Notes**:
 - Use argparse or click based on existing project patterns
