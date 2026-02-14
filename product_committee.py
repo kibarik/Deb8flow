@@ -60,6 +60,8 @@ class DebateRoom:
     judge_verdict: Dict[str, Any]
     takeaways: List[str]
     error: Optional[str] = None
+    full_dialogue: Optional[List[Dict[str, Any]]] = None  # Full message history
+    raw_output: Optional[str] = None  # Complete stdout for reference
 
     def to_json(self) -> str:
         """Serialize to JSON string."""
@@ -90,7 +92,9 @@ def create_debate_room(room_id: str, opponent_role: str) -> DebateRoom:
         opponent_position="",
         judge_verdict={"winner": "", "explanation": ""},
         takeaways=[],
-        error=None
+        error=None,
+        full_dialogue=None,
+        raw_output=None
     )
 
 
@@ -350,7 +354,8 @@ def run_debate_room_with_retry(
     model: Optional[str],
     room_id: str,
     max_retries: int = DEFAULT_MAX_RETRIES,
-    verbose: bool = False
+    verbose: bool = False,
+    output_dir: Optional[Path] = None
 ) -> DebateRoom:
     """
     Run a single debate room with retry logic and exponential backoff.
@@ -364,11 +369,18 @@ def run_debate_room_with_retry(
         room_id: Room identifier (e.g., "TPM_vs_CPO")
         max_retries: Maximum retry attempts
         verbose: Enable detailed logging
+        output_dir: Optional output directory for JSON output files
 
     Returns:
         DebateRoom result with status and parsed data
     """
     room = create_debate_room(room_id, room_id.split("_vs_")[-1])
+
+    # Create temp directory for JSON output if output_dir provided
+    json_output_path = None
+    if output_dir:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        json_output_path = output_dir / f"{room_id}_dialogue.json"
 
     # Build command - handle .docx vs .txt files differently
     if prd_path.suffix.lower() == ".docx":
@@ -398,40 +410,111 @@ def run_debate_room_with_retry(
     if verbose:
         cmd.append("--verbose")
 
+    # Add JSON output flag if output directory provided
+    if json_output_path:
+        cmd.extend(["--json-output", str(json_output_path)])
+
     # Retry loop with exponential backoff
     for attempt in range(max_retries + 1):
         try:
             if attempt > 0 and verbose:
                 logger.debug(f"Retry attempt {attempt}/{max_retries} for room {room_id}")
 
-            # Run subprocess
-            result = subprocess.run(
+            # Run subprocess - let stdout flow directly to console for Rich formatting
+            # Only capture stderr for error handling
+            # Full dialogue will be loaded from JSON output file
+            stderr_lines = []
+
+            process = subprocess.Popen(
                 cmd,
-                capture_output=True,
-                text=True,
-                timeout=DEFAULT_DEBATE_TIMEOUT,
-                check=False
+                stdout=None,  # Let stdout inherit from parent (shows Rich formatting)
+                stderr=subprocess.PIPE,  # Capture stderr for error handling
+                text=True
             )
 
+            returncode = None
+            try:
+                # Wait for process to complete with timeout
+                returncode = process.wait(timeout=DEFAULT_DEBATE_TIMEOUT)
+
+                # Capture stderr
+                stderr_text = process.stderr.read()
+                stderr_lines.append(stderr_text)
+
+            except subprocess.TimeoutExpired:
+                process.kill()
+                if attempt < max_retries:
+                    if verbose:
+                        logger.debug(f"Room {room_id} timed out (attempt {attempt + 1})")
+                    wait_time = 2 ** attempt
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    logger.error(f"Room {room_id} timed out after {max_retries + 1} attempts")
+                    room.status = "failed"
+                    room.error = "Debate timed out"
+                    return room
+
+            stderr_text = ''.join(stderr_lines) if stderr_lines else ""
+
             # Check for successful execution
-            if result.returncode == 0:
+
+            # Check for successful execution
+            if returncode == 0:
                 logger.info(f"Room {room_id} completed successfully")
-                parsed = parse_debate_output(result.stdout, result.stderr)
 
-                # Update room with parsed data
-                room.status = "success"
-                room.tpm_position = parsed["tpm_position"] or "TPM position from debate"
-                room.opponent_position = parsed["opponent_position"] or f"{room_id.split('_vs_')[-1]} position from debate"
-                room.judge_verdict = parsed["judge_verdict"]
-                room.takeaways = parsed["takeaways"][:5]  # Limit to 5 takeaways
+                # Load full dialogue from JSON output if available
+                if json_output_path and json_output_path.exists():
+                    try:
+                        with open(json_output_path, 'r', encoding='utf-8') as f:
+                            room.full_dialogue = json.load(f)
+                        logger.debug(f"Loaded full dialogue from {json_output_path}")
 
-                if not room.takeaways:
-                    room.takeaways = [f"Debate completed for {room_id}"]
+                        # Extract judge verdict and takeaways from dialogue
+                        room.status = "success"
+                        room.tpm_position = "TPM position from debate"
+                        room.opponent_position = f"{room_id.split('_vs_')[-1]} position from debate"
+
+                        # Parse verdict from dialogue
+                        for msg in reversed(room.full_dialogue):
+                            if msg.get("speaker") == "judge" or "verdict" in msg.get("content", "").lower():
+                                content = msg.get("content", "")
+                                if "WINNER: PRO" in content:
+                                    room.judge_verdict = {"winner": "TPM", "explanation": content}
+                                elif "WINNER: CON" in content:
+                                    room.judge_verdict = {"winner": "CON", "explanation": content}
+                                break
+
+                        # Extract takeaways from dialogue
+                        takeaways = []
+                        for msg in room.full_dialogue:
+                            content = msg.get("content", "").lower()
+                            if any(keyword in content for keyword in ["recommend", "insight", "suggest", "advise", "should"]):
+                                takeaway = msg.get("content", "").strip()
+                                if takeaway and len(takeaway) > 10:
+                                    takeaways.append(takeaway)
+                                if len(takeaways) >= 5:
+                                    break
+                        room.takeaways = takeaways[:5]
+
+                        if not room.takeaways:
+                            room.takeaways = [f"Debate completed for {room_id}"]
+
+                    except Exception as e:
+                        logger.warning(f"Failed to load JSON dialogue: {e}")
+                        room.status = "failed"
+                        room.error = f"Failed to load dialogue: {e}"
+                        return room
+                else:
+                    # No JSON output - legacy fallback
+                    room.status = "failed"
+                    room.error = "No dialogue JSON file found"
+                    return room
 
                 return room
             else:
                 # Non-zero exit code
-                error_msg = result.stderr or result.stdout or "Unknown error"
+                error_msg = stderr_text or "Unknown error"
                 if attempt < max_retries:
                     if verbose:
                         logger.debug(f"Room {room_id} failed (attempt {attempt + 1}): {error_msg[:200]}")
@@ -444,18 +527,6 @@ def run_debate_room_with_retry(
                     room.status = "failed"
                     room.error = error_msg[:500]  # Truncate long errors
                     return room
-
-        except subprocess.TimeoutExpired:
-            if attempt < max_retries:
-                if verbose:
-                    logger.debug(f"Room {room_id} timed out (attempt {attempt + 1})")
-                wait_time = 2 ** attempt
-                time.sleep(wait_time)
-            else:
-                logger.error(f"Room {room_id} timed out after {max_retries + 1} attempts")
-                room.status = "failed"
-                room.error = "Debate timed out"
-                return room
 
         except Exception as e:
             logger.error(f"Unexpected error running room {room_id}: {e}")
@@ -583,7 +654,8 @@ def run_all_rooms(
     model: Optional[str],
     max_retries: int,
     verbose: bool,
-    metadata: Dict[str, Any]
+    metadata: Dict[str, Any],
+    output_dir: Optional[Path] = None
 ) -> List[DebateRoom]:
     """
     Execute all four debate rooms sequentially.
@@ -596,6 +668,7 @@ def run_all_rooms(
         max_retries: Maximum retry attempts
         verbose: Enable verbose logging
         metadata: Metadata dictionary to update
+        output_dir: Optional output directory for JSON output files
 
     Returns:
         List of DebateRoom results
@@ -630,7 +703,8 @@ def run_all_rooms(
             model=model,
             room_id=room_id,
             max_retries=max_retries,
-            verbose=verbose
+            verbose=verbose,
+            output_dir=output_dir
         )
 
         # Update metadata
@@ -871,6 +945,25 @@ def generate_final_report(
             for takeaway in room.takeaways:
                 lines.append(f"- {takeaway}")
             lines.append("")
+
+            # Add full dialogue section if available
+            if room.full_dialogue:
+                lines.extend([
+                    f"**Full Dialogue:**",
+                    f""
+                ])
+                for msg in room.full_dialogue:
+                    speaker = msg.get("speaker", "Unknown")
+                    content = msg.get("content", "")
+                    stage = msg.get("stage", "")
+                    validated = msg.get("validated", False)
+                    validated_mark = " ✓" if validated else " ✗"
+
+                    lines.extend([
+                        f"**{speaker.upper()}** ({stage}){validated_mark}:",
+                        f"{content}",
+                        f""
+                    ])
         elif room.status == "failed":
             lines.extend([
                 f"**Error:** {room.error or 'Unknown error'}",
@@ -990,6 +1083,13 @@ def save_artifacts(
             f.write(room.to_json())
         logger.debug(f"Saved room result to {room_path}")
 
+        # Save full dialogue if available
+        if room.full_dialogue:
+            dialogue_path = run_output_dir / f"{room.room_id}_dialogue.json"
+            with open(dialogue_path, 'w', encoding='utf-8') as f:
+                json.dump(room.full_dialogue, f, indent=2, ensure_ascii=False)
+            logger.debug(f"Saved full dialogue to {dialogue_path}")
+
     # Save reflection
     if reflection:
         reflection_path = run_output_dir / "tpm_reflection.json"
@@ -1042,6 +1142,11 @@ def main():
     # Read PRD text for reflection
     prd_text = read_prd_text(prd_path)
 
+    # Create output directory for this run
+    base_output_dir = Path(args.output_dir)
+    run_output_dir = base_output_dir / run_id
+    run_output_dir.mkdir(parents=True, exist_ok=True)
+
     logger.info(f"Starting debate rooms...")
     logger.info(f"Max retries: {args.max_retries}")
 
@@ -1053,7 +1158,8 @@ def main():
         model=args.model,
         max_retries=args.max_retries,
         verbose=args.verbose,
-        metadata=metadata
+        metadata=metadata,
+        output_dir=run_output_dir
     )
 
     # Run TPM reflection

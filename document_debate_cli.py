@@ -8,6 +8,7 @@ debate topics and arguments based on the document content.
 
 import argparse
 import asyncio
+import json
 import logging
 import os
 import sys
@@ -134,6 +135,11 @@ async def main():
             action="store_true",
             help="Show detailed prompt content for verification"
         )
+        parser.add_argument(
+            "--json-output",
+            type=str,
+            help="Path to save structured JSON output (full message history)"
+        )
 
         args = parser.parse_args()
 
@@ -215,6 +221,17 @@ async def main():
         # Run document debate workflow
         workflow = DocumentDebateWorkflow()
         workflow_result = await workflow.run(initial_state=initial_state)
+
+        # Save JSON output if requested
+        if args.json_output:
+            try:
+                # Extract messages from workflow result
+                messages = workflow_result.get("messages", [])
+                with open(args.json_output, 'w', encoding='utf-8') as f:
+                    json.dump(messages, f, indent=2, ensure_ascii=False)
+                logger.info(f"[cyan]✓ Saved full dialogue to: {args.json_output}[/]")
+            except Exception as e:
+                logger.error(f"❌ Failed to save JSON output: {e}")
 
         # Display final verdict
         if "messages" in workflow_result and workflow_result["messages"]:
