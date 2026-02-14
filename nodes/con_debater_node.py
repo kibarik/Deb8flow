@@ -1,6 +1,6 @@
 from nodes.base_component import BaseComponent
 from debate_state import DebateState
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from configurations.debate_constants import (
     STAGE_REBUTTAL, STAGE_FINAL_ARGUMENT,
     SPEAKER_CON, SPEAKER_PRO
@@ -43,7 +43,6 @@ class ConDebaterNode(BaseComponent):
         if custom_prompt:
             # Prepend custom prompt to base system prompt
             enhanced_system_prompt = f"{custom_prompt}\n\n{base_system_prompt}"
-            self.log_debate_event("Using custom CON prompt", prefix="CON")
         else:
             enhanced_system_prompt = base_system_prompt
 
@@ -53,6 +52,10 @@ class ConDebaterNode(BaseComponent):
         """Initialize or re-create all chains with custom prompt injection."""
         # Base system prompt
         base_system_prompt = self.base_system_prompt
+
+        # Log once when using custom prompt
+        if custom_prompt:
+            self.log_debate_event(f"Using custom CON prompt ({len(custom_prompt)} chars injected)", prefix="CON")
 
         # Create all chains with custom prompt injection
         self.rebuttal_chain = self._create_chain_with_custom_prompt(

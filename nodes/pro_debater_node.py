@@ -1,6 +1,6 @@
 from nodes.base_component import BaseComponent
 from debate_state import DebateState
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from prompts.pro_debater_prompts import (
     SYSTEM_PROMPT,
     OPENING_HUMAN_PROMPT,
@@ -46,7 +46,6 @@ class ProDebaterNode(BaseComponent):
         if custom_prompt:
             # Prepend custom prompt to base system prompt
             enhanced_system_prompt = f"{custom_prompt}\n\n{base_system_prompt}"
-            self.log_debate_event("Using custom PRO prompt", prefix="PRO")
         else:
             enhanced_system_prompt = base_system_prompt
 
@@ -58,6 +57,10 @@ class ProDebaterNode(BaseComponent):
 
         # Base system prompt
         base_system_prompt = self.base_system_prompt
+
+        # Log once when using custom prompt
+        if pro_custom_prompt:
+            self.log_debate_event(f"Using custom PRO prompt ({len(pro_custom_prompt)} chars injected)", prefix="PRO")
 
         # Create all chains with custom prompt injection
         self.opening_chain = self._create_chain_with_custom_prompt(

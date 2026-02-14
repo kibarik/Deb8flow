@@ -129,6 +129,11 @@ async def main():
             type=str,
             help="Path to custom CON debater prompt file"
         )
+        parser.add_argument(
+            "--verbose",
+            action="store_true",
+            help="Show detailed prompt content for verification"
+        )
 
         args = parser.parse_args()
 
@@ -153,6 +158,8 @@ async def main():
                 sys.exit(1)
             base_state["pro_custom_prompt"] = result
             logger.info(f"[cyan]✓ Loaded PRO custom prompt from: {args.pro_prompt}[/]")
+            if args.verbose:
+                logger.info(f"[cyan]└─ Content ({len(result)} chars):[/]\n{result}\n")
 
         if args.con_prompt:
             is_valid, result = validate_prompt_file(args.con_prompt)
@@ -161,6 +168,8 @@ async def main():
                 sys.exit(1)
             base_state["con_custom_prompt"] = result
             logger.info(f"[magenta]✓ Loaded CON custom prompt from: {args.con_prompt}[/]")
+            if args.verbose:
+                logger.info(f"[magenta]└─ Content ({len(result)} chars):[/]\n{result}\n")
 
         if args.docx:
             try:
