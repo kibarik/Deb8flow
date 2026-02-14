@@ -1,7 +1,7 @@
 ---
 work_package_id: WP03
 title: Room Orchestration & Metadata Tracking
-lane: planned
+lane: "doing"
 dependencies: []
 subtasks:
 - T015
@@ -320,3 +320,7 @@ Not applicable for this WP (tested in WP06).
 - Status tracking covers all three states: success, failed, skipped
 - Graceful degradation works for optional role prompts
 - Metadata generation happens before reflection step
+
+## Activity Log
+
+- 2026-02-14T08:38:48Z – unknown – lane=doing – Starting implementation
