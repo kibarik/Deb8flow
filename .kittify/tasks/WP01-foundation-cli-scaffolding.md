@@ -1,7 +1,7 @@
 work_package_id: "WP01"
 title: "Foundation & CLI Scaffolding"
 phase: "Foundation"
-lane: "doing"
+lane: "for_review"
 subtasks:
   - "T001"
   - "T002"
