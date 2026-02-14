@@ -1,0 +1,19 @@
+evidence_id,source_id,finding,category,confidence,notes
+E001,S001,final_report.md structure: Committee Question, Executive Summary, Room-by-Room Analysis, TPM Reflection, Metadata,data_source,high,Confirmed by code inspection
+E002,S001,Room naming convention: TPM_vs_{ROLE} (e.g., TPM_vs_CPO),tpm_detection,high,Used for opponent role extraction
+E003,S001,TPM is always PRO in committee debates,tpm_detection,high,Confirmed by room creation logic
+E004,S003,Judge verdict format: {winner: "pro|con", justification: "text"},verdict_analysis,high,Always returns a winner (no draw option)
+E005,S003,Default winner is "pro" if parsing fails,verdict_analysis,medium,Fallback behavior in judge node
+E006,S004,DebateState contains: debate_topic, messages, stage, speaker, custom_prompts,state_analysis,high,All fields available at verdict
+E007,S005,DebateMessage structure: speaker, content, validated, stage,state_analysis,high,Validated field indicates fact-check result
+E008,S009,Custom prompts loaded via pro_custom_prompt and con_custom_prompt fields,tpm_detection,high,Used for role detection
+E009,S009,Standard debates have no custom prompts by default,tpm_detection,high,Different from committee debates
+E010,S006,Workflow ends at judge_node → END,workflow_integration,high,Integration point identified
+E011,S010,Available roles: TPM, CPO, CFO, CTO, BDM,tpm_detection,high,Role prompt files exist
+E012,S001,TPM Reflection section contains: Learned Insights, Potential Assessment, Recommendations,weakness_detection,high,Source of self-identified weaknesses
+E013,S001,Room verdict contains: Status, Winner, Judge Explanation, Key Takeaways,verdict_analysis,high,Source of opponent feedback
+E014,S002,Output directory: committee_output/{run_id}/,file_handling,high,Where Conclusion.md should be written
+E015,S007,Document debates use document_input and document_context fields,state_analysis,high,Additional state for document-based
+E016,S001,Q&A pairs available in "Full Dialogue" section of each room,qa_extraction,high,Source for question-answer extraction
+E017,S003,Judge message format: "WINNER: {ROLE}\n\nREASON: {text}",verdict_analysis,high,Used for verdict parsing from messages
+E018,S004,Fact-check counts: times_pro_fact_checked, times_con_fact_checked,state_analysis,medium,Available in state
