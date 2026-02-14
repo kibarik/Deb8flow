@@ -1,7 +1,7 @@
 ---
 work_package_id: WP06
 title: Testing & Validation
-lane: "doing"
+lane: "for_review"
 dependencies: []
 subtasks:
 - T031
@@ -445,3 +445,4 @@ All tests passing is not sufficient - they must actually verify the requirements
 ## Activity Log
 
 - 2026-02-14T08:38:50Z – unknown – lane=doing – Starting implementation
+- 2026-02-14T08:39:02Z – unknown – lane=for_review – Implementation complete, ready for review
