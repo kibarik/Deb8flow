@@ -203,7 +203,7 @@ description: "Work package task list for debate conclusion report feature implem
 **Estimated Prompt Size**: ~400 lines (7 subtasks)
 
 ### Included Subtasks
-- [ ] T042 Create `tests/test_conclusion_report_e2e.py`
+- [x] T042 Create `tests/test_conclusion_report_e2e.py`
 - [ ] T043 Test standard debate conclusion generation
 - [ ] T044 Test document debate conclusion generation
 - [ ] T045 Test edge cases: no winner, no recommendations
