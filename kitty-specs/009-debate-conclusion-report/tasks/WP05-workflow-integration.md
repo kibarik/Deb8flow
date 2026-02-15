@@ -3,7 +3,7 @@ work_package_id: "WP05"
 subtasks: ["T035", "T036", "T037", "T038", "T039", "T040", "T041"]
 title: "Workflow Integration"
 phase: "Phase 2 - Integration"
-lane: "planned"
+lane: "for_review"
 dependencies: ["WP04"]
 history:
   - timestamp: "2026-02-15T09:39:49Z"
@@ -40,3 +40,7 @@ Integrate conclusion node into both debate workflows (standard and document).
 - Pass output directory through state
 - Ensure workflow completes without errors
 - Test with actual debate runs
+
+## Activity Log
+
+- 2026-02-15T10:16:30Z – unknown – lane=for_review – Ready for review: Completed standard and document workflow integration tests. Added ConclusionReportNode to both workflows with proper imports and edge to END. Integration tests written but need verification after merging to main.
