@@ -208,7 +208,7 @@ description: "Work package task list for debate conclusion report feature implem
 - [x] T044 Test document debate conclusion generation
 - [x] T045 Test edge cases: no winner, no recommendations
 - [x] T046 Test edge cases: missing directory, multi-language
-- [ ] T047 Validate Conclusion.md structure matches spec
+- [x] T047 Validate Conclusion.md structure matches spec
 - [ ] T048 Validate performance: generation <5 seconds
 
 ### Implementation Notes
