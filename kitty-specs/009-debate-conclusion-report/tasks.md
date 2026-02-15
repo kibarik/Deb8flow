@@ -103,15 +103,15 @@ description: "Work package task list for debate conclusion report feature implem
 **Estimated Prompt Size**: ~380 lines (9 subtasks)
 
 ### Included Subtasks
-- [ ] T017 Create `src/extractors/debate_state_extractor.py`
-- [ ] T018 Extract debate question and judge verdict from state
-- [ ] T019 Detect TPM role from pro_custom_prompt field
-- [ ] T020 Extract Q&A pairs from messages (3-10, priority ordered)
-- [ ] T021 Identify TPM weaknesses from CON arguments
-- [ ] T022 Extract recommendations from judge and CON
-- [ ] T023 Create `src/prompts/conclusion_report_prompt.md`
-- [ ] T024 Define system prompt with structure requirements
-- [ ] T025 Add few-shot examples for weaknesses and recommendations
+- [x] T017 Create `src/extractors/debate_state_extractor.py`
+- [x] T018 Extract debate question and judge verdict from state
+- [x] T019 Detect TPM role from pro_custom_prompt field
+- [x] T020 Extract Q&A pairs from messages (3-10, priority ordered)
+- [x] T021 Identify TPM weaknesses from CON arguments
+- [x] T022 Extract recommendations from judge and CON
+- [x] T023 Create `src/prompts/conclusion_report_prompt.md`
+- [x] T024 Define system prompt with structure requirements
+- [x] T025 Add few-shot examples for weaknesses and recommendations
 
 ### Implementation Notes
 - Follow DebateState structure from `src/debate_state.py`
