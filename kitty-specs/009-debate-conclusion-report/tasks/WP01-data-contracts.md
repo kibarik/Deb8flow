@@ -1,27 +1,31 @@
 ---
-work_package_id: "WP01"
+work_package_id: WP01
+title: Data Contracts and Types
+lane: "doing"
+dependencies: []
+base_branch: main
+base_commit: c323e8f79c819d9565364f17be33ee0498e47486
+created_at: '2026-02-15T09:54:41.393265+00:00'
 subtasks:
-  - "T001"
-  - "T002"
-  - "T003"
-  - "T004"
-  - "T005"
-  - "T006"
-  - "T007"
-title: "Data Contracts and Types"
-phase: "Phase 1 - Foundation"
-lane: "planned"
-assignee: ""
-agent: ""
-shell_pid: ""
-review_status: ""
-reviewed_by: ""
+- T001
+- T002
+- T003
+- T004
+- T005
+- T006
+- T007
+phase: Phase 1 - Foundation
+assignee: ''
+agent: ''
+shell_pid: "92104"
+review_status: ''
+reviewed_by: ''
 history:
-  - timestamp: "2026-02-15T09:39:49Z"
-    lane: "planned"
-    agent: "system"
-    shell_pid: ""
-    action: "Prompt generated via /spec-kitty.tasks"
+- timestamp: '2026-02-15T09:39:49Z'
+  lane: planned
+  agent: system
+  shell_pid: ''
+  action: Prompt generated via /spec-kitty.tasks
 ---
 
 # Work Package Prompt: WP01 – Data Contracts and Types
