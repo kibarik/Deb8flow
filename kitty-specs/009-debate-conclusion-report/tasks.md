@@ -177,7 +177,7 @@ description: "Work package task list for debate conclusion report feature implem
 - [x] T038 Modify `src/workflow/document_debate_workflow.py`
 - [x] T039 Import ConclusionReportNode and add to graph
 - [x] T040 Add edges: judge → conclusion → END
-- [ ] T041 [P] Write integration tests for both workflows
+- [x] T041 [P] Write integration tests for both workflows
 
 ### Implementation Notes
 - Add node after judge verdict (WF-001, WF-002)
