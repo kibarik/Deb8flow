@@ -1,9 +1,13 @@
 ---
 work_package_id: WP02
 title: Core Validation Logic
-lane: planned
+lane: "doing"
 dependencies: []
+base_branch: 010-prd-completeness-validator-WP01
+base_commit: 97e639587932c9507ab0fec2614bb3e422b7847a
+created_at: '2026-02-15T10:01:30.816581+00:00'
 subtasks: [T006, T007, T008, T009, T010, T011, T012]
+shell_pid: "94064"
 history:
 - date: 2025-02-15
   action: Created
