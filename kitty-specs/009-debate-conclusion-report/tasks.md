@@ -171,12 +171,12 @@ description: "Work package task list for debate conclusion report feature implem
 **Estimated Prompt Size**: ~300 lines (7 subtasks)
 
 ### Included Subtasks
-- [ ] T035 Modify `src/workflow/debate_workflow.py`
-- [ ] T036 Import ConclusionReportNode and add to graph
-- [ ] T037 Add edges: judge → conclusion → END
-- [ ] T038 Modify `src/workflow/document_debate_workflow.py`
-- [ ] T039 Import ConclusionReportNode and add to graph
-- [ ] T040 Add edges: judge → conclusion → END
+- [x] T035 Modify `src/workflow/debate_workflow.py`
+- [x] T036 Import ConclusionReportNode and add to graph
+- [x] T037 Add edges: judge → conclusion → END
+- [x] T038 Modify `src/workflow/document_debate_workflow.py`
+- [x] T039 Import ConclusionReportNode and add to graph
+- [x] T040 Add edges: judge → conclusion → END
 - [ ] T041 [P] Write integration tests for both workflows
 
 ### Implementation Notes
