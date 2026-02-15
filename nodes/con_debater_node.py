@@ -1,6 +1,7 @@
 from nodes.base_component import BaseComponent
 from debate_state import DebateState
 from typing import Dict, Any, Optional
+from langchain_core.runnables.base import RunnableSequence
 from configurations.debate_constants import (
     STAGE_REBUTTAL, STAGE_FINAL_ARGUMENT,
     SPEAKER_CON, SPEAKER_PRO

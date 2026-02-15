@@ -7,6 +7,7 @@ from nodes.debate_moderator_node import DebateModeratorNode
 from nodes.fact_checker_node import FactCheckNode
 from nodes.fact_check_router_node import FactCheckRouterNode
 from nodes.judge_node import JudgeNode
+from src.nodes.conclusion_report_node import ConclusionReportNode
 from configurations.llm_config import requesty_llm_config_map
 
 class DebateWorkflow:
@@ -22,10 +23,7 @@ class DebateWorkflow:
         workflow.add_node("debate_moderator_node", DebateModeratorNode())
         workflow.add_node("judge_node", JudgeNode(requesty_llm_config_map["deepseek-chat"]))
         # Conclusion Report Node
-        workflow.add_node("conclusion_report_node", ConclusionReportNode(
-            extractor=DebateStateExtractor(),
-            writer=ConclusionWriter()
-        ))
+        workflow.add_node("conclusion_report_node", ConclusionReportNode())
 
         # Entry point
         workflow.set_entry_point("generate_topic_node")
@@ -35,7 +33,8 @@ class DebateWorkflow:
         workflow.add_edge("pro_debater_node", "fact_check_node")
         workflow.add_edge("con_debater_node", "fact_check_node")
         workflow.add_edge("fact_check_node", "fact_check_router_node")
-        workflow.add_edge("judge_node", END)
+        workflow.add_edge("judge_node", "conclusion_report_node")
+        workflow.add_edge("conclusion_report_node", END)
         return workflow
 
 
