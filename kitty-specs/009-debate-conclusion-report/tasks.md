@@ -37,13 +37,13 @@ description: "Work package task list for debate conclusion report feature implem
 **Estimated Prompt Size**: ~280 lines (7 subtasks)
 
 ### Included Subtasks
-- [ ] T001 Create `src/types/conclusion_types.py` with TypedDict definitions
-- [ ] T002 [P] Create ConclusionData, VerdictSummary, QAPair TypedDict
-- [ ] T003 [P] Create TPMAnalysis, TPMWeakness, Recommendation TypedDict
-- [ ] T004 [P] Create ConclusionMetadata TypedDict with DebateType enum
-- [ ] T005 Add enums: WeaknessCategory, SeverityLevel, PriorityLevel
-- [ ] T006 Add validation functions for type constraints (3-10 Q&A pairs)
-- [ ] T007 Write unit tests for type validation
+- [x] T001 Create `src/types/conclusion_types.py` with TypedDict definitions
+- [x] T002 [P] Create ConclusionData, VerdictSummary, QAPair TypedDict
+- [x] T003 [P] Create TPMAnalysis, TPMWeakness, Recommendation TypedDict
+- [x] T004 [P] Create ConclusionMetadata TypedDict with DebateType enum
+- [x] T005 Add enums: WeaknessCategory, SeverityLevel, PriorityLevel
+- [x] T006 Add validation functions for type constraints (3-10 Q&A pairs)
+- [x] T007 Write unit tests for type validation
 
 ### Implementation Notes
 - Use `typing.TypedDict` following `src/debate_state.py` patterns
