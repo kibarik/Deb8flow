@@ -1,15 +1,19 @@
 ---
-work_package_id: "WP02"
-subtasks: ["T008", "T009", "T010", "T011", "T012", "T013", "T014", "T015", "T016"]
-title: "Committee Report Parser"
-phase: "Phase 1 - Data Extraction"
-lane: "planned"
-dependencies: ["WP01"]
+work_package_id: WP02
+title: Committee Report Parser
+lane: "doing"
+dependencies: [WP01]
+base_branch: 009-debate-conclusion-report-WP01
+base_commit: 95dc3be0916c42092fbdad09b67ace7c4498abf5
+created_at: '2026-02-15T10:02:12.434496+00:00'
+subtasks: [T008, T009, T010, T011, T012, T013, T014, T015, T016]
+phase: Phase 1 - Data Extraction
+shell_pid: "94493"
 history:
-  - timestamp: "2026-02-15T09:39:49Z"
-    lane: "planned"
-    agent: "system"
-    action: "Prompt generated"
+- timestamp: '2026-02-15T09:39:49Z'
+  lane: planned
+  agent: system
+  action: Prompt generated
 ---
 
 # WP02: Committee Report Parser
