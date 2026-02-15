@@ -137,15 +137,15 @@ description: "Work package task list for debate conclusion report feature implem
 **Estimated Prompt Size**: ~450 lines (9 subtasks)
 
 ### Included Subtasks
-- [ ] T026 Create `src/nodes/conclusion_report_node.py`
-- [ ] T027 Inherit from BaseComponent, implement __init__ and __call__
-- [ ] T028 Detect debate type and route to appropriate extractor
-- [ ] T029 Call LLM with conclusion prompt
-- [ ] T030 Parse LLM response and validate against ConclusionData
-- [ ] T031 Add token tracking and retry logic
-- [ ] T032 Create `src/utils/conclusion_writer.py`
-- [ ] T033 Implement markdown formatting per spec structure
-- [ ] T034 Add "Нет рекомендаций" placeholder and file I/O
+- [x] T026 Create `src/nodes/conclusion_report_node.py`
+- [x] T027 Inherit from BaseComponent, implement __init__ and __call__
+- [x] T028 Detect debate type and route to appropriate extractor
+- [x] T029 Call LLM with conclusion prompt
+- [x] T030 Parse LLM response and validate against ConclusionData
+- [x] T031 Add token tracking and retry logic
+- [x] T032 Create `src/utils/conclusion_writer.py`
+- [x] T033 Implement markdown formatting per spec structure
+- [x] T034 Add "Нет рекомендаций" placeholder and file I/O
 
 ### Implementation Notes
 - Follow BaseComponent pattern from `src/nodes/base_component.py`
