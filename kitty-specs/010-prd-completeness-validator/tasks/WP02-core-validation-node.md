@@ -8,6 +8,7 @@ base_commit: 97e639587932c9507ab0fec2614bb3e422b7847a
 created_at: '2026-02-15T10:01:30.816581+00:00'
 subtasks: [T006, T007, T008, T009, T010, T011, T012]
 shell_pid: "94064"
+agent: "claude"
 history:
 - date: 2025-02-15
   action: Created
@@ -768,3 +769,7 @@ After completing this work package:
 1. Run `spec-kitty review WP02` to mark as ready for review
 2. Proceed to WP03: Report Generation (depends on this WP)
 3. Implementation command: `spec-kitty implement WP02 --base WP01`
+
+## Activity Log
+
+- 2026-02-15T10:01:31Z – claude – shell_pid=94064 – lane=doing – Assigned agent via workflow command
