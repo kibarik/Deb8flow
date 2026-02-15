@@ -204,7 +204,7 @@ description: "Work package task list for debate conclusion report feature implem
 
 ### Included Subtasks
 - [x] T042 Create `tests/test_conclusion_report_e2e.py`
-- [ ] T043 Test standard debate conclusion generation
+- [x] T043 Test standard debate conclusion generation
 - [ ] T044 Test document debate conclusion generation
 - [ ] T045 Test edge cases: no winner, no recommendations
 - [ ] T046 Test edge cases: missing directory, multi-language
