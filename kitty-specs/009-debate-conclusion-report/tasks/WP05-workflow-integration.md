@@ -3,8 +3,10 @@ work_package_id: "WP05"
 subtasks: ["T035", "T036", "T037", "T038", "T039", "T040", "T041"]
 title: "Workflow Integration"
 phase: "Phase 2 - Integration"
-lane: "for_review"
+lane: "done"
 dependencies: ["WP04"]
+reviewed_by: "ALeks ishmanov"
+review_status: "approved"
 history:
   - timestamp: "2026-02-15T09:39:49Z"
     lane: "planned"
@@ -44,3 +46,4 @@ Integrate conclusion node into both debate workflows (standard and document).
 ## Activity Log
 
 - 2026-02-15T10:16:30Z – unknown – lane=for_review – Ready for review: Completed standard and document workflow integration tests. Added ConclusionReportNode to both workflows with proper imports and edge to END. Integration tests written but need verification after merging to main.
+- 2026-02-15T10:38:20Z – unknown – lane=done – Review passed: Both workflows (standard and document) integrated with ConclusionReportNode. Edges: judge → conclusion → END.
