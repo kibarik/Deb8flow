@@ -15,7 +15,7 @@ import re
 from typing import Dict, Any, Optional
 from pathlib import Path
 
-from src.nodes.base_component import BaseComponent
+from nodes.base_component import BaseComponent
 from src.types.conclusion_types import (
     ConclusionData,
     VerdictSummary,

@@ -15,12 +15,7 @@ from nodes.debate_moderator_node import DebateModeratorNode
 from nodes.fact_checker_node import FactCheckNode
 from nodes.fact_check_router_node import FactCheckRouterNode
 from nodes.judge_node import JudgeNode
-from src.extractors.debate_state_extractor import DebateStateExtractor
-from src.utils.conclusion_writer import ConclusionWriter
-from nodes.conclusion_report_node import ConclusionReportNode
-from nodes.conclusion_report_node import ConclusionReportNode
-from src.extractors.debate_state_extractor import DebateStateExtractor
-from src.utils.conclusion_writer import ConclusionWriter
+from src.nodes.conclusion_report_node import ConclusionReportNode
 from configurations.llm_config import requesty_llm_config_map
 
 
@@ -50,6 +45,7 @@ class DocumentDebateWorkflow:
         workflow.add_node("fact_check_router_node", FactCheckRouterNode())
         workflow.add_node("debate_moderator_node", DebateModeratorNode())
         workflow.add_node("judge_node", JudgeNode(requesty_llm_config_map["deepseek-chat"]))
+        workflow.add_node("conclusion_report_node", ConclusionReportNode())
 
         # Entry point - start with document topic generation
         workflow.set_entry_point("document_topic_node")
@@ -61,7 +57,8 @@ class DocumentDebateWorkflow:
         workflow.add_edge("fact_check_node", "fact_check_router_node")
         # Note: fact_check_router_node uses Command(goto=...) for dynamic routing
         # No static edges needed from router - it routes to: pro/con/judge dynamically
-        workflow.add_edge("judge_node", END)
+        workflow.add_edge("judge_node", "conclusion_report_node")
+        workflow.add_edge("conclusion_report_node", END)
 
         return workflow
 

@@ -1,6 +1,7 @@
 from nodes.base_component import BaseComponent
 from debate_state import DebateState
 from typing import Dict, Any, Optional
+from langchain_core.runnables.base import RunnableSequence
 from prompts.pro_debater_prompts import (
     SYSTEM_PROMPT,
     OPENING_HUMAN_PROMPT,
