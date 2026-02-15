@@ -183,7 +183,8 @@ class DebateStateExtractor:
             # Map standard roles to positions
             return "PRO" if winner == "PRO" else "CON"
 
-        return winner_position
+        # Default: return the winner as-is (should be "PRO" or "CON")
+        return winner.upper() if winner.lower() in ["pro", "con"] else winner
 
     def _extract_qa_summary(self, state: Dict[str, Any]) -> List[QAPair]:
         """Extract Q&A pairs from debate messages.
@@ -528,9 +529,9 @@ class DebateStateExtractor:
         """Generate run ID from debate topic."""
         # Create simple run ID from topic
         import hashlib
-        topic_hash = hashlib.md5(debate_topic.encode('utf-8', errors='ignore')()).hexdigest()[:8]
-        from datetime import datetime
-        timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+        topic_hash = hashlib.md5(debate_topic.encode('utf-8', errors='ignore')).hexdigest()[:8]
+        from datetime import datetime, timezone
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
         return f"{timestamp}-{topic_hash}"
 
     def _filter_messages_by_stage(self, messages: List[Dict[str, Any]], stage: str) -> List[Dict[str, Any]]:

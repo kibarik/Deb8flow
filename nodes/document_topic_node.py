@@ -104,5 +104,5 @@ class DocumentTopicNode(BaseComponent):
         Raises:
             ValueError: If file cannot be read or is empty
         """
-        doc = Document(file_path)
+        doc = DocxDocument(file_path)
         return "\n".join(p.text for p in doc.paragraphs)

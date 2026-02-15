@@ -45,7 +45,7 @@ class DocumentDebateWorkflow:
         workflow.add_node("fact_check_router_node", FactCheckRouterNode())
         workflow.add_node("debate_moderator_node", DebateModeratorNode())
         workflow.add_node("judge_node", JudgeNode(requesty_llm_config_map["deepseek-chat"]))
-        workflow.add_node("conclusion_report_node", ConclusionReportNode())
+        workflow.add_node("conclusion_report_node", ConclusionReportNode(requesty_llm_config_map["deepseek-chat"]))
 
         # Entry point - start with document topic generation
         workflow.set_entry_point("document_topic_node")

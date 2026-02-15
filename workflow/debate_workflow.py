@@ -23,7 +23,7 @@ class DebateWorkflow:
         workflow.add_node("debate_moderator_node", DebateModeratorNode())
         workflow.add_node("judge_node", JudgeNode(requesty_llm_config_map["deepseek-chat"]))
         # Conclusion Report Node
-        workflow.add_node("conclusion_report_node", ConclusionReportNode())
+        workflow.add_node("conclusion_report_node", ConclusionReportNode(requesty_llm_config_map["deepseek-chat"]))
 
         # Entry point
         workflow.set_entry_point("generate_topic_node")

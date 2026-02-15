@@ -45,9 +45,9 @@ class ConclusionReportNode(BaseComponent):
         writer: ConclusionWriter for markdown output
     """
 
-    def __init__(self):
+    def __init__(self, llm_config=None):
         """Initialize conclusion report node."""
-        super().__init__()
+        super().__init__(llm_config)
         self.logger = logging.getLogger(self.__class__.__name__)
         self.extractor = DebateStateExtractor()
         self.writer = ConclusionWriter()
@@ -145,65 +145,37 @@ class ConclusionReportNode(BaseComponent):
         """
         self.logger.info("Calling LLM to generate conclusion report")
 
-        # Use structured output chain for JSON response
-        chain = self.get_structured_output_chain(
-            output_schema={
-                "debate_question": "string",
-                "verdict": {
-                    "winner": "string",
-                    "winner_position": "string",
-                    "justification": "string",
-                },
-                "qa_summary": [{
-                    "question": "string",
-                    "answer": "string",
-                    "stage": "string",
-                    "speaker": "string",
-                    "validated": "boolean",
-                    "priority": "integer",
-                }],
-                "tpm_analysis": {
-                    "position_summary": "string",
-                    "weaknesses": [{
-                        "category": "string",
-                        "description": "string",
-                        "severity": "string",
-                        "source": "string",
-                        "context": "string or null",
-                    }],
-                    "recommended_improvements": ["string"],
-                    "victory_assessment": "string",
-                },
-                "recommendations": [{
-                    "agent_role": "string",
-                    "text": "string",
-                    "priority": "string or null",
-                    "category": "string or null",
-                    "actionable": "boolean",
-                }],
-                "metadata": {
-                    "debate_type": "string",
-                    "run_id": "string",
-                    "generated_at": "string",
-                    "source_file": "string or null",
-                    "total_recommendations": "integer",
-                    "tpm_victory": "boolean",
-                    "completion_status": "string",
-                    "error_message": "string or null",
-                },
-            }
-        )
+        # Check if LLM is available
+        if self.llm is None:
+            raise ValueError("LLM not configured. Cannot generate conclusion report.")
 
-        # Format prompt with conclusion data
-        formatted_prompt = prompt.format(**conclusion_data)
+        # Convert conclusion_data to JSON string for the prompt
+        import json
+        conclusion_json = json.dumps(conclusion_data, indent=2, ensure_ascii=False)
+
+        # Append the conclusion data to the prompt
+        formatted_prompt = f"{prompt}\n\n## Debate State Data (JSON)\n```json\n{conclusion_json}\n```"
+
+        # Create simple chain for text output (Requesty doesn't support structured output)
+        from langchain_core.prompts import ChatPromptTemplate
+        from langchain_core.output_parsers import StrOutputParser
+
+        prompt_template = ChatPromptTemplate.from_messages([
+            ("system", "You are a debate analyst generating conclusion reports. Output ONLY valid JSON, no markdown formatting."),
+            ("human", "{input}")
+        ])
+
+        # Create chain with text output
+        chain = prompt_template | self.llm | StrOutputParser()
 
         # Invoke LLM chain
         try:
             response = chain.invoke(
-                input=formatted_prompt,
+                {"input": formatted_prompt},
                 config={"run_name": "conclusion_report_generation"}
             )
-            return response.get("conclusion", "")
+            # Return response as-is (will be parsed by _parse_llm_response)
+            return response
         except Exception as e:
             self.logger.error(f"LLM call failed: {e}")
             raise
@@ -222,10 +194,30 @@ class ConclusionReportNode(BaseComponent):
         """
         self.logger.info("Parsing LLM response")
 
+        # Log raw response for debugging
+        self.logger.debug(f"Raw LLM response (first 500 chars): {llm_response[:500] if llm_response else 'EMPTY'}")
+
+        # Strip markdown code blocks if present (e.g., ```json ... ```)
+        cleaned_response = llm_response.strip()
+        if cleaned_response.startswith("```"):
+            # Remove code block markers
+            lines = cleaned_response.split('\n')
+            # Skip first line (```json or ```) and last line (```)
+            if len(lines) >= 2:
+                # Remove first line if it's a code block marker
+                if lines[0].startswith("```"):
+                    lines = lines[1:]
+                # Remove last line if it's a code block marker
+                if lines and lines[-1].strip() == "```":
+                    lines = lines[:-1]
+                cleaned_response = '\n'.join(lines).strip()
+
         try:
             import json
-            parsed = json.loads(llm_response)
+            parsed = json.loads(cleaned_response)
         except json.JSONDecodeError as e:
+            self.logger.error(f"Failed to parse JSON. Raw response: {llm_response}")
+            self.logger.error(f"Cleaned response: {cleaned_response}")
             raise ValueError(f"Invalid JSON response from LLM: {e}")
 
         # Validate required fields
@@ -274,7 +266,7 @@ class ConclusionReportNode(BaseComponent):
         debate_question = conclusion_data.get("debate_question", "debate")
         safe_filename = re.sub(r"[^\w\s-]", "", debate_question)[:50]
         timestamp = parsed_conclusion.get("metadata", {}).get("generated_at", "")
-        safe_timestamp = re.sub(r"[^\w\s-:]", "", timestamp)[:20]
+        safe_timestamp = re.sub(r"[^\w\s:\-]", "", timestamp)[:20]
 
         filename = f"{safe_filename}_{safe_timestamp}.md"
         output_path = output_dir_path / filename

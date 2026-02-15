@@ -21,7 +21,7 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass, asdict
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Coroutine
 
@@ -91,7 +91,7 @@ def create_debate_room(room_id: str, opponent_role: str) -> DebateRoom:
     return DebateRoom(
         room_id=room_id,
         status="failed",
-        timestamp=datetime.now(UTC).isoformat(),
+        timestamp=datetime.now(timezone.utc).isoformat(),
         tpm_position="",
         opponent_position="",
         judge_verdict={"winner": "", "explanation": ""},
@@ -619,7 +619,7 @@ async def _run_debate_room_async_impl(
 
     # Log room start with timestamp and participants info
     opponent_role = room_id.split("_vs_")[-1]
-    timestamp = datetime.now(UTC).strftime("%H:%M:%S")
+    timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S")
     room_prefix = f"[{room_id}]"  # Unique prefix for this room's logs
     logger.info(f"{room_prefix} Starting room: {room_id} (TPM vs {opponent_role})")
 
@@ -694,7 +694,7 @@ async def _run_debate_room_async_impl(
                 if returncode == 0:
                     # Log completion with timestamp and winner info
                     winner = room.judge_verdict.get("winner", "Unknown")
-                    timestamp = datetime.now(UTC).strftime("%H:%M:%S")
+                    timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S")
                     logger.info(f"[{timestamp}] Room {room_id} completed: Winner = {winner}")
 
                     # Load full dialogue from JSON output if available
@@ -834,7 +834,7 @@ def generate_run_id(question: str, manual_id: Optional[str] = None) -> str:
     # Remove non-alphanumeric characters
     slug = re.sub(r'[^a-z0-9-]', '', slug)
 
-    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     return f"RUN_{timestamp}_{slug}"
 
 
@@ -869,7 +869,7 @@ def create_metadata(
         "prd_path": prd_path,
         "question": question,
         "model": model or "default",
-        "start_time": datetime.now(UTC).isoformat(),
+        "start_time": datetime.now(timezone.utc).isoformat(),
         "end_time": None,
         "room_statuses": {
             "tpm_cpo": "pending",
@@ -961,7 +961,7 @@ def _run_all_rooms_sequential(
             metadata["errors"].append({
                 "room": room_id,
                 "message": room.error or "Unknown error",
-                "timestamp": datetime.now(UTC).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             })
 
         logger.info(f"Room {room_id} completed with status: {room.status}")
@@ -1078,7 +1078,7 @@ async def run_all_rooms_parallel(
             metadata["errors"].append({
                 "room": room_id,
                 "message": str(result),
-                "timestamp": datetime.now(UTC).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             })
         elif result is not None:
             rooms.append(result)
@@ -1091,7 +1091,7 @@ async def run_all_rooms_parallel(
                 metadata["errors"].append({
                     "room": result.room_id,
                     "message": result.error or "Unknown error",
-                    "timestamp": datetime.now(UTC).isoformat()
+                    "timestamp": datetime.now(timezone.utc).isoformat()
                 })
         else:
             # Should not happen, but handle gracefully
@@ -1432,13 +1432,235 @@ def generate_final_report(
     return '\n'.join(lines)
 
 
+def generate_conclusion(
+    question: str,
+    rooms: List[DebateRoom],
+    reflection: Optional[Dict[str, Any]],
+    metadata: Dict[str, Any]
+) -> str:
+    """
+    Generate a concise conclusion markdown summary.
+
+    Args:
+        question: Committee question
+        rooms: All debate room results
+        reflection: TPM reflection data
+        metadata: Run metadata
+
+    Returns:
+        Markdown conclusion content
+    """
+    lines = [
+        f"# Conclusion",
+        f"",
+        f"**Generated:** {metadata.get('end_time', 'N/A')}",
+        f"",
+        f"---",
+        f"",
+        f"## Committee Question",
+        f"",
+        f"{question}",
+        f"",
+        f"---",
+        f"",
+        f"## Executive Summary",
+        f"",
+    ]
+
+    # Count winners
+    successful_rooms = [r for r in rooms if r.status == "success"]
+    failed_rooms = [r for r in rooms if r.status == "failed"]
+    tpm_wins = sum(1 for r in successful_rooms if r.judge_verdict.get("winner") == "TPM")
+    opponent_wins = len(successful_rooms) - tpm_wins
+
+    lines.append(f"After {len(successful_rooms)} successful debate rooms:")
+    lines.append(f"- **TPM victories:** {tpm_wins}/{len(successful_rooms)}")
+    lines.append(f"- **Opponent victories:** {opponent_wins}/{len(successful_rooms)}")
+    lines.append("")
+
+    # If no successful rooms, provide error analysis and recommendations
+    if not successful_rooms and failed_rooms:
+        lines.extend([
+            f"**Status:** All debate rooms failed to complete.",
+            f"",
+            f"---",
+            f"",
+            f"## Error Analysis",
+            f""
+        ])
+
+        # Analyze common error patterns
+        error_patterns = {}
+        for room in failed_rooms:
+            if room.error:
+                # Categorize errors
+                error_lower = room.error.lower()
+                if "regex" in error_lower or "re.error" in error_lower:
+                    error_patterns.setdefault("Regex/Pattern Error", []).append(room.room_id)
+                elif "timeout" in error_lower or "timed out" in error_lower:
+                    error_patterns.setdefault("Timeout", []).append(room.room_id)
+                elif "json" in error_lower or "parse" in error_lower:
+                    error_patterns.setdefault("JSON Parsing Error", []).append(room.room_id)
+                elif "llm" in error_lower or "api" in error_lower:
+                    error_patterns.setdefault("LLM/API Error", []).append(room.room_id)
+                else:
+                    error_patterns.setdefault("Other Error", []).append(room.room_id)
+
+        for error_type, room_list in error_patterns.items():
+            lines.append(f"### {error_type}")
+            lines.append(f"Affected rooms: {', '.join(room_list)}")
+            lines.append("")
+
+            # Add specific recommendations based on error type
+            if "Regex" in error_type:
+                lines.extend([
+                    "**Recommendation:** Check regular expressions in filename sanitization.",
+                    "- Ensure character ranges are properly formatted",
+                    "- Escape special characters like `-` when used literally",
+                    "- Test regex patterns: `python3 -c 'import re; re.test()'`"
+                ])
+            elif "Timeout" in error_type:
+                lines.extend([
+                    "**Recommendation:** Debate rooms are taking too long to complete.",
+                    "- Check if LLM API is responding slowly",
+                    "- Consider increasing timeout in `DEFAULT_DEBATE_TIMEOUT`",
+                    "- Reduce debate complexity or number of rounds"
+                ])
+            elif "JSON" in error_type:
+                lines.extend([
+                    "**Recommendation:** LLM responses are not valid JSON.",
+                    "- Check LLM prompts are requesting proper JSON format",
+                    "- Ensure system prompt specifies JSON output only",
+                    "- Consider using structured output if available"
+                ])
+            elif "LLM" in error_type:
+                lines.extend([
+                    "**Recommendation:** LLM API issues detected.",
+                    "- Check API key is valid and has sufficient quota",
+                    "- Verify network connectivity to LLM provider",
+                    "- Check service status page for outages"
+                ])
+            else:
+                lines.extend([
+                    "**Recommendation:** Unknown error - check logs for details.",
+                    f"- Error message: {failed_rooms[0].error if failed_rooms else 'Unknown'}"
+                ])
+            lines.append("")
+
+        # Show sample errors for debugging
+        lines.extend([
+            f"### Sample Error Details",
+            f""
+        ])
+        for room in failed_rooms[:2]:  # Show first 2 errors
+            lines.extend([
+                f"**{room.room_id}:**",
+                f"```",
+                room.error or "No error message",
+                "```",
+                ""
+            ])
+
+        lines.extend([
+            f"---",
+            f"",
+            f"## Next Steps",
+            f"",
+            "1. **Check logs above** for detailed error messages",
+            "2. **Verify LLM configuration** - check API keys and endpoints",
+            "3. **Test with single room first** - use `--max-concurrency 1`",
+            "4. **Check role prompt files** - ensure all `.txt` files in `prompts/roles/` exist",
+            "5. **Review PRD document** - ensure it's readable and contains sufficient content",
+            ""
+        ])
+
+        return '\n'.join(lines)
+
+    # Overall verdict (only if we have successful rooms)
+    if tpm_wins > opponent_wins:
+        overall_verdict = "TPM (PRO) position prevails"
+    elif opponent_wins > tpm_wins:
+        overall_verdict = "Opponents (CON) positions prevail"
+    else:
+        overall_verdict = "No clear consensus"
+
+    lines.extend([
+        f"**Overall Verdict:** {overall_verdict}",
+        f"",
+        f"---",
+        f"",
+        f"## Room Results Summary",
+        f""
+    ])
+
+    for room in rooms:
+        if room.status == "success":
+            winner = room.judge_verdict.get("winner", "Unknown")
+            justification = room.judge_verdict.get("explanation", "")
+            # Extract first meaningful sentence from justification
+            if justification:
+                sentences = justification.split('.')
+                first_sentence = sentences[0].strip() if sentences else justification
+                if len(first_sentence) > 200:
+                    first_sentence = first_sentence[:200] + "..."
+            else:
+                first_sentence = "No explanation provided"
+
+            lines.extend([
+                f"### {room.room_id}",
+                f"**Winner:** {winner}",
+                f"**Summary:** {first_sentence}",
+                f""
+            ])
+
+    # Reflection summary
+    if reflection:
+        lines.extend([
+            f"---",
+            f"",
+            f"## TPM Assessment",
+            f""
+        ])
+
+        assessment = reflection.get("potential_assessment", {})
+        overall = assessment.get("overall", "unknown")
+        confidence = assessment.get("confidence", 0)
+
+        lines.extend([
+            f"**Potential:** {overall.upper()}",
+            f"**Confidence:** {confidence:.0%}" if isinstance(confidence, (int, float)) else f"**Confidence:** {confidence}",
+            f""
+        ])
+
+        recommendations = reflection.get("recommendations", [])
+        if recommendations:
+            lines.extend([
+                f"**Key Recommendations:**",
+                f""
+            ])
+            for i, rec in enumerate(recommendations[:5], 1):
+                lines.append(f"{i}. {rec}")
+            lines.append("")
+
+    # Footer
+    lines.extend([
+        f"---",
+        f"",
+        f"*For detailed dialogue and analysis, see final_report.md*",
+        f""
+    ])
+
+    return '\n'.join(lines)
+
+
 def save_artifacts(
     run_id: str,
     rooms: List[DebateRoom],
     reflection: Optional[Dict[str, Any]],
     metadata: Dict[str, Any],
     report: str,
-    output_dir: Path
+    output_dir: Path,
+    question: str
 ) -> Path:
     """
     Save all artifacts to output directory.
@@ -1450,6 +1672,7 @@ def save_artifacts(
         metadata: Run metadata
         report: Markdown report content
         output_dir: Base output directory
+        question: Committee question
 
     Returns:
         Path to output directory
@@ -1492,6 +1715,18 @@ def save_artifacts(
     with open(report_path, 'w') as f:
         f.write(report)
     logger.info(f"Saved final report to {report_path}")
+
+    # Save conclusion
+    conclusion = generate_conclusion(
+        question=question,
+        rooms=rooms,
+        reflection=reflection,
+        metadata=metadata
+    )
+    conclusion_path = run_output_dir / "conclusion.md"
+    with open(conclusion_path, 'w', encoding='utf-8') as f:
+        f.write(conclusion)
+    logger.info(f"Saved conclusion to {conclusion_path}")
 
     return run_output_dir
 
@@ -1572,7 +1807,7 @@ def main():
         logger.warning("No successful rooms; skipping TPM reflection")
 
     # Update metadata
-    metadata["end_time"] = datetime.now(UTC).isoformat()
+    metadata["end_time"] = datetime.now(timezone.utc).isoformat()
 
     # Generate final report
     logger.info("Generating final report...")
@@ -1592,12 +1827,14 @@ def main():
         reflection=reflection,
         metadata=metadata,
         report=report,
-        output_dir=Path(args.output_dir)
+        output_dir=Path(args.output_dir),
+        question=args.question
     )
 
     logger.info(f"Product Committee Orchestrator completed successfully!")
     logger.info(f"Artifacts saved to: {output_path}")
     logger.info(f"Final report: {output_path / 'final_report.md'}")
+    logger.info(f"Conclusion: {output_path / 'conclusion.md'}")
 
     # Exit with error if any rooms failed
     if any(r.status == "failed" for r in rooms):
