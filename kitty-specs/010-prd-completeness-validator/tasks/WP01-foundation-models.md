@@ -8,6 +8,7 @@ base_commit: 97e639587932c9507ab0fec2614bb3e422b7847a
 created_at: '2026-02-15T09:50:39.038604+00:00'
 subtasks: [T001, T002, T003, T004, T005]
 shell_pid: "90243"
+agent: "claude"
 history:
 - date: 2025-02-15
   action: Created
@@ -566,3 +567,7 @@ After completing this work package:
 1. Run `spec-kitty review WP01` to mark as ready for review
 2. Proceed to WP02: Core Validation Logic (depends on this WP)
 3. Implementation command: `spec-kitty implement WP01 --base main`
+
+## Activity Log
+
+- 2026-02-15T09:50:39Z – claude – shell_pid=90243 – lane=doing – Assigned agent via workflow command
