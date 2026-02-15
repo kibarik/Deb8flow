@@ -69,15 +69,15 @@ description: "Work package task list for debate conclusion report feature implem
 **Estimated Prompt Size**: ~420 lines (9 subtasks)
 
 ### Included Subtasks
-- [ ] T008 Create `src/parsers/final_report_parser.py` module
-- [ ] T009 Implement section extraction using regex for `## (.+)` pattern
-- [ ] T010 Parse Committee Question and Executive Summary sections
-- [ ] T011 Parse Room-by-Room Analysis with room results
-- [ ] T012 Extract verdict, winner, justification from each room
-- [ ] T013 Parse TPM Reflection section
-- [ ] T014 Parse Metadata section (run_id, timestamps)
-- [ ] T015 Add error handling for missing/malformed sections
-- [ ] T016 [P] Write unit tests with sample final_report.md
+- [x] T008 Create `src/parsers/final_report_parser.py` module
+- [x] T009 Implement section extraction using regex for `## (.+)` pattern
+- [x] T010 Parse Committee Question and Executive Summary sections
+- [x] T011 Parse Room-by-Room Analysis with room results
+- [x] T012 Extract verdict, winner, justification from each room
+- [x] T013 Parse TPM Reflection section
+- [x] T014 Parse Metadata section (run_id, timestamps)
+- [x] T015 Add error handling for missing/malformed sections
+- [x] T016 [P] Write unit tests with sample final_report.md
 
 ### Implementation Notes
 - Use defensive parsing with multiple fallback patterns
