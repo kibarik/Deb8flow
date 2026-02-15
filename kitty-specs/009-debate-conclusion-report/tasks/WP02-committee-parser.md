@@ -9,6 +9,7 @@ created_at: '2026-02-15T10:02:12.434496+00:00'
 subtasks: [T008, T009, T010, T011, T012, T013, T014, T015, T016]
 phase: Phase 1 - Data Extraction
 shell_pid: "94493"
+agent: "claude"
 history:
 - timestamp: '2026-02-15T09:39:49Z'
   lane: planned
@@ -59,3 +60,7 @@ Test with sample final_report.md from research.md.
 ## Dependencies
 
 WP01 (type definitions)
+
+## Activity Log
+
+- 2026-02-15T10:02:12Z – claude – shell_pid=94493 – lane=doing – Assigned agent via workflow command
