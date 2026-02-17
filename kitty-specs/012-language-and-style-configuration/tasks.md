@@ -72,11 +72,11 @@ This feature adds a `--language` CLI flag that allows users to specify language 
 - Empty strings treated as None (no injection)
 
 **Included Subtasks**:
-- [ ] T007: Add `--language` argparse argument to `main.py`
-- [ ] T008: Add `--language` argparse argument to `document_debate_cli.py` [P]
-- [ ] T009: Implement length validation (500 chars max) in both CLIs [P]
-- [ ] T010: Pass `language_setting` to initial state in `main.py`
-- [ ] T011: Pass `language_setting` to initial state in `document_debate_cli.py` [P]
+- [x] T007: Add `--language` argparse argument to `main.py`
+- [x] T008: Add `--language` argparse argument to `document_debate_cli.py` [P]
+- [x] T009: Implement length validation (500 chars max) in both CLIs [P]
+- [x] T010: Pass `language_setting` to initial state in `main.py`
+- [x] T011: Pass `language_setting` to initial state in `document_debate_cli.py` [P]
 
 **Implementation Sketch**:
 1. Add argparse argument to both CLI files (can be done in parallel)
