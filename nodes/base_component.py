@@ -171,12 +171,26 @@ class BaseComponent:
         raise Exception("API request failed after maximum number of retries")
 
     def create_chain(
-        self, system_template: str, human_template: str
+        self, system_template: str, human_template: str, language_setting: Optional[str] = None
     ) -> RunnableSequence:
         """
         Creates a chain for unstructured outputs.
+
+        Args:
+            system_template: The system prompt template.
+            human_template: The human prompt template.
+            language_setting: Optional language/style instruction for all agents.
+
+        Returns:
+            A RunnableSequence for executing the chain.
         """
         self.validate_initialization()
+
+        # Inject language setting into system template if provided
+        if language_setting:
+            injection = f"\n\n**Language and Style Setting**: {language_setting}\n\n"
+            system_template = injection + system_template
+
         self.prompt_template = ChatPromptTemplate.from_messages(
             [
                 ("system", system_template),
