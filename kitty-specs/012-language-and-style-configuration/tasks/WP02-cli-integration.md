@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: CLI Integration
-lane: "doing"
+lane: "for_review"
 dependencies: []
 base_branch: main
 base_commit: 8966e59ddbbf45501400d52a8dd7c0b5f444ccb5
@@ -424,3 +424,4 @@ The CLI command updates both frontmatter and activity log automatically.
 spec-kitty implement WP02 --base WP01
 ```
 - 2026-02-17T14:43:59Z – claude – shell_pid=57062 – lane=doing – Assigned agent via workflow command
+- 2026-02-17T14:53:01Z – claude – shell_pid=57062 – lane=for_review – Ready for review: CLI Integration complete
