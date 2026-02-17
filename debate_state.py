@@ -26,3 +26,5 @@ class DebateState(TypedDict):
     # Custom prompt fields for role-based debates (Feature 003)
     pro_custom_prompt: NotRequired[Optional[str]]  # Custom PRO debater prompt content (e.g., TPM role)
     con_custom_prompt: NotRequired[Optional[str]]  # Custom CON debater prompt content (e.g., CPO role)
+    # Language and style configuration (Feature 012)
+    language_setting: NotRequired[Optional[str]]  # Language/style instruction for all agents

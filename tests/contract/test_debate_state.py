@@ -81,6 +81,60 @@ class TestDebateStateContract(unittest.TestCase):
         except Exception as e:
             self.fail(f"Failed to create DebateState with .docx file path: {e}")
 
+    def test_language_setting_field_exists(self):
+        """Test that DebateState includes language_setting field (Feature 012)."""
+        type_hints = get_type_hints(DebateState, include_extras=True)
+
+        # Check that language_setting is in the type hints
+        self.assertIn('language_setting', type_hints,
+                     "DebateState must include 'language_setting' field for language/style configuration")
+
+    def test_language_setting_with_value(self):
+        """Test that DebateState can accept language_setting with a value."""
+        state_with_language = {
+            "debate_topic": "Test topic",
+            "positions": {"pro": "In favor", "con": "Against"},
+            "messages": [],
+            "language_setting": "Русский официальный стиль"
+        }
+
+        try:
+            state = DebateState(**state_with_language)
+            self.assertEqual(state["language_setting"], "Русский официальный стиль")
+        except Exception as e:
+            self.fail(f"Failed to create DebateState with language_setting: {e}")
+
+    def test_language_setting_with_none(self):
+        """Test that DebateState can accept language_setting with None value."""
+        state_with_none = {
+            "debate_topic": "Test topic",
+            "positions": {"pro": "In favor", "con": "Against"},
+            "messages": [],
+            "language_setting": None
+        }
+
+        try:
+            state = DebateState(**state_with_none)
+            self.assertIsNone(state["language_setting"])
+        except Exception as e:
+            self.fail(f"Failed to create DebateState with language_setting=None: {e}")
+
+    def test_language_setting_optional(self):
+        """Test that DebateState works without language_setting (backward compatibility)."""
+        state_without_language = {
+            "debate_topic": "Test topic",
+            "positions": {"pro": "In favor", "con": "Against"},
+            "messages": []
+            # language_setting omitted
+        }
+
+        try:
+            state = DebateState(**state_without_language)
+            # Should work fine without language_setting
+            self.assertNotIn("language_setting", state)
+        except Exception as e:
+            self.fail(f"Failed to create DebateState without language_setting: {e}")
+
 
 if __name__ == '__main__':
     unittest.main()
