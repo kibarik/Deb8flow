@@ -39,13 +39,28 @@ class DebateWorkflow:
 
 
 
-    async def run(self):
+    async def run(self, initial_state: dict = None):
+        """
+        Run the debate workflow.
+
+        Args:
+            initial_state: Optional initial state with language_setting and other overrides.
+
+        Returns:
+            Final workflow state.
+        """
         workflow = self._initialize_workflow()
         graph = workflow.compile()
-        # graph.get_graph().draw_mermaid_png(output_file_path="workflow_graph.png")
-        initial_state = {
+
+        # Base initial state
+        base_initial_state = {
             "topic": "",
             "positions": {}
         }
-        final_state = await graph.ainvoke(initial_state, config={"recursion_limit": 50})
+
+        # Merge with provided initial_state if any
+        if initial_state:
+            base_initial_state.update(initial_state)
+
+        final_state = await graph.ainvoke(base_initial_state, config={"recursion_limit": 50})
         return final_state
