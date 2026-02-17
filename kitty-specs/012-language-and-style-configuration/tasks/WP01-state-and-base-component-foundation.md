@@ -15,7 +15,7 @@ subtasks:
 - T006
 phase: Phase 1 - Foundation
 assignee: ''
-agent: ''
+agent: "claude"
 shell_pid: "54507"
 review_status: ''
 reviewed_by: ''
@@ -492,3 +492,4 @@ To change a work package's lane, either:
 The CLI command updates both frontmatter and activity log automatically.
 
 **Valid lanes**: `planned`, `doing`, `for_review`, `done`
+- 2026-02-17T14:35:39Z – claude – shell_pid=54507 – lane=doing – Assigned agent via workflow command
