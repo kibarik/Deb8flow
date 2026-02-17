@@ -28,6 +28,10 @@ from src.types.conclusion_types import (
 )
 from src.extractors.debate_state_extractor import DebateStateExtractor
 from src.utils.conclusion_writer import ConclusionWriter
+from src.analyzers.verdict_extractor import VerdictExtractor
+from src.analyzers.role_analyzer import RoleAnalyzer
+from src.analyzers.gap_recommendation_generator import GapRecommendationGenerator
+from src.writers.enhanced_conclusion_writer import EnhancedConclusionWriter
 
 
 __all__ = ["ConclusionReportNode"]
@@ -51,6 +55,11 @@ class ConclusionReportNode(BaseComponent):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.extractor = DebateStateExtractor()
         self.writer = ConclusionWriter()
+        # Enhanced pipeline components
+        self.verdict_extractor = VerdictExtractor(llm_config)
+        self.role_analyzer = RoleAnalyzer(llm_config)
+        self.gap_recommendation_generator = GapRecommendationGenerator(llm_config)
+        self.enhanced_writer = EnhancedConclusionWriter()
 
     def __call__(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """Generate conclusion report from debate state.
@@ -66,32 +75,38 @@ class ConclusionReportNode(BaseComponent):
         """
         self.logger.info("Generating conclusion report from debate state")
 
-        # Extract conclusion data using extractor
-        try:
-            conclusion_data = self.extractor.extract(state)
-        except ValueError as e:
-            self.logger.error(f"Failed to extract conclusion data: {e}")
-            raise
-
-        # Detect debate type and route to appropriate prompt
+        # Detect debate type and route to appropriate pipeline
         debate_type = self._detect_debate_type(state)
         self.logger.info(f"Detected debate type: {debate_type.value}")
 
-        # Get appropriate prompt
-        prompt = self._get_prompt_for_debate_type(debate_type)
+        # Route committee debates to enhanced pipeline
+        if debate_type == DebateType.COMMITTEE:
+            self.logger.info("Routing committee debate to enhanced pipeline")
+            output_path = self._run_enhanced_pipeline(state)
+        else:
+            self.logger.info("Routing standard/document debate to existing pipeline")
+            # Extract conclusion data using extractor
+            try:
+                conclusion_data = self.extractor.extract(state)
+            except ValueError as e:
+                self.logger.error(f"Failed to extract conclusion data: {e}")
+                raise
 
-        # Generate conclusion using LLM
-        llm_response = self._generate_conclusion_with_llm(conclusion_data, prompt)
+            # Get appropriate prompt
+            prompt = self._get_prompt_for_debate_type(debate_type)
 
-        # Parse and validate LLM response
-        parsed_conclusion = self._parse_llm_response(llm_response)
+            # Generate conclusion using LLM
+            llm_response = self._generate_conclusion_with_llm(conclusion_data, prompt)
 
-        # Write conclusion report using writer
-        output_path = self._write_conclusion_report(
-            conclusion_data,
-            parsed_conclusion,
-            state
-        )
+            # Parse and validate LLM response
+            parsed_conclusion = self._parse_llm_response(llm_response)
+
+            # Write conclusion report using writer
+            output_path = self._write_conclusion_report(
+                conclusion_data,
+                parsed_conclusion,
+                state
+            )
 
         # Update state with output path
         return {"conclusion_report_path": output_path}
@@ -280,3 +295,133 @@ class ConclusionReportNode(BaseComponent):
 
         self.logger.info(f"Conclusion report written to: {output_path}")
         return str(output_path)
+
+    def _run_enhanced_pipeline(self, state: Dict[str, Any]) -> str:
+        """Run enhanced conclusion pipeline for committee debates.
+
+        Args:
+            state: DebateState dictionary with messages and verdict
+
+        Returns:
+            Path to generated enhanced conclusion file
+
+        Raises:
+            ValueError: If final_report.md not found or pipeline fails
+        """
+        self.logger.info("Running enhanced conclusion pipeline")
+
+        # Get run_id from state
+        run_id = self._get_run_id_from_state(state)
+        self.logger.info(f"Processing run_id: {run_id}")
+
+        # Read final_report.md from committee_output/{run_id}/
+        final_report = self._read_final_report(run_id)
+
+        # Stage 1A: Extract verdict
+        self.logger.info("Stage 1A: Extracting verdict")
+        verdict = self.verdict_extractor.extract(final_report)
+
+        # Stage 1B: Analyze roles
+        self.logger.info("Stage 1B: Analyzing roles")
+        role_analyses = self.role_analyzer.analyze(final_report)
+
+        # Build IntermediateConclusionSchema
+        from src.types.enhanced_conclusion_types import IntermediateConclusionSchema
+        intermediate_conclusion = IntermediateConclusionSchema(
+            verdict=verdict,
+            role_analyses=role_analyses
+        )
+
+        # Stage 2: Generate gaps and recommendations
+        self.logger.info("Stage 2: Generating gaps and recommendations")
+        gaps, recommendations = self.gap_recommendation_generator.generate(
+            intermediate_conclusion,
+            final_report
+        )
+
+        # Build EnhancedConclusion
+        from src.types.enhanced_conclusion_types import EnhancedConclusion
+        enhanced_conclusion = EnhancedConclusion(
+            verdict=verdict,
+            role_analyses=role_analyses,
+            critical_gaps=gaps,
+            recommendations=recommendations
+        )
+
+        # Write enhanced conclusion to committee_output/{run_id}/conclusion.md
+        output_dir = Path("committee_output") / run_id
+        output_path = self.enhanced_writer.write(
+            enhanced_conclusion,
+            output_dir,
+            run_id=run_id
+        )
+
+        # Rename to conclusion.md (the writer creates enhanced_conclusion_{run_id}.md)
+        final_path = output_dir / "conclusion.md"
+        output_path.rename(final_path)
+
+        self.logger.info(f"Enhanced conclusion written to: {final_path}")
+        return str(final_path)
+
+    def _get_run_id_from_state(self, state: Dict[str, Any]) -> str:
+        """Extract run_id from debate state.
+
+        Args:
+            state: DebateState dictionary
+
+        Returns:
+            Run ID string
+
+        Raises:
+            ValueError: If run_id cannot be determined
+        """
+        # Try to get run_id from state
+        run_id = state.get("run_id")
+        if run_id:
+            return run_id
+
+        # Fallback: extract from output_dir or generate from topic
+        output_dir = state.get("output_dir", "")
+        if "committee_output" in output_dir:
+            # Extract run_id from path (e.g., committee_output/RUN_123 -> RUN_123)
+            parts = Path(output_dir).parts
+            if "committee_output" in parts:
+                idx = parts.index("committee_output")
+                if idx + 1 < len(parts):
+                    return parts[idx + 1]
+
+        # Final fallback: generate from debate topic
+        debate_topic = state.get("debate_topic", "unknown")
+        from src.extractors.debate_state_extractor import DebateStateExtractor
+        extractor = DebateStateExtractor()
+        return extractor._generate_run_id(debate_topic)
+
+    def _read_final_report(self, run_id: str) -> str:
+        """Read final_report.md from committee_output/{run_id}/.
+
+        Args:
+            run_id: Run identifier
+
+        Returns:
+            Content of final_report.md as string
+
+        Raises:
+            ValueError: If final_report.md not found or cannot be read
+        """
+        report_path = Path("committee_output") / run_id / "final_report.md"
+
+        if not report_path.exists():
+            raise ValueError(
+                f"final_report.md not found at {report_path}. "
+                f"Ensure the committee debate has completed successfully."
+            )
+
+        self.logger.info(f"Reading final_report.md from {report_path}")
+
+        try:
+            with open(report_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            self.logger.info(f"Successfully read {len(content)} characters from final_report.md")
+            return content
+        except Exception as e:
+            raise ValueError(f"Failed to read final_report.md: {e}")
