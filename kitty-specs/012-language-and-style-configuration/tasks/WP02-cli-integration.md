@@ -1,8 +1,11 @@
 ---
 work_package_id: WP02
 title: CLI Integration
-lane: planned
+lane: "doing"
 dependencies: []
+base_branch: main
+base_commit: 8966e59ddbbf45501400d52a8dd7c0b5f444ccb5
+created_at: '2026-02-17T14:43:59.376144+00:00'
 subtasks:
 - T007
 - T008
@@ -12,7 +15,7 @@ subtasks:
 phase: Phase 1 - Implementation
 assignee: ''
 agent: ''
-shell_pid: ''
+shell_pid: "57062"
 review_status: ''
 reviewed_by: ''
 history:
