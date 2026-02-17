@@ -140,8 +140,23 @@ async def main():
             type=str,
             help="Path to save structured JSON output (full message history)"
         )
+        parser.add_argument(
+            "--language",
+            type=str,
+            help="Language and style setting for all agents (e.g., 'Русский официальный стиль', 'English, concise')"
+        )
 
         args = parser.parse_args()
+
+        # Validate language setting length
+        language_setting = None
+        if args.language:
+            if len(args.language) > 500:
+                logger.error("❌ --language value too long (max 500 characters)")
+                sys.exit(1)
+            language_setting = args.language if args.language.strip() else None
+            if language_setting:
+                logger.info(f"[cyan]🌐 Language setting: {language_setting}[/]")
 
         # Validate argument combinations
         if args.request and not args.docx:
@@ -153,7 +168,8 @@ async def main():
         base_state = {
             "debate_topic": "",
             "positions": {},
-            "messages": []
+            "messages": [],
+            "language_setting": language_setting
         }
 
         # Validate and add custom prompts if provided

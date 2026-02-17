@@ -180,11 +180,16 @@ class BaseComponent:
             system_template: The system prompt template.
             human_template: The human prompt template.
             language_setting: Optional language/style instruction for all agents.
+                             If not provided, will use self.language_setting from state if available.
 
         Returns:
             A RunnableSequence for executing the chain.
         """
         self.validate_initialization()
+
+        # Use provided language_setting or fall back to self.language_setting from state
+        if language_setting is None and hasattr(self, 'language_setting'):
+            language_setting = self.language_setting
 
         # Inject language setting into system template if provided
         if language_setting:
