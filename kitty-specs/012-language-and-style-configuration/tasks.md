@@ -112,12 +112,12 @@ This feature adds a `--language` CLI flag that allows users to specify language 
 - All existing E2E tests pass without modification
 
 **Included Subtasks**:
-- [ ] T012: Verify debate_workflow.py properly propagates language_setting
-- [ ] T013: Verify document_debate_workflow.py properly propagates language_setting
-- [ ] T014: Add E2E test for `--language` flag in standard debate
-- [ ] T015: Add E2E test for `--language` flag in document debate
-- [ ] T016: Add backward compatibility test (no flag)
-- [ ] T017: Verify all existing E2E tests pass
+- [x] T012: Verify debate_workflow.py properly propagates language_setting
+- [x] T013: Verify document_debate_workflow.py properly propagates language_setting
+- [x] T014: Add E2E test for `--language` flag in standard debate
+- [x] T015: Add E2E test for `--language` flag in document debate
+- [x] T016: Add backward compatibility test (no flag)
+- [x] T017: Verify all existing E2E tests pass
 
 **Implementation Sketch**:
 1. Review workflow files to understand state propagation
