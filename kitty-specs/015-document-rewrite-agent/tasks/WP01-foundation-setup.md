@@ -15,7 +15,7 @@ subtasks:
 - T006
 phase: Phase 1 - Foundation
 assignee: ''
-agent: ''
+agent: "claude-opus-4-6"
 shell_pid: "72054"
 review_status: ''
 reviewed_by: ''
@@ -305,3 +305,4 @@ pytest tests/types/test_rewrite_types.py -v
 ### Valid lanes
 
 `planned` → `doing` → `for_review` → `done`
+- 2026-02-17T23:06:57Z – claude-opus-4-6 – shell_pid=72054 – lane=doing – Assigned agent via workflow command
