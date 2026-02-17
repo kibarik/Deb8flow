@@ -1,7 +1,7 @@
 ---
 work_package_id: WP01
 title: State & Base Component Foundation
-lane: "doing"
+lane: "for_review"
 dependencies: []
 base_branch: main
 base_commit: ba1bc82647e0f076d301beb1807fa49b1d7c46d7
@@ -493,3 +493,10 @@ The CLI command updates both frontmatter and activity log automatically.
 
 **Valid lanes**: `planned`, `doing`, `for_review`, `done`
 - 2026-02-17T14:35:39Z – claude – shell_pid=54507 – lane=doing – Assigned agent via workflow command
+- 2026-02-17T14:39:46Z – claude – shell_pid=54507 – lane=for_review – Ready for review: State & Base Component Foundation complete
+
+- Added language_setting field to DebateState (NotRequired[Optional[str]])
+- Modified BaseComponent.create_chain() to accept and inject language_setting
+- Language injection prepends to system template with correct format
+- All tests passing: 9 contract tests + 9 unit tests
+- 100% backward compatible
