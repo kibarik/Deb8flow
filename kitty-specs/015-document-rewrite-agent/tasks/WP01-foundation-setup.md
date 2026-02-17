@@ -1,27 +1,30 @@
 ---
-work_package_id: "WP01"
-subtasks:
-  - "T001"
-  - "T002"
-  - "T003"
-  - "T004"
-  - "T005"
-  - "T006"
-title: "Foundation Setup"
-phase: "Phase 1 - Foundation"
-lane: "planned"  # DO NOT EDIT - use: spec-kitty agent tasks move-task <WPID> --to <lane>
-assignee: ""      # Optional friendly name when in doing/for_review
-agent: ""         # CLI agent identifier (claude, codex, etc.)
-shell_pid: ""     # PID captured when the task moved to the current lane
-review_status: "" # empty | has_feedback | acknowledged (populated by reviewers/implementers)
-reviewed_by: ""   # Agent ID of the reviewer (if reviewed)
-history:
-  - timestamp: "2026-02-17T21:00:00Z"
-    lane: "planned"
-    agent: "system"
-    shell_pid: ""
-    action: "Prompt created via /spec-kitty.tasks"
+work_package_id: WP01
+title: Foundation Setup
+lane: "doing"
 dependencies: []
+base_branch: main
+base_commit: 7a7a235de5ed046aee4c05b2ba06340faf8818ca
+created_at: '2026-02-17T23:06:56.940131+00:00'
+subtasks:
+- T001
+- T002
+- T003
+- T004
+- T005
+- T006
+phase: Phase 1 - Foundation
+assignee: ''
+agent: ''
+shell_pid: "72054"
+review_status: ''
+reviewed_by: ''
+history:
+- timestamp: '2026-02-17T21:00:00Z'
+  lane: planned
+  agent: system
+  shell_pid: ''
+  action: Prompt created via /spec-kitty.tasks
 ---
 
 # Work Package Prompt: WP01 – Foundation Setup
