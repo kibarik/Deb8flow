@@ -15,7 +15,7 @@ subtasks:
 - T017
 phase: Phase 1 - Testing
 assignee: ''
-agent: ''
+agent: "claude"
 shell_pid: "59933"
 review_status: ''
 reviewed_by: ''
@@ -467,3 +467,4 @@ The CLI command updates both frontmatter and activity log automatically.
 ```bash
 spec-kitty implement WP03 --base WP02
 ```
+- 2026-02-17T14:53:08Z – claude – shell_pid=59933 – lane=doing – Assigned agent via workflow command
