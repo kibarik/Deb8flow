@@ -1,8 +1,11 @@
 ---
 work_package_id: WP03
 title: Testing & Validation
-lane: planned
+lane: "doing"
 dependencies: []
+base_branch: main
+base_commit: 6358c4792bf147682b4376e7e634dde67c02fbef
+created_at: '2026-02-17T14:53:08.625137+00:00'
 subtasks:
 - T012
 - T013
@@ -13,7 +16,7 @@ subtasks:
 phase: Phase 1 - Testing
 assignee: ''
 agent: ''
-shell_pid: ''
+shell_pid: "59933"
 review_status: ''
 reviewed_by: ''
 history:
