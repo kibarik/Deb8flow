@@ -207,9 +207,9 @@ class CommitteeReportExtractor:
         if not match:
             raise ValueError("Missing required section: Committee Question")
 
-        # Extract content until next section
+        # Extract content until next section or separator
         start_pos = match.end()
-        next_section = re.search(r"^## ", content[start_pos:], re.MULTILINE)
+        next_section = re.search(r"^---|^## ", content[start_pos:], re.MULTILINE)
         if next_section:
             end_pos = next_section.start() + start_pos
         else:

@@ -355,10 +355,11 @@ def validate_recommendation_format(conclusion: Any) -> ValidationResult:
             metric = rec.metric
             # Check if metric is measurable (contains numbers or percentages)
             if not any(char.isdigit() for char in metric):
-                result.add_warning(
+                result.add_error(
                     "format",
                     "metric",
                     "metric should be measurable (include numbers or percentages)",
+                    severity="warning",
                     location=location
                 )
 
