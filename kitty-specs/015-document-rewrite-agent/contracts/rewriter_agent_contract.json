@@ -1,0 +1,263 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://deb8flow.dev/contracts/rewriter_agent.json",
+  "title": "Rewriter Agent Contract",
+  "description": "Input/output contract for the document rewriter agent",
+  "type": "object",
+  "properties": {
+    "request": {
+      "type": "object",
+      "description": "Input parameters for rewriter agent",
+      "properties": {
+        "original_document_path": {
+          "type": "string",
+          "description": "Absolute path to original document (copy in run-id directory)",
+          "minLength": 1
+        },
+        "conclusion_path": {
+          "type": "string",
+          "description": "Absolute path to conclusion.md file",
+          "minLength": 1
+        },
+        "output_directory": {
+          "type": "string",
+          "description": "Absolute path to run-id output directory",
+          "minLength": 1
+        },
+        "original_filename": {
+          "type": "string",
+          "description": "Original filename (e.g., 'prd.docx')",
+          "minLength": 1,
+          "pattern": "^.+\\.(docx|md|txt|rtf)$"
+        },
+        "format": {
+          "type": "string",
+          "description": "Document format",
+          "enum": ["docx", "md", "txt", "rtf"]
+        },
+        "model_config": {
+          "type": "object",
+          "description": "LLM configuration",
+          "properties": {
+            "model_name": {
+              "type": "string",
+              "description": "Model name (e.g., 'gpt-4', 'gpt-3.5-turbo')",
+              "minLength": 1
+            },
+            "temperature": {
+              "type": "number",
+              "description": "Temperature for generation",
+              "minimum": 0,
+              "maximum": 2,
+              "default": 0.7
+            },
+            "max_tokens": {
+              "type": "integer",
+              "description": "Maximum tokens in response",
+              "minimum": 1,
+              "default": 4096
+            },
+            "provider": {
+              "type": "string",
+              "description": "LLM provider",
+              "enum": ["openai", "azure", "zhipu", "requesty"],
+              "default": "openai"
+            }
+          },
+          "required": ["model_name"]
+        },
+        "options": {
+          "type": "object",
+          "description": "Rewrite behavior options",
+          "properties": {
+            "aggressive_mode": {
+              "type": "boolean",
+              "description": "Apply all recommendations aggressively",
+              "default": true
+            },
+            "resolve_contradictions": {
+              "type": "boolean",
+              "description": "Resolve contradictions without asking user",
+              "default": true
+            },
+            "preserve_formatting": {
+              "type": "boolean",
+              "description": "Try to preserve original formatting",
+              "default": true
+            },
+            "add_inline_notes": {
+              "type": "boolean",
+              "description": "Add inline notes when needed",
+              "default": true
+            },
+            "validate_completeness": {
+              "type": "boolean",
+              "description": "Check all recommendations applied",
+              "default": true
+            },
+            "fallback_on_error": {
+              "type": "boolean",
+              "description": "Create copy with note if rewrite fails",
+              "default": true
+            }
+          }
+        }
+      },
+      "required": ["original_document_path", "conclusion_path", "output_directory", "original_filename", "format"]
+    },
+    "result": {
+      "type": "object",
+      "description": "Output from rewriter agent",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Whether rewrite succeeded"
+        },
+        "error_message": {
+          "type": ["string", "null"],
+          "description": "Error message if success=false"
+        },
+        "rewritten_document_path": {
+          "type": "string",
+          "description": "Absolute path to rewritten document"
+        },
+        "recommendations_count": {
+          "type": "integer",
+          "description": "Number of recommendations found in conclusion",
+          "minimum": 0
+        },
+        "recommendations_applied": {
+          "type": "integer",
+          "description": "Number of recommendations applied",
+          "minimum": 0
+        },
+        "inline_notes_count": {
+          "type": "integer",
+          "description": "Number of inline review notes added",
+          "minimum": 0
+        },
+        "processing_time_seconds": {
+          "type": "number",
+          "description": "Processing time in seconds",
+          "minimum": 0
+        },
+        "validation_passed": {
+          "type": "boolean",
+          "description": "Whether validation passed (if enabled)"
+        },
+        "validation_details": {
+          "type": ["string", "null"],
+          "description": "Validation details or error message"
+        },
+        "metadata": {
+          "type": "object",
+          "description": "File metadata information",
+          "properties": {
+            "original_filename": {
+              "type": "string",
+              "description": "Original filename"
+            },
+            "original_size_bytes": {
+              "type": "integer",
+              "description": "Original file size"
+            },
+            "rewritten_filename": {
+              "type": "string",
+              "description": "Rewritten filename"
+            },
+            "rewritten_size_bytes": {
+              "type": "integer",
+              "description": "Rewritten file size"
+            },
+            "preserved_metadata": {
+              "type": "object",
+              "description": "Preserved metadata from original",
+              "properties": {
+                "author": {
+                  "type": ["string", "null"],
+                  "description": "Document author"
+                },
+                "created_at": {
+                  "type": ["string", "null"],
+                  "description": "Original creation timestamp (ISO 8601)"
+                },
+                "modified_at": {
+                  "type": ["string", "null"],
+                  "description": "Original modification timestamp (ISO 8601)"
+                }
+              }
+            }
+          }
+        }
+      },
+      "required": ["success", "rewritten_document_path"]
+    }
+  },
+  "definitions": {
+    "Recommendation": {
+      "type": "object",
+      "description": "A single recommendation extracted from conclusion",
+      "properties": {
+        "section_reference": {
+          "type": ["string", "null"],
+          "description": "Section reference (e.g., 'Section 3.2') or null if global"
+        },
+        "action_type": {
+          "type": "string",
+          "enum": ["REMOVE", "UPDATE", "ADD", "REPLACE", "RESTRUCTURE"],
+          "description": "Type of action to take"
+        },
+        "target_content": {
+          "type": ["string", "null"],
+          "description": "Content to target (for UPDATE/REPLACE)"
+        },
+        "new_content": {
+          "type": ["string", "null"],
+          "description": "New content (for UPDATE/ADD/REPLACE)"
+        },
+        "priority": {
+          "type": "integer",
+          "description": "Priority (1-5, where 1 is highest)",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "rationale": {
+          "type": ["string", "null"],
+          "description": "Why this change is recommended"
+        }
+      }
+    }
+  },
+  "errors": {
+    "FILE_NOT_FOUND": {
+      "code": "ERR_001",
+      "message": "Original document or conclusion file not found",
+      "recoverable": false
+    },
+    "UNSUPPORTED_FORMAT": {
+      "code": "ERR_002",
+      "message": "Unsupported file format",
+      "recoverable": false
+    },
+    "CONVERSION_ERROR": {
+      "code": "ERR_003",
+      "message": "Format conversion failed",
+      "recoverable": true
+    },
+    "LLM_ERROR": {
+      "code": "ERR_004",
+      "message": "LLM call failed",
+      "recoverable": true
+    },
+    "VALIDATION_ERROR": {
+      "code": "ERR_005",
+      "message": "Recommendation validation failed",
+      "recoverable": true
+    },
+    "WRITE_ERROR": {
+      "code": "ERR_006",
+      "message": "Failed to write output file",
+      "recoverable": false
+    }
+  }
+}

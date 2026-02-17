@@ -31,6 +31,7 @@ rich==14.0.0
 typing_extensions>=4.0.0
 aiofiles>=24.1.0  # NEW: Added for feature 004
 tqdm>=4.66.0  # NEW: Added for feature 005 - progress indicators
+mammoth>=1.8.0  # NEW: Added for feature 015 - .docx to markdown conversion
 ```
 
 ## Project Structure
@@ -50,6 +51,17 @@ Deb8flow/
 │       ├── __init__.py
 │       ├── progress_manager.py     # ProgressManager class with tqdm
 │       └── cli_output.py          # CLIOutput class for verbosity filtering
+│
+├── src/agents/                    # NEW: Feature 015 - AI agent implementations
+│   ├── __init__.py
+│   ├── rewriter_agent.py           # Standalone document rewriter agent
+│   └── base_agent.py               # Base class for agents (optional)
+│
+├── src/converters/                # NEW: Feature 015 - Format conversion utilities
+│   ├── __init__.py
+│   ├── docx_converter.py           # .docx ↔ markdown conversion
+│   ├── txt_converter.py            # .txt ↔ markdown conversion
+│   └── converter_base.py           # Base converter interface
 │
 ├── nodes/                         # LangGraph node implementations
 │   ├── __init__.py
@@ -155,6 +167,36 @@ if __name__ == "__main__":
 - `workflow/`: Accept optional `progress_manager` parameter
 - `nodes/`: Check `state["_progress_manager"]` and use if present
 - `src/progress/`: New module for `ProgressManager` and `CLIOutput`
+
+---
+
+## Feature 015: Document Rewrite Agent
+
+**New in feature 015**: Add `--make-review` flag to automatically rewrite source documents based on debate conclusions
+
+**Key Design Decisions**:
+- Standalone script invoked after workflow completion (NOT a LangGraph node)
+- Uses same LLM configuration as debate participants
+- Markdown intermediate format for multi-format support (.docx, .md, .txt)
+- `mammoth` library for .docx → markdown, custom `python-docx` for markdown → .docx
+- Graceful error handling (preserves debate results even if rewrite fails)
+
+**Integration Points**:
+- `product_committee.py`: Add `--make-review` flag and rewriter invocation
+- `document_debate_cli.py`: Add `--make-review` flag and rewriter invocation
+- `src/agents/`: New module for `rewriter_agent.py`
+- `src/converters/`: New module for format converters
+- `prompts/rewriter_prompts.md`: System prompts for rewriter agent
+
+**Output Structure**:
+```
+{run-id}/
+├── conclusion.md                    # Debate conclusions
+├── {original_name}.{ext}            # Original copy (preserved)
+├── {original_name}_{timestamp}.{ext} # Rewritten document
+└── file_metadata.json               # Preserved metadata
+```
+
 
 ---
 
