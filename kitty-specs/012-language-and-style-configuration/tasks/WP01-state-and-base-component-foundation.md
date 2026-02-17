@@ -1,8 +1,11 @@
 ---
 work_package_id: WP01
 title: State & Base Component Foundation
-lane: planned
+lane: "doing"
 dependencies: []
+base_branch: main
+base_commit: ba1bc82647e0f076d301beb1807fa49b1d7c46d7
+created_at: '2026-02-17T14:35:38.907095+00:00'
 subtasks:
 - T001
 - T002
@@ -13,7 +16,7 @@ subtasks:
 phase: Phase 1 - Foundation
 assignee: ''
 agent: ''
-shell_pid: ''
+shell_pid: "54507"
 review_status: ''
 reviewed_by: ''
 history:
