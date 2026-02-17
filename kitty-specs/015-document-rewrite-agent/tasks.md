@@ -27,12 +27,12 @@
 **Estimated Size**: ~350 lines
 
 ### Included Subtasks
-- [ ] T001 Create new directory structure `src/agents/` and `src/converters/` with `__init__.py` files
-- [ ] T002 Add `mammoth>=1.8.0` to `requirements.txt` for .docx to markdown conversion
-- [ ] T003 [P] Create `src/types/rewrite_types.py` with core dataclasses: `RewriteRequest`, `RewriteResult`, `RewriteOptions`
-- [ ] T004 [P] Create `src/types/rewrite_types.py` with supporting types: `DocumentFormat` enum, `ActionType` enum, `LLMConfig` dataclass
-- [ ] T005 [P] Create `src/types/conversion_types.py` with `ConversionResult`, `FileMetadata`, `Recommendation` dataclasses
-- [ ] T006 [P] Create `src/types/rewrite_types.py` with exception hierarchy: `RewriteError` base, `ConversionError`, `LLMError`, `ValidationError`
+- [x] T001 Create new directory structure `src/agents/` and `src/converters/` with `__init__.py` files
+- [x] T002 Add `mammoth>=1.8.0` to `requirements.txt` for .docx to markdown conversion
+- [x] T003 [P] Create `src/types/rewrite_types.py` with core dataclasses: `RewriteRequest`, `RewriteResult`, `RewriteOptions`
+- [x] T004 [P] Create `src/types/rewrite_types.py` with supporting types: `DocumentFormat` enum, `ActionType` enum, `LLMConfig` dataclass
+- [x] T005 [P] Create `src/types/conversion_types.py` with `ConversionResult`, `FileMetadata`, `Recommendation` dataclasses
+- [x] T006 [P] Create `src/types/rewrite_types.py` with exception hierarchy: `RewriteError` base, `ConversionError`, `LLMError`, `ValidationError`
 
 ### Implementation Notes
 - Create directory structure at root level: `src/agents/`, `src/converters/`
