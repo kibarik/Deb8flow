@@ -45,6 +45,7 @@ AI agents. The project goal is rapid development and hypothesis validation.
 Reviewers should verify:
 - **Specification compliance**: Code matches the feature specification
 - **Tests added**: New features have test coverage
+- **Documentation added**: Feature has `docs/{feature-name}.md` with clear description
 - Code quality and maintainability
 
 ### Quality Gates
@@ -54,12 +55,19 @@ Reviewers should verify:
 ### Documentation Standards
 - **Self-documenting code** preferred
 - Code should be clear and readable without extensive comments
+- **Feature documentation required**: Each feature MUST have a documentation file in `docs/{feature-name}.md`
+  - Brief and functional description of what the feature does
+  - Clear explanation of how it works (architecture, data flow)
+  - Usage examples and command reference
+  - Sufficient detail for anyone to understand the feature without diving into code
+  - Examples: `docs/language-flag.md`, `docs/committee-debate.html`
 
 ## Tribal Knowledge
 
 ### Team Conventions
 - **Spec-driven development**: Always work from written specifications
 - **TDD (Test-Driven Development)**: Write tests first to prevent bugs
+- **Doc-driven features**: Create feature documentation before or alongside implementation
 - Minimal dependencies: Each dependency adds complexity and risk
 
 ### Lessons Learned
