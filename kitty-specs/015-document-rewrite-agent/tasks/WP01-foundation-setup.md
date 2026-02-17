@@ -1,7 +1,7 @@
 ---
 work_package_id: WP01
 title: Foundation Setup
-lane: "doing"
+lane: "for_review"
 dependencies: []
 base_branch: main
 base_commit: 7a7a235de5ed046aee4c05b2ba06340faf8818ca
@@ -306,3 +306,4 @@ pytest tests/types/test_rewrite_types.py -v
 
 `planned` → `doing` → `for_review` → `done`
 - 2026-02-17T23:06:57Z – claude-opus-4-6 – shell_pid=72054 – lane=doing – Assigned agent via workflow command
+- 2026-02-17T23:08:56Z – claude-opus-4-6 – shell_pid=72054 – lane=for_review – Ready for review: Foundation setup complete with directories, mammoth dependency, data models, and exception hierarchy
