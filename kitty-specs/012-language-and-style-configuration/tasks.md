@@ -31,12 +31,12 @@ This feature adds a `--language` CLI flag that allows users to specify language 
 - Unit test validates injection logic
 
 **Included Subtasks**:
-- [ ] T001: Add `language_setting: NotRequired[Optional[str]]` to DebateState
-- [ ] T002: Add contract test for language_setting field
-- [ ] T003: Modify `BaseComponent.__call__()` to capture language_setting from state
-- [ ] T004: Modify `BaseComponent.create_chain()` to accept language_setting parameter
-- [ ] T005: Implement language injection logic (prepend to system template)
-- [ ] T006: Add unit test for language injection in BaseComponent
+- [x] T001: Add `language_setting: NotRequired[Optional[str]]` to DebateState
+- [x] T002: Add contract test for language_setting field
+- [x] T003: Modify `BaseComponent.__call__()` to capture language_setting from state
+- [x] T004: Modify `BaseComponent.create_chain()` to accept language_setting parameter
+- [x] T005: Implement language injection logic (prepend to system template)
+- [x] T006: Add unit test for language injection in BaseComponent
 
 **Implementation Sketch**:
 1. Update `debate_state.py` with new field (maintains backward compatibility)
