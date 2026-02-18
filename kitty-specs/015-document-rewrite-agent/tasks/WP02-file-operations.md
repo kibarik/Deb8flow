@@ -14,7 +14,7 @@ subtasks:
 - T011
 phase: Phase 1 - Foundation
 assignee: ''
-agent: ''
+agent: "claude-opus-4-6"
 shell_pid: "44565"
 review_status: ''
 reviewed_by: ''
@@ -269,3 +269,4 @@ All functions should have corresponding unit tests with:
 ## Activity Log
 
 - 2026-02-17T21:00:00Z – system – lane=planned – Prompt created.
+- 2026-02-18T12:40:00Z – claude-opus-4-6 – shell_pid=44565 – lane=doing – Assigned agent via workflow command
