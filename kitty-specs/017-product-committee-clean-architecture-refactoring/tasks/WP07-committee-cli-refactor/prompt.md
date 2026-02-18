@@ -1,7 +1,7 @@
 # WP07: Product Committee CLI Refactoring
 
 **Work Package**: 017-product-committee-clean-architecture-refactoring / WP07
-**Status**: TODO
+**Status**: DONE
 **Dependencies**: WP04, WP05, WP06
 
 ## Overview
