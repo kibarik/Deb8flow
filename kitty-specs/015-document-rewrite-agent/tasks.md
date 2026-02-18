@@ -60,11 +60,11 @@
 **Estimated Size**: ~400 lines
 
 ### Included Subtasks
-- [ ] T007 Create `src/utils/file_utils.py` with `copy_document_with_metadata()` function using `shutil.copy2()`
-- [ ] T008 [P] Create `src/utils/file_utils.py` with `extract_file_metadata()` function to capture author, dates, size from files
-- [ ] T009 [P] Create `src/utils/file_utils.py` with `generate_output_filename()` function following `{name}_{YYYYMMDD_HHMMSS}.{ext}` pattern
-- [ ] T010 [P] Create `src/utils/file_utils.py` with `save_metadata_json()` function to write `file_metadata.json`
-- [ ] T011 Create unit tests in `tests/utils/test_file_utils.py` for copy, metadata extraction, filename generation
+- [x] T007 Create `src/utils/file_utils.py` with `copy_document_with_metadata()` function using `shutil.copy2()`
+- [x] T008 [P] Create `src/utils/file_utils.py` with `extract_file_metadata()` function to capture author, dates, size from files
+- [x] T009 [P] Create `src/utils/file_utils.py` with `generate_output_filename()` function following `{name}_{YYYYMMDD_HHMMSS}.{ext}` pattern
+- [x] T010 [P] Create `src/utils/file_utils.py` with `save_metadata_json()` function to write `file_metadata.json`
+- [x] T011 Create unit tests in `tests/utils/test_file_utils.py` for copy, metadata extraction, filename generation
 
 ### Implementation Notes
 - Use `shutil.copy2()` for metadata preservation
