@@ -1,0 +1,26 @@
+# Example Configuration with Environment Variables
+# This demonstrates how to use ${VAR_NAME} syntax for env var substitution
+
+llm:
+  # Use environment variable with default fallback
+  # Syntax: ${VAR_NAME:default_value}
+  base_url: "${DEBATE_BASE_URL:}"
+  model: "${DEBATE_MODEL:gpt-4o-mini}"
+  api_key: "${OPENAI_API_KEY:}"
+  temperature: ${DEBATE_TEMPERATURE:0.8}
+  max_tokens: 1500
+
+debate:
+  max_retries: ${DEBATE_MAX_RETRIES:2}
+  max_concurrency: ${DEBATE_MAX_CONCURRENCY:2}
+  language: "${DEBATE_LANGUAGE:}"
+
+output:
+  directory: "${DEBATE_OUTPUT_DIR:./committee_output}"
+  save_dialogues: true
+  save_metadata: true
+
+logging:
+  level: "${DEBATE_LOG_LEVEL:INFO}"
+  verbose: false
+  quiet: false

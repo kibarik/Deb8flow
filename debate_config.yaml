@@ -1,0 +1,71 @@
+# Debate Configuration
+# Configure your LLM provider and model settings here
+#
+# Environment variables from .env file can be used with ${VAR_NAME} syntax
+# Example: ${OPENAI_API_KEY} or ${OPENAI_API_KEY:default_value}
+
+# LLM Provider Configuration
+llm:
+  # API Base URL - Change this to use different providers
+  # OpenAI: https://api.openai.com/v1 (or leave empty for default)
+  # DeepSeek via Requesty: https://api.requesty.ai/v1
+  # Zhipu AI: https://open.bigmodel.cn/api/paas/v4
+  # Other OpenAI-compatible APIs: provide your base URL
+  base_url: "${DEBATE_BASE_URL:}"
+
+  # Model name
+  # OpenAI examples: gpt-4o, gpt-4o-mini, gpt-3.5-turbo
+  # DeepSeek: deepseek-chat, deepseek-coder
+  # Zhipu AI: glm-4, glm-3-turbo
+  # Anthropic (via compatibility): claude-3-5-sonnet-20241022
+  model: "${DEBATE_MODEL:gpt-4o-mini}"
+
+  # API Key
+  # Reads from OPENAI_API_KEY from .env file
+  # You can override with: ${YOUR_CUSTOM_ENV_VAR:your_key}
+  api_key: "${OPENAI_API_KEY:}"
+
+  # Temperature (0.0 - 1.0)
+  # Lower = more focused and deterministic
+  # Higher = more creative and varied
+  temperature: ${DEBATE_TEMPERATURE:0.8}
+
+  # Maximum tokens per response
+  max_tokens: 1500
+
+  # Request timeout in seconds
+  timeout: 60
+
+# Debate Settings
+debate:
+  # Maximum number of retry attempts per room
+  max_retries: 2
+
+  # Maximum concurrent debate rooms (0 = all at once, 1 = sequential)
+  max_concurrency: 2
+
+  # Language for debate output (optional)
+  # Examples: en, ru, zh, es, fr, de
+  language: ""
+
+# Output Settings
+output:
+  # Base output directory
+  directory: "./committee_output"
+
+  # Whether to save individual dialogue JSON files
+  save_dialogues: true
+
+  # Whether to save metadata
+  save_metadata: true
+
+# Logging Settings
+logging:
+  # Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: "INFO"
+
+  # Enable verbose logging
+  verbose: false
+
+  # Enable quiet mode (minimal output)
+  quiet: false

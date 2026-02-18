@@ -51,7 +51,7 @@ class CliDebateExecutor:
         try:
             return await retry_with_backoff(_execute_once, max_retries)
         except Exception as e:
-            logger.error(f"Room {room_id.value} failed: {e}")
+            logger.error(f"Failed room: TPM vs {opponent} - {e}")
             return DebateRoom(
                 room_id=room_id,
                 pro_participant="TPM",
@@ -74,6 +74,8 @@ class CliDebateExecutor:
         opponent: str
     ) -> DebateRoom:
         """Execute single debate attempt."""
+        logger.info(f"Starting room: TPM vs {opponent}")
+
         # Build command
         cmd = [
             sys.executable,
@@ -141,6 +143,11 @@ class CliDebateExecutor:
         # Find verdict
         verdict = self._extract_verdict(messages)
 
+        if verdict:
+            logger.info(f"Completed room: TPM vs {opponent} - WINNER: {verdict.winner.value}")
+        else:
+            logger.warning(f"Completed room: TPM vs {opponent} - NO VERDICT")
+
         return DebateRoom(
             room_id=room_id,
             pro_participant="TPM",
@@ -159,6 +166,11 @@ class CliDebateExecutor:
         """Parse debate results from stdout (fallback)."""
         verdict = self._extract_verdict_from_text(stdout)
 
+        if verdict:
+            logger.info(f"Completed room: TPM vs {opponent} - WINNER: {verdict.winner.value}")
+        else:
+            logger.warning(f"Completed room: TPM vs {opponent} - NO VERDICT")
+
         return DebateRoom(
             room_id=room_id,
             pro_participant="TPM",
@@ -170,13 +182,17 @@ class CliDebateExecutor:
 
     def _extract_verdict(self, messages: list) -> Optional[Verdict]:
         """Extract verdict from dialogue messages."""
+        import re
+        verdict_pattern = r"WINNER:\s*\*{0,2}(PRO|CON)\*{0,2}"
+
         for msg in reversed(messages):
             if "verdict" in msg.content.lower() or "winner" in msg.content.lower():
                 content = msg.content
-                if "WINNER: PRO" in content or "PRO WINS" in content.upper():
-                    return Verdict(winner=Speaker.PRO, explanation=content[-500:] if len(content) > 500 else content)
-                elif "WINNER: CON" in content or "CON WINS" in content.upper():
-                    return Verdict(winner=Speaker.CON, explanation=content[-500:] if len(content) > 500 else content)
+                match = re.search(verdict_pattern, content, re.IGNORECASE)
+                if match:
+                    winner_str = match.group(1)
+                    winner = Speaker.PRO if winner_str.upper() == "PRO" else Speaker.CON
+                    return Verdict(winner=winner, explanation=content[-500:] if len(content) > 500 else content)
         return None
 
     def _extract_verdict_from_text(self, text: str) -> Optional[Verdict]:

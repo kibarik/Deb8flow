@@ -22,18 +22,40 @@ poetry install
 
 ### 3. Configure Environment
 
-Create a `.env` file with your API key:
+**Option A: Using YAML config (recommended)**
 
+Edit `debate_config.yaml` with your provider settings:
+
+```yaml
+llm:
+  base_url: ""  # Empty for OpenAI, or set your provider URL
+  model: "gpt-4o-mini"
+  api_key: ""  # Or use OPENAI_API_KEY environment variable
+  temperature: 0.8
 ```
-OPENAI_API_KEY=your_openai_key_here
+
+See [CONFIG_GUIDE.md](CONFIG_GUIDE.md) for provider examples (OpenAI, DeepSeek, Zhipu AI, Ollama).
+
+**Option B: Using environment variables**
+
+```bash
+export OPENAI_API_KEY=your_openai_key_here
 ```
 
 ### 4. Run Product Committee
 
 ```bash
+# Using default config (debate_config.yaml)
 poetry run product-committee \
   --prd test_prd.txt \
   --question "What is the potential of this project?"
+
+# Or override config values
+poetry run product-committee \
+  --prd test_prd.txt \
+  --question "What is the potential of this project?" \
+  --model gpt-4o \
+  --temperature 0.9
 ```
 
 ---
@@ -86,7 +108,11 @@ python3 product_committee.py --prd ./test_prd.txt --question "заработае
 |----------|-------------|
 | `--prd <file>` | Path to PRD document (.docx or .txt) |
 | `--question <text>` | Committee question |
-| `--model <name>` | LLM model name |
+| `--config <file>` | Path to YAML config file (default: debate_config.yaml) |
+| `--model <name>` | LLM model name (overrides config) |
+| `--base-url <url>` | API base URL (overrides config) |
+| `--api-key <key>` | API key (overrides config) |
+| `--temperature <n>` | Sampling temperature (overrides config) |
 | `--language <text>` | Language for output |
 | `--max-retries <n>` | Max retry attempts (default: 2) |
 | `--max-concurrency <n>` | Max parallel rooms (0-4, default: 2) |
@@ -95,6 +121,40 @@ python3 product_committee.py --prd ./test_prd.txt --question "заработае
 | `--run-id <id>` | Manual run identifier |
 | `--verbose` | Verbose logging |
 | `--quiet` | Quiet mode |
+
+### Configuration Priority
+
+Settings are applied in this order (highest priority first):
+1. CLI arguments
+2. `DEBATE_*` environment variables
+3. `OPENAI_*` environment variables
+4. YAML config file (`debate_config.yaml`)
+5. Built-in defaults
+
+### Example Configurations
+
+**OpenAI (default):**
+```yaml
+llm:
+  base_url: ""
+  model: "gpt-4o-mini"
+```
+
+**DeepSeek (via Requesty):**
+```yaml
+llm:
+  base_url: "https://api.requesty.ai/v1"
+  model: "deepseek-chat"
+```
+
+**Ollama (local):**
+```yaml
+llm:
+  base_url: "http://localhost:11434/v1"
+  model: "llama3"
+```
+
+See `config/examples/` for more configuration examples.
 
 ### Committee Rooms
 

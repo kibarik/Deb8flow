@@ -1,0 +1,21 @@
+# Ollama Configuration Example
+# For use with local Ollama models
+
+llm:
+  base_url: "http://localhost:11434/v1"
+  model: "llama3"
+  api_key: "ollama"  # Ollama doesn't need real API key
+  temperature: 0.8
+  max_tokens: 2000
+
+debate:
+  max_retries: 2
+  max_concurrency: 1  # Reduce for local models
+
+output:
+  directory: "./committee_output"
+
+logging:
+  level: "INFO"
+  verbose: false
+  quiet: false

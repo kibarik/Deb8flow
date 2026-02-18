@@ -6,6 +6,8 @@ four debate rooms (TPM vs CPO/CFO/CTO/BDM) with concurrency control.
 """
 
 import asyncio
+import logging
+from dataclasses import asdict
 from typing import List, Optional, Dict, Any
 from pathlib import Path
 from datetime import datetime, timezone
@@ -16,6 +18,7 @@ from src.shared.debate.application.ports import DebateExecutor, ReportGenerator,
 from ..domain.entities import CommitteeRun, CommitteeMetadata, CommitteeReport
 
 
+logger = logging.getLogger(__name__)
 ROOM_ORDER = ["cpo", "cfo", "cto", "bdm"]
 
 
@@ -267,6 +270,14 @@ class RunProductCommittee:
         output_dir: Path
     ) -> None:
         """Generate and save all reports."""
+        # Save metadata always
+        await self.storage.save_metadata(output_dir, asdict(metadata))
+
+        # Skip report generation if all rooms failed
+        if not run.successful_rooms:
+            logger.warning("All rooms failed - skipping report generation")
+            return
+
         # Generate reports
         final_report = self.generator.generate_final_report(
             run_id=run.run_id.value,
@@ -285,7 +296,6 @@ class RunProductCommittee:
         # Save via storage
         await self.storage.save_report(output_dir, "final_report.md", final_report)
         await self.storage.save_report(output_dir, "conclusion.md", conclusion)
-        await self.storage.save_metadata(output_dir, asdict(metadata))
 
         # Save dialogue JSONs
         for room in run.rooms:

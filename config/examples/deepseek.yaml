@@ -1,0 +1,21 @@
+# DeepSeek Configuration Example (via Requesty)
+# For use with DeepSeek models through Requesty API
+
+llm:
+  base_url: "https://api.requesty.ai/v1"
+  model: "deepseek-chat"
+  api_key: ""  # Set OPENAI_API_KEY or DEBATE_API_KEY environment variable
+  temperature: 0.8
+  max_tokens: 2000
+
+debate:
+  max_retries: 2
+  max_concurrency: 2
+
+output:
+  directory: "./committee_output"
+
+logging:
+  level: "INFO"
+  verbose: false
+  quiet: false

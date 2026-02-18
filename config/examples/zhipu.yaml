@@ -1,0 +1,21 @@
+# Zhipu AI Configuration Example
+# For use with Zhipu AI (GLM models)
+
+llm:
+  base_url: "https://open.bigmodel.cn/api/paas/v4"
+  model: "glm-4"
+  api_key: ""  # Set OPENAI_API_KEY or DEBATE_API_KEY environment variable
+  temperature: 0.8
+  max_tokens: 1500
+
+debate:
+  max_retries: 2
+  max_concurrency: 2
+
+output:
+  directory: "./committee_output"
+
+logging:
+  level: "INFO"
+  verbose: false
+  quiet: false
