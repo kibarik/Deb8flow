@@ -1,7 +1,7 @@
 # WP03: Infrastructure Adapters (Debate Executor & Storage)
 
 **Work Package**: 017-product-committee-clean-architecture-refactoring / WP03
-**Status**: TODO
+**Status**: FOR_REVIEW
 **Dependencies**: WP02
 
 ## Overview

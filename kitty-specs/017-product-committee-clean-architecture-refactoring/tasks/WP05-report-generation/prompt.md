@@ -1,7 +1,7 @@
 # WP05: Report Generation System
 
 **Work Package**: 017-product-committee-clean-architecture-refactoring / WP05
-**Status**: TODO
+**Status**: FOR_REVIEW
 **Dependencies**: WP04
 
 ## Overview

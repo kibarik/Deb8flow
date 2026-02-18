@@ -1,7 +1,7 @@
 # WP04: Committee Domain and Use Cases
 
 **Work Package**: 017-product-committee-clean-architecture-refactoring / WP04
-**Status**: TODO
+**Status**: FOR_REVIEW
 **Dependencies**: WP01, WP02
 
 ## Overview

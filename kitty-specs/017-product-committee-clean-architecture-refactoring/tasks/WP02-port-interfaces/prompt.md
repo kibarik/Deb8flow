@@ -1,7 +1,7 @@
 # WP02: Port Interfaces and Application Layer
 
 **Work Package**: 017-product-committee-clean-architecture-refactoring / WP02
-**Status**: TODO
+**Status**: FOR_REVIEW
 **Dependencies**: WP01
 
 ## Overview

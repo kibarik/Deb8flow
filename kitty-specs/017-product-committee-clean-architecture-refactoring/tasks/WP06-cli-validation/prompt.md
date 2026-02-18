@@ -1,7 +1,7 @@
 # WP06: CLI Argument Parsing and Validation
 
 **Work Package**: 017-product-committee-clean-architecture-refactoring / WP06
-**Status**: TODO
+**Status**: FOR_REVIEW
 **Dependencies**: WP04
 
 ## Overview

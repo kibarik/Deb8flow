@@ -1,7 +1,7 @@
 # WP01: Shared Domain Layer
 
 **Work Package**: 017-product-committee-clean-architecture-refactoring / WP01
-**Status**: TODO
+**Status**: FOR_REVIEW
 **Dependencies**: None
 
 ## Overview
