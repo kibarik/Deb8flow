@@ -1,26 +1,29 @@
 ---
-work_package_id: "WP02"
+work_package_id: WP02
+title: File Operations & Metadata
+lane: "doing"
+dependencies: [WP01]
+base_branch: 015-document-rewrite-agent-WP01
+base_commit: 472fe15b4083bb46f18729bd679a1f1430e885a9
+created_at: '2026-02-18T12:40:00.799384+00:00'
 subtasks:
-  - "T007"
-  - "T008"
-  - "T009"
-  - "T010"
-  - "T011"
-title: "File Operations & Metadata"
-phase: "Phase 1 - Foundation"
-lane: "planned"
-assignee: ""
-agent: ""
-shell_pid: ""
-review_status: ""
-reviewed_by: ""
+- T007
+- T008
+- T009
+- T010
+- T011
+phase: Phase 1 - Foundation
+assignee: ''
+agent: ''
+shell_pid: "44565"
+review_status: ''
+reviewed_by: ''
 history:
-  - timestamp: "2026-02-17T21:00:00Z"
-    lane: "planned"
-    agent: "system"
-    shell_pid: ""
-    action: "Prompt created via /spec-kitty.tasks"
-dependencies: ["WP01"]
+- timestamp: '2026-02-17T21:00:00Z'
+  lane: planned
+  agent: system
+  shell_pid: ''
+  action: Prompt created via /spec-kitty.tasks
 ---
 
 # Work Package Prompt: WP02 – File Operations & Metadata
