@@ -1,69 +1,50 @@
-# Tasks Directory
+# Tasks: Product Committee Clean Architecture Refactoring
 
-This directory contains work package (WP) prompt files with lane status in frontmatter.
+**Feature**: 017-product-committee-clean-architecture-refactoring
+**Generated**: 2025-02-18
 
-## Directory Structure (v0.9.0+)
+## Work Packages
 
-```
-tasks/
-├── WP01-setup-infrastructure.md
-├── WP02-user-authentication.md
-├── WP03-api-endpoints.md
-└── README.md
-```
+This directory contains 9 work packages (WP) for implementing the product committee clean architecture refactoring.
 
-All WP files are stored flat in `tasks/`. The lane (planned, doing, for_review, done) is stored in the YAML frontmatter `lane:` field.
+### Work Package List
 
-## Work Package File Format
+| WP | Name | Dependencies | Complexity |
+|----|------|--------------|------------|
+| [WP01](./WP01-shared-domain-layer/) | Shared Domain Layer | None | Medium |
+| [WP02](./WP02-port-interfaces/) | Port Interfaces and Application Layer | WP01 | Medium |
+| [WP03](./WP03-infrastructure-adapters/) | Infrastructure Adapters | WP02 | High |
+| [WP04](./WP04-committee-domain/) | Committee Domain and Use Cases | WP01, WP02 | High |
+| [WP05](./WP05-report-generation/) | Report Generation System | WP04 | Medium |
+| [WP06](./WP06-cli-validation/) | CLI Argument Parsing and Validation | WP04 | Low |
+| [WP07](./WP07-committee-cli-refactor/) | Product Committee CLI Refactoring | WP04, WP05, WP06 | High |
+| [WP08](./WP08-documentation/) | Documentation | WP07 | Low |
+| [WP09](./WP09-final-validation/) | Final Validation and Cleanup | WP07, WP08 | Medium |
 
-Each WP file **MUST** use YAML frontmatter:
+### Usage
 
-```yaml
----
-work_package_id: "WP01"
-title: "Work Package Title"
-lane: "planned"
-subtasks:
-  - "T001"
-  - "T002"
-phase: "Phase 1 - Setup"
-assignee: ""
-agent: ""
-shell_pid: ""
-review_status: ""
-reviewed_by: ""
-history:
-  - timestamp: "2025-01-01T00:00:00Z"
-    lane: "planned"
-    agent: "system"
-    action: "Prompt generated via /spec-kitty.tasks"
----
+To implement a work package:
 
-# Work Package Prompt: WP01 – Work Package Title
-
-[Content follows...]
-```
-
-## Valid Lane Values
-
-- `planned` - Ready for implementation
-- `doing` - Currently being worked on
-- `for_review` - Awaiting review
-- `done` - Completed
-
-## Moving Between Lanes
-
-Use the CLI (updates frontmatter only, no file movement):
 ```bash
-spec-kitty agent tasks move-task <WPID> --to <lane>
+# Create worktree for WP01
+spec-kitty implement WP01
+
+# This creates: .worktrees/017-product-committee-clean-architecture-refactoring-WP01/
+# Switch to that directory and follow the prompt.md instructions
 ```
 
-Example:
-```bash
-spec-kitty agent tasks move-task WP01 --to doing
-```
+### Migration Order
 
-## File Naming
+Follow the dependency chain:
+1. WP01 → WP02 → WP03 (Shared framework)
+2. WP01 → WP04 → WP05 (Committee implementation)
+3. WP06 (CLI validation)
+4. WP07 (Main CLI refactor - brings everything together)
+5. WP08 (Documentation)
+6. WP09 (Final validation)
 
-- Format: `WP01-kebab-case-slug.md`
-- Examples: `WP01-setup-infrastructure.md`, `WP02-user-auth.md`
+### See Also
+
+- [tasks.md](../tasks.md) - Complete task breakdown
+- [plan.md](../plan.md) - Implementation plan
+- [spec.md](../spec.md) - Feature specification
