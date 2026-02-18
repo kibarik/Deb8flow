@@ -1,0 +1,10 @@
+{
+  "feature_number": "017",
+  "slug": "product-committee-clean-architecture-refactoring",
+  "friendly_name": "Product Committee Clean Architecture Refactoring",
+  "mission": "software-dev",
+  "source_description": "я хочу провести рефакторинг кода, сейчас очень много лшинего спагетти и плохого кода, дублирующие и где-то неактуальные функции. Для меня самое главное - это успешный запуск команды python3 product_committee.py --prd ./test_prd.txt --question 'заработает ли этот проект 100 млн за 2 дня' --max-concurrency 0 --language 'русский кратко, в формате буллетлистов'  результатом чтобы появлялась папка {run-id} в которой находятся JSON файлы с фиксацией переговоров, final_report.md и conclusion.md. ASIS - качество кода очень низкое, много лишнего и неактуального ПРОБЛЕМА: поддерживать код стало уже не возможно по архитектуре и коду TOBE - проект отрефакторен по принципам чистой архитектуры убрано все лишнее. Проект исполняет функцию продуктового коммитета",
+  "created_at": "2025-02-18T12:13:00Z",
+  "target_branch": "main",
+  "vcs": "git"
+}
