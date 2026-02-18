@@ -1,0 +1,93 @@
+# Report Generator Port
+# Interface for generating markdown reports from debate results
+
+port: ReportGenerator
+version: 1.0.0
+layer: application
+
+description: |
+  Generates markdown reports (final_report.md and conclusion.md)
+  from committee run results. Abstracts the report format and
+  templating logic.
+
+interface:
+  name: ReportGenerator
+  type: Protocol
+
+methods:
+  - name: generate_final_report
+    description: Generate comprehensive final report
+    async: false
+
+    input:
+      type: FinalReportRequest
+      fields:
+        - name: run
+          type: CommitteeRun
+          description: Committee run with all room results
+
+        - name: prd_path
+          type: str
+          description: Original PRD file path
+
+        - name: metadata
+          type: CommitteeMetadata
+          description: Run metadata
+
+    output:
+      type: str
+      description: Markdown formatted final report
+
+  - name: generate_conclusion
+    description: Generate executive summary conclusion
+    async: false
+
+    input:
+      type: ConclusionRequest
+      fields:
+        - name: run
+          type: CommitteeRun
+          description: Committee run with all room results
+
+        - name: metadata
+          type: CommitteeMetadata
+          description: Run metadata
+
+    output:
+      type: str
+      description: Markdown formatted conclusion
+
+  - name: generate_intermediate_report
+    description: |
+      Generate intermediate report during execution
+      (after each room completes)
+    async: false
+
+    input:
+      type: IntermediateReportRequest
+      fields:
+        - name: run_id
+          type: RunId
+          description: Current run identifier
+
+        - name: question
+          type: str
+          description: Committee question
+
+        - name: rooms
+          type: List[DebateRoom]
+          description: Current room results (partial)
+
+        - name: metadata
+          type: CommitteeMetadata
+          description: Run metadata (partial)
+
+    output:
+      type: str
+      description: Markdown formatted intermediate report
+
+implementation:
+  adapters:
+    - name: CommitteeReportGenerator
+      location: src/committee/adapters/reports/final_report.py
+      description: Product committee specific report format

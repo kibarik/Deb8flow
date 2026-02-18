@@ -1,0 +1,78 @@
+# Debate Executor Port
+# Interface for executing debate rooms via subprocess or direct LLM calls
+
+port: DebateExecutor
+version: 1.0.0
+layer: application
+
+description: |
+  Executes a single debate room between two participants and returns
+  the complete dialogue with judge verdict. Abstracts the implementation
+  (subprocess call to document_debate_cli.py or direct LLM invocation).
+
+interface:
+  name: DebateExecutor
+  type: Protocol
+
+methods:
+  - name: execute
+    description: Execute a debate room and return results
+    async: true
+
+    input:
+      type: DebateRequest
+      fields:
+        - name: room_id
+          type: RoomId
+          description: Unique identifier for this room
+
+        - name: pro_prompt_path
+          type: Path
+          description: Path to PRO debater prompt file
+
+        - name: con_prompt_path
+          type: Path
+          description: Path to CON debater prompt file
+
+        - name: question
+          type: str
+          description: Debate topic/question
+
+        - name: prd_content
+          type: str
+          description: PRD document content for context
+
+        - name: model
+          type: Optional[str]
+          description: LLM model override
+
+        - name: language
+          type: Optional[str]
+          description: Language/style setting
+
+        - name: max_retries
+          type: int
+          description: Maximum retry attempts
+
+        - name: json_output_path
+          type: Optional[Path]
+          description: Path to save full dialogue JSON
+
+    output:
+      type: DebateRoom
+      description: Complete debate room with results
+
+    errors:
+      - type: DebateExecutionError
+        description: Debate execution failed after retries
+      - type: DebateTimeoutError
+        description: Debate exceeded time limit
+      - type: DebateValidationError
+        description: Invalid debate request
+
+implementation:
+  adapter: CliDebateExecutor
+  location: src/shared/debate/infrastructure/executors/cli_executor.py
+  description: |
+    Calls document_debate_cli.py as subprocess and parses output.
+    Uses asyncio.subprocess for non-blocking execution.

@@ -1,20 +1,22 @@
 # Claude Opus Context
 
-**Last Updated**: 2025-02-14
+**Last Updated**: 2025-02-18
 **Purpose**: Project context for Claude Opus agent when working on this codebase
 
 ## Project Overview
 
-**Deb8flow** is an AI-powered document debate system using LangGraph workflows. Users provide documents (via .docx files) and the system generates debate topics, runs PRO/CON debates with fact-checking, and provides a judge's verdict.
+**Deb8flow** is an AI-powered document debate system using LangGraph workflows. Users provide documents (via .docx files) and the system generates debate topics, runs PRO/CON debates with fact-checking, and provides a judge's verdict. The system also includes a product committee orchestrator that simulates multi-room expert debates.
 
 ## Technology Stack
 
-- **Language**: Python 3.11+
+- **Language**: Python 3.12+
 - **Framework**: LangGraph for workflow orchestration
+- **Architecture**: Modular Hexagonal Hybrid (Clean Architecture) - NEW for feature 017
 - **LLM**: OpenAI API (configurable via requesty_llm_config_map)
 - **CLI**: argparse with rich for terminal output
-- **Testing**: pytest
+- **Testing**: pytest with syrupy for snapshot testing - NEW for feature 017
 - **Document Input**: python-docx for .docx file parsing
+- **Domain Modeling**: Plain dataclasses (no Pydantic in domain) - NEW for feature 017
 
 **Key Dependencies**:
 ```
@@ -23,15 +25,16 @@ langchain_core==0.3.49
 langchain_openai==0.3.11
 langgraph==0.3.21
 openai==1.69.0
-pydantic==2.11.1
+pydantic==2.11.1  # Used only at boundaries (CLI/config/IO), NOT in domain
 pytest==8.3.5
+syrupy>=4.0.0  # NEW: Added for feature 017 - snapshot testing
 python-dotenv==1.1.0
 python-docx==1.1.2
 rich==14.0.0
 typing_extensions>=4.0.0
-aiofiles>=24.1.0  # NEW: Added for feature 004
-tqdm>=4.66.0  # NEW: Added for feature 005 - progress indicators
-mammoth>=1.8.0  # NEW: Added for feature 015 - .docx to markdown conversion
+aiofiles>=24.1.0  # Added for feature 004
+tqdm>=4.66.0  # Added for feature 005 - progress indicators
+mammoth>=1.8.0  # Added for feature 015 - .docx to markdown conversion
 ```
 
 ## Project Structure
@@ -39,29 +42,57 @@ mammoth>=1.8.0  # NEW: Added for feature 015 - .docx to markdown conversion
 ```
 Deb8flow/
 ├── document_debate_cli.py          # Main CLI entry point
+├── product_committee.py           # Product committee orchestrator (refactoring)
 ├── debate_state.py                # TypedDict for DebateState
 ├── requirements.txt                # Dependencies
 │
-├── src/                           # NEW: Feature modules
-│   └── output/                   # NEW: Feature 004 - debate output recording
+├── src/                           # Feature modules
+│   ├── shared/debate/             # NEW: Feature 017 - Shared debate framework
+│   │   ├── domain/                # Domain layer (no external deps)
+│   │   │   ├── entities.py        # DebateRoom, Verdict, DebateMessage
+│   │   │   ├── value_objects.py   # RoomId, RunId, Speaker, RoomStatus
+│   │   │   └── services.py        # Domain rules, validation logic
+│   │   ├── application/           # Application layer
+│   │   │   ├── ports.py           # DebateExecutor, ReportGenerator, FileStorage
+│   │   │   └── use_cases/         # ExecuteDebate, GenerateReport, RunSession
+│   │   └── infrastructure/        # Infrastructure (implementation details)
+│   │       ├── executors/         # Debate execution adapters
+│   │       │   └── cli_executor.py  # Calls document_debate_cli.py
+│   │       ├── storage/           # File storage adapters
+│   │       │   └── local_storage.py
+│   │       └── retry.py           # Retry logic with exponential backoff
+│   │
+│   ├── committee/                 # NEW: Feature 017 - Product committee specific
+│   │   ├── domain/                # Committee-specific entities
+│   │   │   └── entities.py        # CommitteeRun, CommitteeRoom, CommitteeReport
+│   │   ├── application/           # Committee use cases
+│   │   │   └── run_committee.py   # RunProductCommittee use case
+│   │   └── adapters/              # Committee adapters
+│   │       ├── cli.py             # CLI argument parsing and orchestration
+│   │       └── reports/           # Report generation
+│   │           ├── final_report.py
+│   │           └── conclusion.py
+│   │
+│   ├── output/                   # Feature 004 - debate output recording
+│   │   ├── __init__.py
+│   │   ├── async_file_writer.py    # Async file writer with error handling
+│   │   └── transcript_formatter.py  # Plain text formatting
+│   │
+│   ├── progress/                 # Feature 005 - CLI progress indicators
+│   │   ├── __init__.py
+│   │   ├── progress_manager.py     # ProgressManager class with tqdm
+│   │   └── cli_output.py          # CLIOutput class for verbosity filtering
+│   │
+│   ├── agents/                    # Feature 015 - AI agent implementations
+│   │   ├── __init__.py
+│   │   ├── rewriter_agent.py       # Standalone document rewriter agent
+│   │   └── base_agent.py          # Base class for agents (optional)
+│   │
+│   └── converters/                # Feature 015 - Format conversion utilities
 │       ├── __init__.py
-│       ├── async_file_writer.py    # Async file writer with error handling
-│       └── transcript_formatter.py  # Plain text formatting
-│   └── progress/                 # NEW: Feature 005 - CLI progress indicators
-│       ├── __init__.py
-│       ├── progress_manager.py     # ProgressManager class with tqdm
-│       └── cli_output.py          # CLIOutput class for verbosity filtering
-│
-├── src/agents/                    # NEW: Feature 015 - AI agent implementations
-│   ├── __init__.py
-│   ├── rewriter_agent.py           # Standalone document rewriter agent
-│   └── base_agent.py               # Base class for agents (optional)
-│
-├── src/converters/                # NEW: Feature 015 - Format conversion utilities
-│   ├── __init__.py
-│   ├── docx_converter.py           # .docx ↔ markdown conversion
-│   ├── txt_converter.py            # .txt ↔ markdown conversion
-│   └── converter_base.py           # Base converter interface
+│       ├── docx_converter.py       # .docx ↔ markdown conversion
+│       ├── txt_converter.py        # .txt ↔ markdown conversion
+│       └── converter_base.py       # Base converter interface
 │
 ├── nodes/                         # LangGraph node implementations
 │   ├── __init__.py
@@ -90,6 +121,7 @@ Deb8flow/
 └── tests/
     ├── unit/
     ├── integration/
+    ├── snapshots/                 # NEW: Feature 017 - Snapshot tests
     └── e2e/                        # E2E tests for workflows
 ```
 
@@ -197,6 +229,63 @@ if __name__ == "__main__":
 └── file_metadata.json               # Preserved metadata
 ```
 
+---
+
+## Feature 017: Product Committee Clean Architecture Refactoring
+
+**New in feature 017**: Refactor product_committee.py using Modular Hexagonal Hybrid architecture (Clean Architecture)
+
+**Key Design Decisions**:
+- **Shared debate framework** in `src/shared/debate/` used by both product_committee and document_debate
+- **Domain layer** uses plain dataclasses (no Pydantic) for purity and testability
+- **Port interfaces** using `typing.Protocol` for dependency inversion
+- **Async-only execution** with sync wrapper for CLI (eliminates sync/async duplication)
+- **Snapshot testing** with syrupy for CLI output validation
+- **File I/O via asyncio.to_thread** for non-blocking writes
+- **Pydantic only at boundaries** (CLI/config/IO validation, not in domain)
+
+**Architecture Layers**:
+```
+Domain Layer (src/shared/debate/domain/, src/committee/domain/)
+  - Pure business logic, no external dependencies
+  - Entities: DebateRoom, Verdict, CommitteeRun, etc.
+  - Value Objects: RoomId, RunId, Speaker, RoomStatus
+  - Plain dataclasses only
+
+Application Layer (src/shared/debate/application/, src/committee/application/)
+  - Use cases orchestrate domain logic
+  - Port interfaces: DebateExecutor, ReportGenerator, FileStorage
+  - No implementation details
+
+Infrastructure Layer (src/shared/debate/infrastructure/, src/committee/adapters/)
+  - CliDebateExecutor: Calls document_debate_cli.py as subprocess
+  - LocalFileStorage: File I/O with asyncio.to_thread
+  - CommitteeReportGenerator: Markdown report generation
+  - Pydantic models for CLI validation
+
+CLI Layer (product_committee.py, document_debate_cli.py)
+  - Argument parsing and validation
+  - Thin orchestration layer
+  - Delegates to use cases
+```
+
+**Migration Order** (core-to-edges):
+1. Domain entities (shared framework)
+2. Debate execution abstraction
+3. Report generation system
+4. CLI and orchestration layer
+
+**Integration Points**:
+- `src/shared/debate/`: New shared debate framework
+- `src/committee/`: Product committee specific logic
+- `product_committee.py`: Reduced to ~200 lines (CLI + orchestration)
+- `document_debate_cli.py`: Migrated to use shared framework (minimal changes)
+
+**Testing Strategy**:
+- Parallel test & refactor with snapshot testing
+- Unit tests for domain (no external dependencies)
+- Integration tests for use cases (with mock adapters)
+- Snapshot tests for CLI output validation
 
 ---
 
