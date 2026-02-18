@@ -1,27 +1,41 @@
-[project]
+[tool.poetry]
 name = "deb8flow"
 version = "0.1.0"
-description = "Multi-agent debate system for analyzing .docx documents"
+description = "Multi-agent AI debate framework with clean architecture"
 authors = ["Alex Ishmanov"]
 readme = "README.md"
-license = {text = "MIT"}
-
-dependencies = [
-    "python-docx>=1.1.0",
-    "langgraph>=0.3.0",
-    "langchain>=0.3.0",
-    "openai>=1.0.0",
-    "rich>=14.0.0",
-    "typing_extensions>=4.0.0",
+license = "MIT"
+packages = [
+    { include = "src" }
 ]
 
-[project.optional-dependencies]
-extras = ["dev"]
+[tool.poetry.dependencies]
+python = "^3.12"
+python-docx = "^1.1.2"
+langgraph = "^0.3.21"
+langchain-openai = "^0.3.11"
+langchain-core = "^0.3.49"
+langchain-community = "^0.3.20"
+openai = "^1.69.0"
+pydantic = "^2.11.1"
+python-dotenv = "^1.0.0"
+rich = "^14.0.0"
+typing-extensions = "^4.0.0"
 
-[project.scripts]
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.5"
+
+[tool.poetry.scripts]
+product-committee = "product_committee:main"
+conclusion-results = "conclusion_results:main"
 
 [build-system]
-requires = ["setuptools>=61.0.0"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
 
-[tool.setuptools]
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
