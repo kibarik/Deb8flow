@@ -16,6 +16,11 @@ from .config_loader import (
     load_config,
     EXAMPLE_CONFIGS
 )
+from .models import (
+    PromptsConfig,
+    PromptPathsConfig,
+    DebateModeConfig
+)
 
 __all__ = [
     "DebateConfigFile",
@@ -26,5 +31,8 @@ __all__ = [
     "AgentConfig",
     "AgentsConfig",
     "load_config",
-    "EXAMPLE_CONFIGS"
+    "EXAMPLE_CONFIGS",
+    "PromptsConfig",
+    "PromptPathsConfig",
+    "DebateModeConfig"
 ]

@@ -38,6 +38,9 @@ llm:
 
 # Debate Settings
 debate:
+  # Debate mode: standard (multi-turn) or simple (single-call)
+  mode: "standard"
+
   # Maximum number of retry attempts per room
   max_retries: 2
 
@@ -47,6 +50,39 @@ debate:
   # Language for debate output (optional)
   # Examples: en, ru, zh, es, fr, de
   language: "ru"
+
+# Prompts Configuration
+# Map prompt types to their file paths
+prompts:
+  # Debate stage prompts
+  stages:
+    opening_pro: "src/prompts/debate/stages/opening_pro.md"
+    opening_con: "src/prompts/debate/stages/opening_con.md"
+    rebuttal_pro: "src/prompts/debate/stages/rebuttal_pro.md"
+    rebuttal_con: "src/prompts/debate/stages/rebuttal_con.md"
+    counter_pro: "src/prompts/debate/stages/counter_pro.md"
+    counter_con: "src/prompts/debate/stages/counter_con.md"
+    final_pro: "src/prompts/debate/stages/final_pro.md"
+    final_con: "src/prompts/debate/stages/final_con.md"
+
+  # Judge prompt
+  judge: "src/prompts/debate/judge/verdict.md"
+
+  # Context template
+  context: "src/prompts/debate/context/debate_context.md"
+
+  # Analysis prompts
+  analysis:
+    system: "src/prompts/analysis/system_prompt.md"
+    takeaway: "src/prompts/analysis/takeaway_analysis.md"
+
+  # Role prompts (optional - fallback to config/prompts/roles/)
+  roles:
+    tpm: "src/prompts/roles/tpm.md"
+    cpo: "src/prompts/roles/cpo.md"
+    cfo: "src/prompts/roles/cfo.md"
+    cto: "src/prompts/roles/cto.md"
+    bdm: "src/prompts/roles/bdm.md"
 
 # Agents Configuration
 # Define your debate agents here. At least one agent (main) is required.

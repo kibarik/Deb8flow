@@ -22,6 +22,8 @@ from typing import Optional
 sys.path.insert(0, str(Path(__file__).parent))
 
 from src.shared.debate.infrastructure.llm.debate_orchestrator import SimpleDebateOrchestrator
+from src.shared.debate.application.prompt_loader import PromptLoader
+from src.shared.config import load_config
 
 # Configure logging
 logging.basicConfig(
@@ -141,8 +143,23 @@ async def run_debate(
     logger.info(f"  Temperature: {temperature}")
     logger.info(f"  Language: {language or 'en (default)'}")
 
+    # Load configuration and create PromptLoader
+    try:
+        config = load_config()
+        if hasattr(config, 'prompts') and config.prompts:
+            prompt_loader = PromptLoader(config.prompts)
+            logger.info("Using PromptLoader for prompts")
+        else:
+            # Fallback if prompts section not available
+            logger.warning("No prompts configuration found, using orchestrator defaults")
+            prompt_loader = None
+    except Exception as e:
+        logger.warning(f"Failed to load prompt configuration: {e}, using defaults")
+        prompt_loader = None
+
     # Initialize orchestrator
     orchestrator = SimpleDebateOrchestrator(
+        prompt_loader=prompt_loader,
         model=model,
         temperature=temperature,
         api_key=api_key,
