@@ -31,7 +31,7 @@ from src.shared.config import load_config, DebateConfigFile
 logger = logging.getLogger(__name__)
 
 # Constants
-DEFAULT_ROLES_DIR = "prompts/roles/"
+DEFAULT_ROLES_DIR = "config/prompts/roles/"
 DEFAULT_OUTPUT_DIR = "./committee_output"
 DEFAULT_CONFIG_PATH = "config/debate_config.yaml"
 MIN_CONCURRENCY = 0
@@ -128,6 +128,44 @@ async def run_committee_async(args) -> int:
     if args.api_key:
         os.environ["DEBATE_API_KEY"] = args.api_key
 
+    # Get agents config from config file or use defaults
+    if config and config.agents.main_agent:
+        agents_config = config.agents
+        logger.info(f"Using agents from config: main={agents_config.main_agent.name}, "
+                   f"opponents={[opp.name for opp in agents_config.opponents]}")
+    else:
+        # Fallback to roles_dir if provided
+        from src.shared.config import AgentsConfig, AgentConfig
+        roles_path = Path(args.roles_dir)
+
+        if not roles_path.exists():
+            logger.error(f"Roles directory not found: {args.roles_dir}")
+            logger.error("Please configure agents in debate_config.yaml or provide a valid --roles-dir")
+            return 1
+
+        # Build agents config from roles directory
+        tpm_path = roles_path / "tpm.txt"
+        if not tpm_path.exists():
+            logger.error(f"TPM prompt not found in roles directory: {tpm_path}")
+            return 1
+
+        main_agent = AgentConfig(name="TPM", prompt_path=str(tpm_path), role="main")
+        opponents = []
+
+        # Try to find standard role files
+        for role_name in ["cpo", "cfo", "cto", "bdm"]:
+            role_path = roles_path / f"{role_name}.txt"
+            if role_path.exists():
+                opponents.append(AgentConfig(
+                    name=role_name.upper(),
+                    prompt_path=str(role_path),
+                    role="opponent"
+                ))
+
+        agents_config = AgentsConfig(main_agent=main_agent, opponents=opponents)
+        logger.info(f"Using agents from roles directory: main={main_agent.name}, "
+                   f"opponents={[opp.name for opp in opponents]}")
+
     # Create infrastructure adapters
     executor = CliDebateExecutor()
     storage = LocalFileStorage()
@@ -157,7 +195,7 @@ async def run_committee_async(args) -> int:
         result = await use_case.execute(
             prd_path=args.prd,
             question=args.question,
-            roles_dir=args.roles_dir,
+            agents_config=agents_config,
             model=args.model or config_dict.get("model"),
             language=args.language or config_dict.get("language"),
             max_retries=args.max_retries if args.max_retries is not None else config_dict.get("max_retries", 2),
@@ -196,13 +234,21 @@ def run_committee(args) -> int:
 
 def run_conclusion(args) -> int:
     """Generate conclusion from committee results."""
+    run_dir = Path(args.run_dir)
+
+    # Find final_report.md in the run directory
+    final_report_path = run_dir / "final_report.md"
+    if not final_report_path.exists():
+        logger.error(f"final_report.md not found in: {run_dir}")
+        return 1
+
     # Import here
     sys.path.insert(0, str(Path(__file__).parent / "scripts"))
     from conclusion_results import main as conclusion_main
 
-    # Monkey patch sys.argv
+    # Monkey patch sys.argv - script expects path to final_report.md
     old_argv = sys.argv
-    sys.argv = ["conclusion_results.py", "--run-dir", args.run_dir]
+    sys.argv = ["conclusion_results.py", str(final_report_path)]
 
     try:
         return conclusion_main()
@@ -220,11 +266,26 @@ Examples:
   # Run a document-based debate
   %(prog)s debate --text "GitHub is useful for developers" --pro-prompt pro.txt --con-prompt con.txt
 
-  # Run product committee
+  # Run product committee (agents configured in debate_config.yaml)
   %(prog)s committee --prd prd.txt --question "What is the potential of this project?"
+
+  # Run product committee with custom config
+  %(prog)s committee --prd prd.txt --question "Should we build this?" --config my_config.yaml
 
   # Generate conclusion from existing committee results
   %(prog)s conclusion --run-dir ./committee_output/RUN_20260218_234755
+
+Agent Configuration:
+  Configure agents in debate_config.yaml under the 'agents' section:
+    agents:
+      main:
+        name: "TPM"
+        prompt: "config/prompts/roles/tpm.txt"
+      opponents:
+        - name: "CPO"
+          prompt: "config/prompts/roles/cpo.txt"
+        - name: "CFO"
+          prompt: "config/prompts/roles/cfo.txt"
         """
     )
 
@@ -267,7 +328,8 @@ Examples:
     committee_parser.add_argument("--max-retries", type=int, help="Max retry attempts (overrides config)")
     committee_parser.add_argument("--max-concurrency", type=int, help="Max parallel rooms 0=all (overrides config)")
     committee_parser.add_argument("--output-dir", help="Output directory (overrides config)")
-    committee_parser.add_argument("--roles-dir", default=DEFAULT_ROLES_DIR, help="Roles directory")
+    committee_parser.add_argument("--roles-dir", default=DEFAULT_ROLES_DIR,
+                                 help="Roles directory (fallback if agents not configured in config file)")
     committee_parser.add_argument("--run-id", help="Manual run identifier")
 
     # Conclusion subcommand

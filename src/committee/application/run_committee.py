@@ -2,24 +2,24 @@
 Use case for running a complete product committee session.
 
 This module contains the RunProductCommittee use case which orchestrates
-four debate rooms (TPM vs CPO/CFO/CTO/BDM) with concurrency control.
+debate rooms based on configured agents with concurrency control.
 """
 
 import asyncio
 import logging
 from dataclasses import asdict
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 from pathlib import Path
 from datetime import datetime, timezone
 
 from src.shared.debate.domain.entities import DebateRoom
 from src.shared.debate.domain.value_objects import RunId, RoomId, RoomStatus
 from src.shared.debate.application.ports import DebateExecutor, ReportGenerator, FileStorage
+from src.shared.config import AgentsConfig
 from ..domain.entities import CommitteeRun, CommitteeMetadata, CommitteeReport
 
 
 logger = logging.getLogger(__name__)
-ROOM_ORDER = ["cpo", "cfo", "cto", "bdm"]
 
 
 class RunProductCommittee:
@@ -47,7 +47,7 @@ class RunProductCommittee:
         self,
         prd_path: str,
         question: str,
-        roles_dir: str,
+        agents_config: AgentsConfig,
         model: Optional[str],
         language: Optional[str],
         max_retries: int,
@@ -61,7 +61,7 @@ class RunProductCommittee:
         Args:
             prd_path: Path to PRD document
             question: Committee question
-            roles_dir: Directory containing role prompt files
+            agents_config: Configuration for debate agents (main + opponents)
             model: Optional LLM model name
             language: Optional language setting
             max_retries: Maximum retry attempts per room
@@ -82,15 +82,16 @@ class RunProductCommittee:
         # Read PRD content
         prd_content = await self._read_prd_content(prd_path)
 
-        # Validate role prompts
-        role_files = await self._validate_role_prompts(Path(roles_dir))
+        # Validate agent prompts and get paths
+        agent_paths = await self._validate_agent_prompts(agents_config)
 
         # Execute debate rooms
         rooms = await self._execute_rooms(
             run_id=run_id,
             question=question,
             prd_content=prd_content,
-            role_files=role_files,
+            agents_config=agents_config,
+            agent_paths=agent_paths,
             model=model,
             language=language,
             max_retries=max_retries,
@@ -139,59 +140,92 @@ class RunProductCommittee:
 
         raise RuntimeError(f"Could not decode PRD file: {prd_path}")
 
-    async def _validate_role_prompts(self, roles_dir: Path) -> Dict[str, Optional[Path]]:
-        """Validate role prompt files exist."""
-        role_files = {}
+    async def _validate_agent_prompts(self, agents_config: AgentsConfig) -> Dict[str, Path]:
+        """
+        Validate agent prompt files exist and return their paths.
 
-        # TPM is required
-        tpm_path = roles_dir / "tpm.txt"
-        if not tpm_path.exists():
-            raise FileNotFoundError(f"TPM prompt not found: {tpm_path}")
-        role_files["tpm"] = tpm_path
+        Args:
+            agents_config: Configuration for agents
 
-        # Other roles are optional
-        for role in ROOM_ORDER:
-            role_path = roles_dir / f"{role}.txt"
-            role_files[role] = role_path if role_path.exists() else None
+        Returns:
+            Dict mapping agent names to their prompt file paths
 
-        return role_files
+        Raises:
+            FileNotFoundError: If main agent prompt is not found
+            ValueError: If no agents configured
+        """
+        if not agents_config.main_agent:
+            raise ValueError("Main agent is required in configuration")
+
+        agent_paths = {}
+
+        # Validate main agent prompt
+        main_prompt_path = Path(agents_config.main_agent.prompt_path)
+        if not main_prompt_path.exists():
+            raise FileNotFoundError(f"Main agent prompt not found: {main_prompt_path}")
+        agent_paths[agents_config.main_agent.name] = main_prompt_path
+
+        # Validate opponent prompts
+        for opponent in agents_config.opponents:
+            opp_prompt_path = Path(opponent.prompt_path)
+            if not opp_prompt_path.exists():
+                logger.warning(f"Opponent prompt not found: {opp_prompt_path}, skipping {opponent.name}")
+                continue
+            agent_paths[opponent.name] = opp_prompt_path
+
+        logger.info(f"Validated {len(agent_paths)} agent prompts: {', '.join(agent_paths.keys())}")
+        return agent_paths
 
     async def _execute_rooms(
         self,
         run_id: RunId,
         question: str,
         prd_content: str,
-        role_files: Dict[str, Optional[Path]],
+        agents_config: AgentsConfig,
+        agent_paths: Dict[str, Path],
         model: Optional[str],
         language: Optional[str],
         max_retries: int,
         max_concurrency: int,
         output_dir: Path
     ) -> List[DebateRoom]:
-        """Execute all debate rooms with concurrency control."""
+        """
+        Execute all debate rooms with concurrency control.
+
+        Creates one debate room per opponent, each debating against the main agent.
+        """
         rooms = []
         tasks = []
+        opponent_names = []
 
-        for role in ROOM_ORDER:
-            opponent_file = role_files[role]
+        # Get main agent info
+        main_name = agents_config.main_agent.name
+        main_prompt = agent_paths[main_name]
 
-            # Skip if opponent prompt is missing
-            if opponent_file is None:
+        # Create tasks for each opponent
+        for opponent in agents_config.opponents:
+            opponent_name = opponent.name
+
+            # Skip if opponent prompt file not found
+            if opponent_name not in agent_paths:
                 rooms.append(DebateRoom(
-                    room_id=RoomId(f"TPM_vs_{role.upper()}"),
-                    pro_participant="TPM",
-                    con_participant=role.upper(),
+                    room_id=RoomId(f"{main_name}_vs_{opponent_name}"),
+                    pro_participant=main_name,
+                    con_participant=opponent_name,
                     status=RoomStatus.SKIPPED,
                     messages=[]
                 ))
                 continue
 
+            opponent_names.append(opponent_name)
+
             # Create task
             task = self._execute_single_room(
                 run_id=run_id,
-                role=role,
-                pro_prompt=role_files["tpm"],
-                con_prompt=opponent_file,
+                main_name=main_name,
+                opponent_name=opponent_name,
+                pro_prompt=main_prompt,
+                con_prompt=agent_paths[opponent_name],
                 question=question,
                 prd_content=prd_content,
                 model=model,
@@ -200,6 +234,8 @@ class RunProductCommittee:
                 output_dir=output_dir
             )
             tasks.append(task)
+
+        logger.info(f"Created {len(tasks)} debate rooms: {main_name} vs {', '.join(opponent_names)}")
 
         # Execute with concurrency control
         if max_concurrency == 0:
@@ -218,13 +254,13 @@ class RunProductCommittee:
 
         # Process results
         for i, result in enumerate(results):
+            opponent_name = opponent_names[i]
             if isinstance(result, Exception):
                 # Create failed room
-                role = ROOM_ORDER[i]
                 rooms.append(DebateRoom(
-                    room_id=RoomId(f"TPM_vs_{role.upper()}"),
-                    pro_participant="TPM",
-                    con_participant=role.upper(),
+                    room_id=RoomId(f"{main_name}_vs_{opponent_name}"),
+                    pro_participant=main_name,
+                    con_participant=opponent_name,
                     status=RoomStatus.FAILED,
                     messages=[],
                     error=str(result)
@@ -237,7 +273,8 @@ class RunProductCommittee:
     async def _execute_single_room(
         self,
         run_id: RunId,
-        role: str,
+        main_name: str,
+        opponent_name: str,
         pro_prompt: Path,
         con_prompt: Path,
         question: str,
@@ -248,7 +285,7 @@ class RunProductCommittee:
         output_dir: Path
     ) -> DebateRoom:
         """Execute a single debate room."""
-        room_id = RoomId(f"TPM_vs_{role.upper()}")
+        room_id = RoomId(f"{main_name}_vs_{opponent_name}")
         json_output_path = output_dir / f"{room_id.value}_dialogue.json"
 
         return await self.executor.execute(

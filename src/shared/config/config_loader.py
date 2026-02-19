@@ -163,10 +163,107 @@ class LoggingConfig(BaseModel):
         return v_upper
 
 
+class AgentConfig(BaseModel):
+    """Configuration for a single debate agent."""
+    name: str = Field(description="Agent name/identifier (e.g., 'TPM', 'CPO')")
+    prompt_path: str = Field(description="Path to the agent's prompt file")
+    role: str = Field(default="opponent", description="Role: 'main' (PRO) or 'opponent' (CON)")
+
+    @field_validator("prompt_path")
+    @classmethod
+    def validate_prompt_path(cls, v: str) -> str:
+        """Validate and resolve prompt path."""
+        path = Path(v)
+        # If path exists, return as-is
+        if path.exists():
+            return str(path)
+
+        # Support both absolute and relative paths
+        if not path.is_absolute():
+            # Try relative to common locations
+            for base in [Path.cwd(), Path.cwd() / "config" / "prompts" / "roles"]:
+                candidate = base / v
+                if candidate.exists():
+                    return str(candidate)
+                # Also try with just the filename
+                candidate = base / path.name
+                if candidate.exists():
+                    return str(candidate)
+        return v
+
+
+class AgentsConfig(BaseModel):
+    """Configuration for debate agents and matchmaking."""
+    main_agent: Optional[AgentConfig] = Field(default=None, description="Main agent (PRO position)")
+    opponents: list[AgentConfig] = Field(default_factory=list, description="Opponent agents (CON position)")
+
+    @field_validator("main_agent")
+    @classmethod
+    def validate_main_agent(cls, v: Optional[AgentConfig]) -> Optional[AgentConfig]:
+        """Validate that main agent exists."""
+        if v is not None and v.role != "main":
+            logger.warning(f"Main agent should have role='main', got '{v.role}'")
+            v.role = "main"
+        return v
+
+    def get_all_agents(self) -> list[AgentConfig]:
+        """Get all configured agents (main + opponents)."""
+        agents = []
+        if self.main_agent:
+            agents.append(self.main_agent)
+        agents.extend(self.opponents)
+        return agents
+
+    def get_main_agent_prompt_path(self) -> str:
+        """Get main agent prompt path."""
+        if not self.main_agent:
+            raise ValueError("No main agent configured")
+        return self.main_agent.prompt_path
+
+    def get_opponent_configs(self) -> list[tuple[str, str]]:
+        """Get list of (name, prompt_path) tuples for opponents."""
+        return [(opp.name, opp.prompt_path) for opp in self.opponents]
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "AgentsConfig":
+        """
+        Create agents config from dictionary.
+
+        Expected format:
+        {
+            "main": {"name": "TPM", "prompt": "path/to/tpm.txt"},
+            "opponents": [
+                {"name": "CPO", "prompt": "path/to/cpo.txt"},
+                {"name": "CFO", "prompt": "path/to/cfo.txt"}
+            ]
+        }
+        """
+        main = None
+        if "main" in data and data["main"]:
+            main_data = data["main"]
+            main = AgentConfig(
+                name=main_data.get("name", "MAIN"),
+                prompt_path=main_data.get("prompt", main_data.get("prompt_path", "")),
+                role="main"
+            )
+
+        opponents = []
+        if "opponents" in data:
+            for opp_data in data["opponents"]:
+                opponents.append(AgentConfig(
+                    name=opp_data.get("name", "UNKNOWN"),
+                    prompt_path=opp_data.get("prompt", opp_data.get("prompt_path", "")),
+                    role="opponent"
+                ))
+
+        return cls(main_agent=main, opponents=opponents)
+
+
 class DebateConfigFile(BaseModel):
     """Complete debate configuration file."""
     llm: LLMConfig = Field(default_factory=LLMConfig)
     debate: DebateConfig = Field(default_factory=DebateConfig)
+    agents: AgentsConfig = Field(default_factory=AgentsConfig)
     output: OutputConfig = Field(default_factory=OutputConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
 
@@ -205,7 +302,19 @@ class DebateConfigFile(BaseModel):
         # Substitute environment variables
         data = substitute_env_vars(data)
 
-        return cls(**data)
+        # Handle agents section separately
+        agents_config = None
+        if "agents" in data:
+            agents_data = data.pop("agents")
+            if agents_data:
+                agents_config = AgentsConfig.from_dict(agents_data)
+
+        # Create config instance
+        config = cls(**data)
+        if agents_config:
+            config.agents = agents_config
+
+        return config
 
     @classmethod
     def from_yaml_or_default(cls, path: Optional[str | Path] = None, load_env: bool = True) -> "DebateConfigFile":
@@ -231,12 +340,25 @@ class DebateConfigFile(BaseModel):
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert configuration to dictionary."""
-        return {
+        result = {
             "llm": self.llm.model_dump(),
             "debate": self.debate.model_dump(),
             "output": self.output.model_dump(),
             "logging": self.logging.model_dump()
         }
+        # Add agents if configured
+        if self.agents.main_agent or self.agents.opponents:
+            result["agents"] = {
+                "main": {
+                    "name": self.agents.main_agent.name,
+                    "prompt": self.agents.main_agent.prompt_path
+                } if self.agents.main_agent else None,
+                "opponents": [
+                    {"name": opp.name, "prompt": opp.prompt_path}
+                    for opp in self.agents.opponents
+                ]
+            }
+        return result
 
     def get_cli_args_dict(self) -> Dict[str, Any]:
         """

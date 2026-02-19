@@ -1,27 +1,26 @@
-# DeepSeek Configuration Example (via Requesty)
-# For use with DeepSeek models through Requesty API
+# Пример конфигурации для русскоязычных дебатов
+# Configuration example for Russian-language debates
 
 llm:
-  base_url: "https://api.requesty.ai/v1"
-  model: "deepseek-chat"
-  api_key: ""  # Set OPENAI_API_KEY or DEBATE_API_KEY environment variable
+  base_url: "${DEBATE_BASE_URL:}"
+  model: "${DEBATE_MODEL:gpt-4o-mini}"
+  api_key: "${OPENAI_API_KEY:}"
   temperature: 0.8
   max_tokens: 2000
 
 debate:
   max_retries: 2
   max_concurrency: 2
+  language: "ru"  # Русский язык для вывода
 
-# Agents Configuration
-# Define your debate agents here. This is a basic example with TPM as main agent.
+# Конфигурация агентов
 agents:
-  # Main agent (PRO position) - REQUIRED
+  # Основной агент (PRO) - защищает проект
   main:
     name: "TPM"
     prompt: "config/prompts/roles/tpm.txt"
 
-  # Opponents (CON position) - OPTIONAL
-  # Add or remove opponents as needed
+  # Оппоненты (CON) - критикуют проект
   opponents:
     - name: "CPO"
       prompt: "config/prompts/roles/cpo.txt"
@@ -34,6 +33,8 @@ agents:
 
 output:
   directory: "./committee_output"
+  save_dialogues: true
+  save_metadata: true
 
 logging:
   level: "INFO"

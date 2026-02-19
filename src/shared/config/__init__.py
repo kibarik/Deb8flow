@@ -11,6 +11,8 @@ from .config_loader import (
     DebateConfig,
     OutputConfig,
     LoggingConfig,
+    AgentConfig,
+    AgentsConfig,
     load_config,
     EXAMPLE_CONFIGS
 )
@@ -21,6 +23,8 @@ __all__ = [
     "DebateConfig",
     "OutputConfig",
     "LoggingConfig",
+    "AgentConfig",
+    "AgentsConfig",
     "load_config",
     "EXAMPLE_CONFIGS"
 ]

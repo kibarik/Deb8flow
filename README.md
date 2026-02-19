@@ -120,10 +120,45 @@ python main.py committee --prd ./test_prd.txt --question "заработает �
 | `--max-retries <n>` | Max retry attempts (default: 2) |
 | `--max-concurrency <n>` | Max parallel rooms (0-4, default: 2) |
 | `--output-dir <path>` | Output directory (default: ./committee_output) |
-| `--roles-dir <path>` | Roles directory (default: prompts/roles/) |
+| `--roles-dir <path>` | Roles directory (fallback if agents not configured) |
 | `--run-id <id>` | Manual run identifier |
 | `--verbose` | Verbose logging |
 | `--quiet` | Quiet mode |
+
+### Agent Configuration
+
+**NEW**: Agents are now configured via `debate_config.yaml` under the `agents` section:
+
+```yaml
+agents:
+  # Main agent (PRO position) - REQUIRED
+  main:
+    name: "TPM"
+    prompt: "config/prompts/roles/tpm.txt"
+
+  # Opponents (CON position) - OPTIONAL
+  opponents:
+    - name: "CPO"
+      prompt: "config/prompts/roles/cpo.txt"
+    - name: "CFO"
+      prompt: "config/prompts/roles/cfo.txt"
+    - name: "CTO"
+      prompt: "config/prompts/roles/cto.txt"
+    - name: "BDM"
+      prompt: "config/prompts/roles/bdm.txt"
+```
+
+**Benefits:**
+- Configure any number of opponents
+- Custom agent names and prompts
+- No code changes needed for different debate scenarios
+
+**Fallback:** If `agents` section is not configured, the system falls back to the `--roles-dir` parameter and looks for standard role files (`tpm.txt`, `cpo.txt`, etc.).
+
+See `config/examples/` for configuration examples:
+- `minimal.yaml` - Single opponent for quick debates
+- `custom_agents.yaml` - Custom roles (Finance Director, Security Officer, etc.)
+- `russian.yaml` - Russian-language configuration
 
 ### Configuration Priority
 
@@ -161,10 +196,20 @@ See `config/examples/` for more configuration examples.
 
 ### Committee Rooms
 
+Debate rooms are created dynamically based on your agent configuration. Each opponent debates against the main agent in a separate room.
+
+**Default configuration (TPM vs CPO/CFO/CTO/BDM):**
 1. **TPM vs CPO**: Product strategy, market fit, prioritization
 2. **TPM vs CFO**: Business model, unit economics, monetization
 3. **TPM vs CTO**: Technical feasibility, architecture, risks
 4. **TPM vs BDM**: Market potential, competition, go-to-market
+
+**Custom configurations**: You can define any agents in your config. For example, with `config/examples/custom_agents.yaml`:
+- PRODUCT_OWNER vs FINANCE_DIRECTOR
+- PRODUCT_OWNER vs LEAD_ARCHITECT
+- PRODUCT_OWNER vs SECURITY_OFFICER
+- PRODUCT_OWNER vs UX_RESEARCHER
+- PRODUCT_OWNER vs LEGAL_COUNSEL
 
 ### Output Structure
 

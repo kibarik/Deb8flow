@@ -1,0 +1,47 @@
+# Custom Agents Configuration Example
+# Demonstrates how to configure custom debate agents
+
+llm:
+  model: "gpt-4o"
+  temperature: 0.8
+
+debate:
+  max_retries: 2
+  max_concurrency: 0  # Run all rooms in parallel
+  language: "en"
+
+# Custom agent setup with different roles
+agents:
+  # Main advocate - argues FOR the project
+  main:
+    name: "PRODUCT_OWNER"
+    prompt: "config/prompts/roles/product_owner.txt"
+
+  # Opponents - argue AGAINST the project
+  opponents:
+    # Financial skeptic
+    - name: "FINANCE_DIRECTOR"
+      prompt: "config/prompts/roles/finance_director.txt"
+
+    # Technical skeptic
+    - name: "LEAD_ARCHITECT"
+      prompt: "config/prompts/roles/lead_architect.txt"
+
+    # Security skeptic
+    - name: "SECURITY_OFFICER"
+      prompt: "config/prompts/roles/security_officer.txt"
+
+    # User advocate
+    - name: "UX_RESEARCHER"
+      prompt: "config/prompts/roles/ux_researcher.txt"
+
+    # Legal compliance
+    - name: "LEGAL_COUNSEL"
+      prompt: "config/prompts/roles/legal_counsel.txt"
+
+output:
+  directory: "./committee_output"
+
+logging:
+  level: "DEBUG"
+  verbose: true

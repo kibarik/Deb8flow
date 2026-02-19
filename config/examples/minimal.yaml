@@ -1,0 +1,27 @@
+# Minimal Configuration Example
+# Only one opponent for quick debates
+
+llm:
+  model: "gpt-4o-mini"
+  temperature: 0.8
+
+debate:
+  max_retries: 1
+  max_concurrency: 1
+  language: "en"
+
+# Minimal agent setup: main agent vs single opponent
+agents:
+  main:
+    name: "TPM"
+    prompt: "config/prompts/roles/tpm.txt"
+
+  opponents:
+    - name: "CPO"
+      prompt: "config/prompts/roles/cpo.txt"
+
+output:
+  directory: "./committee_output"
+
+logging:
+  level: "INFO"

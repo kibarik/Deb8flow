@@ -139,13 +139,15 @@ async def run_debate(
     if base_url:
         logger.info(f"  Base URL: {base_url}")
     logger.info(f"  Temperature: {temperature}")
+    logger.info(f"  Language: {language or 'en (default)'}")
 
     # Initialize orchestrator
     orchestrator = SimpleDebateOrchestrator(
         model=model,
         temperature=temperature,
         api_key=api_key,
-        base_url=base_url if base_url else None
+        base_url=base_url if base_url else None,
+        language=language or "en"
     )
 
     # Execute debate

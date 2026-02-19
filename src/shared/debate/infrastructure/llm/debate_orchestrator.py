@@ -66,7 +66,8 @@ class LLMDebateOrchestrator:
         temperature: float = 0.7,
         max_tokens: int = 1000,
         api_key: Optional[str] = None,
-        base_url: Optional[str] = None
+        base_url: Optional[str] = None,
+        language: str = "en"
     ):
         """
         Initialize the debate orchestrator.
@@ -77,10 +78,12 @@ class LLMDebateOrchestrator:
             max_tokens: Maximum tokens per response
             api_key: OpenAI API key (or compatible)
             base_url: Custom API base URL for compatible APIs
+            language: Language code for debate output (e.g., "en", "ru", "de")
         """
         self.model = model or "gpt-4o"
         self.temperature = temperature
         self.max_tokens = max_tokens
+        self.language = language
 
         # Initialize LLM
         llm_kwargs = {
@@ -149,6 +152,21 @@ class LLMDebateOrchestrator:
 
     def _build_debate_context(self, topic: str, question: str, prd_content: str) -> str:
         """Build the context string for the debate."""
+        # Language instruction mapping
+        language_instructions = {
+            "ru": "Вы должны вести дебаты на РУССКОМ языке. All responses must be in Russian.",
+            "en": "You must conduct the debate in ENGLISH.",
+            "de": "Sie müssen die Debatte auf DEUTSCH führen.",
+            "fr": "Vous devez mener le débat en FRANÇAIS.",
+            "es": "Debe realizar el debate en ESPAÑOL.",
+            "zh": "您必须用中文进行辩论。",
+        }
+
+        language_instruction = language_instructions.get(
+            self.language.lower(),
+            f"You must conduct the debate in {self.language.upper()}."
+        )
+
         return f"""DEBATE CONTEXT:
 
 Question: {question}
@@ -159,6 +177,8 @@ Full PRD Content (for reference):
 {prd_content[:2000]}
 
 ---
+
+LANGUAGE: {language_instruction}
 
 You are participating in a formal product committee debate. Follow these rules:
 1. Stay in character as defined by your role prompt
@@ -349,11 +369,13 @@ class SimpleDebateOrchestrator:
         model: Optional[str] = None,
         temperature: float = 0.8,
         api_key: Optional[str] = None,
-        base_url: Optional[str] = None
+        base_url: Optional[str] = None,
+        language: str = "en"
     ):
         """Initialize the simple debate orchestrator."""
         self.model = model or "gpt-4o"
         self.temperature = temperature
+        self.language = language
 
         llm_kwargs = {
             "model": self.model,
@@ -382,6 +404,21 @@ class SimpleDebateOrchestrator:
         This is more efficient than the multi-stage approach while
         still providing realistic results.
         """
+        # Language instruction mapping
+        language_instructions = {
+            "ru": "Вы должны вести дебаты на РУССКОМ языке. All responses must be in Russian.",
+            "en": "You must conduct the debate in ENGLISH.",
+            "de": "Sie müssen die Debatte auf DEUTSCH führen.",
+            "fr": "Vous devez mener le débat en FRANÇAIS.",
+            "es": "Debe realizar el debate en ESPAÑOL.",
+            "zh": "您必须用中文进行辩论。",
+        }
+
+        language_instruction = language_instructions.get(
+            self.language.lower(),
+            f"You must conduct the debate in {self.language.upper()}."
+        )
+
         debate_prompt = f"""You are simulating a product committee debate about the following question:
 
 QUESTION: {question}
@@ -391,6 +428,8 @@ CONTEXT (PRD excerpt): {topic[:800]}
 Full PRD Content: {prd_content[:1500]}
 
 ---
+
+LANGUAGE: {language_instruction}
 
 You need to generate a realistic debate between two participants:
 - PRO (arguing FOR the project): {pro_prompt[:300]}
