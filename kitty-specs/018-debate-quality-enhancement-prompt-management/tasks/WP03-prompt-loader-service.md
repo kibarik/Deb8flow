@@ -1,9 +1,13 @@
 ---
 work_package_id: WP03
 title: PromptLoader Service
-lane: planned
+lane: "doing"
 dependencies: []
+base_branch: main
+base_commit: a28b939c400a6ec521988da83e38d70d86d105e3
+created_at: '2026-02-19T07:05:26.652570+00:00'
 subtasks: [T011, T012, T013, T014, T015, T016, T017]
+shell_pid: "75767"
 history:
 - timestamp: '2025-02-19T00:00:00Z'
   action: Created
