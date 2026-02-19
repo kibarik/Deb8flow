@@ -1,13 +1,17 @@
 ---
-work_package_id: "WP01"
-title: "Prompt Directory Structure and Initial Files"
-lane: "planned"
+work_package_id: WP01
+title: Prompt Directory Structure and Initial Files
+lane: "doing"
 dependencies: []
-subtasks: ["T001", "T002", "T003", "T004", "T005", "T006"]
+base_branch: main
+base_commit: fe5c2b96b94a8fe6063d6cb05668bf74e0e015f3
+created_at: '2026-02-19T07:00:59.060526+00:00'
+subtasks: [T001, T002, T003, T004, T005, T006]
+shell_pid: "74143"
 history:
-  - timestamp: "2025-02-19T00:00:00Z"
-    action: "Created"
-    agent: "spec-kitty"
+- timestamp: '2025-02-19T00:00:00Z'
+  action: Created
+  agent: spec-kitty
 ---
 
 # WP01: Prompt Directory Structure and Initial Files
