@@ -24,7 +24,7 @@ poetry install
 
 **Option A: Using YAML config (recommended)**
 
-Edit `debate_config.yaml` with your provider settings:
+Edit `config/debate_config.yaml` with your provider settings:
 
 ```yaml
 llm:
@@ -34,7 +34,7 @@ llm:
   temperature: 0.8
 ```
 
-See [CONFIG_GUIDE.md](CONFIG_GUIDE.md) for provider examples (OpenAI, DeepSeek, Zhipu AI, Ollama).
+See [docs/CONFIG_GUIDE.md](docs/CONFIG_GUIDE.md) for provider examples (OpenAI, DeepSeek, Zhipu AI, Ollama).
 
 **Option B: Using environment variables**
 
@@ -42,20 +42,23 @@ See [CONFIG_GUIDE.md](CONFIG_GUIDE.md) for provider examples (OpenAI, DeepSeek, 
 export OPENAI_API_KEY=your_openai_key_here
 ```
 
-### 4. Run Product Committee
+### 4. Run Debates
 
 ```bash
-# Using default config (debate_config.yaml)
-poetry run product-committee \
+# Product Committee (recommended for PRD analysis)
+poetry run python main.py committee \
   --prd test_prd.txt \
   --question "What is the potential of this project?"
 
-# Or override config values
-poetry run product-committee \
-  --prd test_prd.txt \
-  --question "What is the potential of this project?" \
-  --model gpt-4o \
-  --temperature 0.9
+# Document-based Debate (for single topics)
+poetry run python main.py debate \
+  --text "GitHub is useful for developers" \
+  --pro-prompt prompts/pro.txt \
+  --con-prompt prompts/con.txt
+
+# Generate Conclusion from existing results
+poetry run python main.py conclusion \
+  --run-dir ./committee_output/RUN_20260218_234755
 ```
 
 ---
@@ -90,16 +93,16 @@ src/
 
 ## Product Committee CLI
 
-The `product_committee.py` runs four debate rooms to analyze a PRD from multiple perspectives.
+The `main.py committee` command runs four debate rooms to analyze a PRD from multiple perspectives.
 
 ### Basic Usage
 
 ```bash
 # With Poetry
-poetry run product-committee --prd ./test_prd.txt --question "заработает ли этот проект?"
+poetry run python main.py committee --prd ./test_prd.txt --question "заработает ли этот проект?"
 
 # Or directly
-python3 product_committee.py --prd ./test_prd.txt --question "заработает ли этот проект?"
+python main.py committee --prd ./test_prd.txt --question "заработает ли этот проект?"
 ```
 
 ### CLI Arguments
@@ -108,7 +111,7 @@ python3 product_committee.py --prd ./test_prd.txt --question "заработае
 |----------|-------------|
 | `--prd <file>` | Path to PRD document (.docx or .txt) |
 | `--question <text>` | Committee question |
-| `--config <file>` | Path to YAML config file (default: debate_config.yaml) |
+| `--config <file>` | Path to YAML config file (default: config/debate_config.yaml) |
 | `--model <name>` | LLM model name (overrides config) |
 | `--base-url <url>` | API base URL (overrides config) |
 | `--api-key <key>` | API key (overrides config) |
@@ -128,7 +131,7 @@ Settings are applied in this order (highest priority first):
 1. CLI arguments
 2. `DEBATE_*` environment variables
 3. `OPENAI_*` environment variables
-4. YAML config file (`debate_config.yaml`)
+4. YAML config file (`config/debate_config.yaml`)
 5. Built-in defaults
 
 ### Example Configurations
@@ -181,10 +184,10 @@ committee_output/
 
 ## Conclusion Generator
 
-Standalone script to regenerate `conclusion.md` from existing `final_report.md`:
+Regenerate `conclusion.md` from existing committee results:
 
 ```bash
-poetry run conclusion-results committee_output/RUN_XXX/final_report.md
+poetry run python main.py conclusion --run-dir committee_output/RUN_XXX
 ```
 
 ---

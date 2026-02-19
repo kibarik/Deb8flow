@@ -1,7 +1,7 @@
 """
 CLI executor adapter for debate rooms.
 
-This adapter calls document_debate_cli.py as a subprocess to execute debates.
+This adapter calls scripts/document_debate_cli.py as a subprocess to execute debates.
 """
 
 import asyncio
@@ -79,7 +79,7 @@ class CliDebateExecutor:
         # Build command
         cmd = [
             sys.executable,
-            "document_debate_cli.py",
+            "scripts/document_debate_cli.py",
             "--text", prd_content,
             "--pro-prompt", str(pro_prompt_path),
             "--con-prompt", str(con_prompt_path)
