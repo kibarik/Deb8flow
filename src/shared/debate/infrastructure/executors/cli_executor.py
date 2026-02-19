@@ -112,14 +112,15 @@ class CliDebateExecutor:
             cmd.extend(["--json-output", str(json_output_path)])
 
         # Run subprocess
+        # stderr=None makes stderr go directly to parent process stderr (realtime feedback)
         process = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            stderr=None  # stderr goes directly to parent for realtime feedback
         )
 
         try:
-            stdout, stderr = await asyncio.wait_for(
+            stdout, _ = await asyncio.wait_for(
                 process.communicate(),
                 timeout=self.DEFAULT_TIMEOUT
             )
@@ -130,10 +131,9 @@ class CliDebateExecutor:
             raise TimeoutError(f"Debate room {room_id.value} timed out")
 
         if process.returncode != 0:
-            error_msg = stderr.decode() if stderr else "Unknown error"
             # Clean up JSON file on error
             await self._cleanup_json_file(json_output_path)
-            raise RuntimeError(f"Debate failed: {error_msg}")
+            raise RuntimeError(f"Debate failed with return code {process.returncode}")
 
         # Load JSON output if available
         if json_output_path and json_output_path.exists():

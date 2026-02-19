@@ -8,6 +8,7 @@ and OpenAI-compatible APIs.
 import asyncio
 import json
 import logging
+import sys
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional, Tuple
 from pathlib import Path
@@ -113,10 +114,14 @@ class LLMDebateOrchestrator:
         self._total_stages = 9  # 8 debate stages + verdict
 
     def _log_stage(self, stage_name: str, speaker: str, action: str = "generating"):
-        """Log debate stage progress."""
+        """Log debate stage progress to stderr for realtime feedback."""
         stage_symbols = ["⚪", "🟡", "🟠", "🔴", "🟤", "🔵", "🟣", "⚫", "🟢"]
         symbol = stage_symbols[self._current_stage % len(stage_symbols)]
-        logger.info(f"{symbol} [{self.room_id}] Stage {self._current_stage + 1}/{self._total_stages}: {speaker} - {stage_name} ({action})...")
+        print(f"{symbol} [{self.room_id}] Stage {self._current_stage + 1}/{self._total_stages}: {speaker} - {stage_name} ({action})...", file=sys.stderr, flush=True)
+
+    def _log_completed(self, message: str):
+        """Log completion message to stderr for realtime feedback."""
+        print(f"  ✓ {message}", file=sys.stderr, flush=True)
 
     async def execute_debate(
         self,
@@ -245,7 +250,7 @@ PRD Content:
             speaker="PRO"
         )
         self.messages.append(DebateMessage("PRO", pro_response, "opening", validated=True))
-        logger.info(f"  ✓ PRO opening completed ({len(pro_response)} chars)")
+        print(f"  ✓ PRO opening completed ({len(pro_response)} chars)", file=sys.stderr, flush=True)
 
         # CON opening
         self._current_stage = 2
@@ -269,7 +274,7 @@ PRD Content:
             speaker="CON"
         )
         self.messages.append(DebateMessage("CON", con_response, "opening", validated=True))
-        logger.info(f"  ✓ CON opening completed ({len(con_response)} chars)")
+        self._log_completed(f"CON opening completed ({len(con_response)} chars)")
 
     async def _run_rebuttals(self, context: str, pro_prompt: str, con_prompt: str):
         """Run rebuttal stage."""
@@ -286,7 +291,7 @@ PRD Content:
             speaker="CON"
         )
         self.messages.append(DebateMessage("CON", con_rebuttal, "rebuttal", validated=True))
-        logger.info(f"  ✓ CON rebuttal completed ({len(con_rebuttal)} chars)")
+        self._log_completed(f"CON rebuttal completed ({len(con_rebuttal)} chars)")
 
         # PRO rebuttal
         self._current_stage = 4
@@ -299,7 +304,7 @@ PRD Content:
             speaker="PRO"
         )
         self.messages.append(DebateMessage("PRO", pro_rebuttal, "rebuttal", validated=True))
-        logger.info(f"  ✓ PRO rebuttal completed ({len(pro_rebuttal)} chars)")
+        self._log_completed(f"PRO rebuttal completed ({len(pro_rebuttal)} chars)")
 
     async def _run_counter_arguments(self, context: str, pro_prompt: str, con_prompt: str):
         """Run counter-argument stage."""
@@ -315,7 +320,7 @@ PRD Content:
             speaker="PRO"
         )
         self.messages.append(DebateMessage("PRO", pro_counter, "counter", validated=True))
-        logger.info(f"  ✓ PRO counter-argument completed ({len(pro_counter)} chars)")
+        self._log_completed(f"PRO counter-argument completed ({len(pro_counter)} chars)")
 
         # CON counter
         self._current_stage = 6
@@ -328,7 +333,7 @@ PRD Content:
             speaker="CON"
         )
         self.messages.append(DebateMessage("CON", con_counter, "counter", validated=True))
-        logger.info(f"  ✓ CON counter-argument completed ({len(con_counter)} chars)")
+        self._log_completed(f"CON counter-argument completed ({len(con_counter)} chars)")
 
     async def _run_final_arguments(self, context: str, pro_prompt: str, con_prompt: str):
         """Run final argument stage."""
@@ -344,7 +349,7 @@ PRD Content:
             speaker="PRO"
         )
         self.messages.append(DebateMessage("PRO", pro_final, "final_argument", validated=True))
-        logger.info(f"  ✓ PRO final completed ({len(pro_final)} chars)")
+        self._log_completed(f"PRO final completed ({len(pro_final)} chars)")
 
         # CON final
         self._current_stage = 8
@@ -357,7 +362,7 @@ PRD Content:
             speaker="CON"
         )
         self.messages.append(DebateMessage("CON", con_final, "final_argument", validated=True))
-        logger.info(f"  ✓ CON final completed ({len(con_final)} chars)")
+        self._log_completed(f"CON final completed ({len(con_final)} chars)")
 
     async def _run_verdict(self, context: str) -> str:
         """Run the judge's verdict using PromptLoader."""
@@ -410,7 +415,7 @@ Provide your verdict with:
             speaker="JUDGE"
         )
         self.messages.append(DebateMessage("JUDGE", verdict, "verdict", validated=True))
-        logger.info(f"  ✓ JUDGE verdict completed ({len(verdict)} chars)")
+        self._log_completed(f"JUDGE verdict completed ({len(verdict)} chars)")
 
         # Extract winner from verdict
         if "WINNER: PRO" in verdict.upper():

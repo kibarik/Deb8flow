@@ -201,6 +201,10 @@ async def run_debate(
         room_id=room_id or "Debate"
     )
 
+    # Print start message to stderr for immediate feedback
+    import sys
+    print(f"🚀 Starting debate: {room_id or 'Debate'}", file=sys.stderr, flush=True)
+
     # Execute debate
     try:
         dialogue, winner = await orchestrator.execute_debate(
