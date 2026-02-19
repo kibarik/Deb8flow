@@ -9,7 +9,7 @@ import os
 import re
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 import yaml
 from pydantic import BaseModel, Field, field_validator
@@ -50,7 +50,7 @@ def substitute_env_vars(value: Any) -> Any:
     return value
 
 
-def load_env_file(env_path: Optional[str | Path] = None) -> None:
+def load_env_file(env_path: Optional[Union[str, Path]] = None) -> None:
     """
     Load environment variables from .env file.
 
@@ -268,7 +268,7 @@ class DebateConfigFile(BaseModel):
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
 
     @classmethod
-    def from_yaml(cls, path: str | Path, load_env: bool = True) -> "DebateConfigFile":
+    def from_yaml(cls, path: Union[str, Path], load_env: bool = True) -> "DebateConfigFile":
         """
         Load configuration from YAML file.
 
@@ -317,7 +317,7 @@ class DebateConfigFile(BaseModel):
         return config
 
     @classmethod
-    def from_yaml_or_default(cls, path: Optional[str | Path] = None, load_env: bool = True) -> "DebateConfigFile":
+    def from_yaml_or_default(cls, path: Optional[Union[str, Path]] = None, load_env: bool = True) -> "DebateConfigFile":
         """
         Load configuration from YAML file or return defaults.
 
@@ -394,7 +394,7 @@ class DebateConfigFile(BaseModel):
         )
 
 
-def load_config(config_path: Optional[str | Path] = None) -> DebateConfigFile:
+def load_config(config_path: Optional[Union[str, Path]] = None) -> DebateConfigFile:
     """
     Load debate configuration from file or use defaults.
 

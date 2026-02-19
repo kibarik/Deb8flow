@@ -16,14 +16,13 @@ from .config_loader import (
     load_config,
     EXAMPLE_CONFIGS
 )
-
 from .models import (
     PromptsConfig,
+    PromptPathsConfig,
     DebateModeConfig,
     LLMConfigModel,
     AgentsConfigModel,
-    DebateConfigFull,
-    PromptPathsConfig
+    DebateConfigFull
 )
 
 __all__ = [
@@ -39,9 +38,9 @@ __all__ = [
     "EXAMPLE_CONFIGS",
     # From models
     "PromptsConfig",
+    "PromptPathsConfig",
     "DebateModeConfig",
     "LLMConfigModel",
     "AgentsConfigModel",
-    "DebateConfigFull",
-    "PromptPathsConfig"
+    "DebateConfigFull"
 ]

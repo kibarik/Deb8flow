@@ -16,6 +16,8 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
+from ...application.prompt_loader import PromptLoader, PromptContext
+
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +64,7 @@ class LLMDebateOrchestrator:
 
     def __init__(
         self,
+        prompt_loader=None,  # Optional PromptLoader
         model: Optional[str] = None,
         temperature: float = 0.7,
         max_tokens: int = 1000,
@@ -73,6 +76,7 @@ class LLMDebateOrchestrator:
         Initialize the debate orchestrator.
 
         Args:
+            prompt_loader: PromptLoader for loading prompts (optional, for backward compatibility)
             model: Model name (e.g., "gpt-4o", "gpt-3.5-turbo")
             temperature: Sampling temperature for creativity
             max_tokens: Maximum tokens per response
@@ -80,6 +84,7 @@ class LLMDebateOrchestrator:
             base_url: Custom API base URL for compatible APIs
             language: Language code for debate output (e.g., "en", "ru", "de")
         """
+        self.prompt_loader = prompt_loader  # Store PromptLoader (may be None)
         self.model = model or "gpt-4o"
         self.temperature = temperature
         self.max_tokens = max_tokens
@@ -151,8 +156,40 @@ class LLMDebateOrchestrator:
             raise
 
     def _build_debate_context(self, topic: str, question: str, prd_content: str) -> str:
-        """Build the context string for the debate."""
-        # Language instruction mapping
+        """Build the context string for the debate using PromptLoader."""
+        # Get language instruction
+        language_instruction = self._get_language_instruction()
+
+        # Load context template and render with variables if PromptLoader is available
+        if self.prompt_loader:
+            try:
+                context = self.prompt_loader.load_with_context(
+                    "debate.context",
+                    PromptContext(
+                        question=question,
+                        topic=topic[:500],  # Truncate as before
+                        prd_content=prd_content[:2000],  # Truncate as before
+                        language=language_instruction
+                    )
+                )
+                return context
+            except Exception as e:
+                logger.warning(f"Failed to load context from PromptLoader: {e}, using fallback")
+
+        # Fallback to hardcoded context
+        return f"""{language_instruction}
+
+Question: {question}
+
+Topic/Context:
+{topic[:500]}
+
+PRD Content:
+{prd_content[:2000]}
+"""
+
+    def _get_language_instruction(self) -> str:
+        """Get language instruction string."""
         language_instructions = {
             "ru": "Вы должны вести дебаты на РУССКОМ языке. All responses must be in Russian.",
             "en": "You must conduct the debate in ENGLISH.",
@@ -161,49 +198,57 @@ class LLMDebateOrchestrator:
             "es": "Debe realizar el debate en ESPAÑOL.",
             "zh": "您必须用中文进行辩论。",
         }
-
-        language_instruction = language_instructions.get(
+        return language_instructions.get(
             self.language.lower(),
             f"You must conduct the debate in {self.language.upper()}."
         )
 
-        return f"""DEBATE CONTEXT:
-
-Question: {question}
-
-Topic/Context: {topic[:500]}
-
-Full PRD Content (for reference):
-{prd_content[:2000]}
-
----
-
-LANGUAGE: {language_instruction}
-
-You are participating in a formal product committee debate. Follow these rules:
-1. Stay in character as defined by your role prompt
-2. Make specific, evidence-based arguments
-3. Reference the actual content from the PRD when relevant
-4. Be concise but thorough (aim for 200-400 words per response)
-5. Address the other party's arguments directly
-6. Maintain professional, constructive tone
-"""
-
     async def _run_opening_statements(self, context: str, pro_prompt: str, con_prompt: str):
-        """Run opening statements from both sides."""
+        """Run opening statements from both sides using PromptLoader."""
+        # Build base context for rendering
+        base_context = PromptContext(
+            question=context.split("Question:")[-1].strip() if "Question:" in context else "",
+            topic=context.split("Topic/Context:")[-1].strip() if "Topic/Context:" in context else context,
+            language=self.language
+        )
+
         # PRO opening
+        if self.prompt_loader:
+            try:
+                pro_template = self.prompt_loader.load_with_context(
+                    "debate.stages.opening_pro",
+                    base_context
+                )
+            except Exception as e:
+                logger.warning(f"Failed to load PRO opening prompt: {e}, using context")
+                pro_template = context
+        else:
+            pro_template = context
+
         pro_response = await self._generate_response(
             system_prompt=pro_prompt,
-            human_prompt=f"{context}\n\nPlease present your opening statement arguing FOR this project (PRO position). Focus on why this project should proceed.",
+            human_prompt=pro_template,
             stage="opening",
             speaker="PRO"
         )
         self.messages.append(DebateMessage("PRO", pro_response, "opening", validated=True))
 
         # CON opening
+        if self.prompt_loader:
+            try:
+                con_template = self.prompt_loader.load_with_context(
+                    "debate.stages.opening_con",
+                    base_context
+                )
+            except Exception as e:
+                logger.warning(f"Failed to load CON opening prompt: {e}, using context")
+                con_template = context
+        else:
+            con_template = context
+
         con_response = await self._generate_response(
             system_prompt=con_prompt,
-            human_prompt=f"{context}\n\nPlease present your opening statement arguing AGAINST this project (CON position). Focus on concerns, risks, and why this might not succeed.",
+            human_prompt=con_template,
             stage="opening",
             speaker="CON"
         )
@@ -280,26 +325,49 @@ You are participating in a formal product committee debate. Follow these rules:
         self.messages.append(DebateMessage("CON", con_final, "final_argument", validated=True))
 
     async def _run_verdict(self, context: str) -> str:
-        """Run the judge's verdict and determine winner."""
+        """Run the judge's verdict using PromptLoader."""
         recent_context = self._get_recent_context()
 
-        judge_prompt = """You are an IMPARTIAL JUDGE evaluating a product committee debate.
+        # Load judge template
+        question = context.split("Question:")[-1].strip() if "Question:" in context else ""
 
-Your task:
-1. Review the entire debate above
-2. Consider the strength of arguments, evidence presented, and how well each side addressed concerns
-3. Provide a verdict
+        if self.prompt_loader:
+            try:
+                judge_template = self.prompt_loader.load_with_context(
+                    "debate.judge",
+                    PromptContext(
+                        question=question,
+                        recent_context=recent_context,
+                        language=self.language
+                    )
+                )
+            except Exception as e:
+                logger.warning(f"Failed to load judge prompt: {e}, using fallback")
+                judge_template = f"""Evaluate the following debate and declare a winner.
 
-IMPORTANT - Your response MUST follow this exact format:
-WINNER: PRO (or CON)
+Question: {question}
 
-Explanation: [Your reasoning - 2-3 sentences]
+{recent_context}
 
-Be fair and objective. The winner is whoever made stronger, more convincing arguments."""
+Provide your verdict with:
+1. Analysis of both sides' arguments
+2. A clear declaration of "WINNER: PRO" or "WINNER: CON"
+3. Brief reasoning for your decision"""
+        else:
+            judge_template = f"""Evaluate the following debate and declare a winner.
+
+Question: {question}
+
+{recent_context}
+
+Provide your verdict with:
+1. Analysis of both sides' arguments
+2. A clear declaration of "WINNER: PRO" or "WINNER: CON"
+3. Brief reasoning for your decision"""
 
         verdict = await self._generate_response(
-            system_prompt=judge_prompt,
-            human_prompt=f"{context}\n\n{recent_context}\n\nBased on the debate above, provide your verdict.",
+            system_prompt=judge_template,
+            human_prompt=f"Based on the debate above, provide your verdict.",
             stage="verdict",
             speaker="JUDGE"
         )
@@ -366,6 +434,7 @@ class SimpleDebateOrchestrator:
 
     def __init__(
         self,
+        prompt_loader=None,  # Optional PromptLoader
         model: Optional[str] = None,
         temperature: float = 0.8,
         api_key: Optional[str] = None,
@@ -373,6 +442,7 @@ class SimpleDebateOrchestrator:
         language: str = "en"
     ):
         """Initialize the simple debate orchestrator."""
+        self.prompt_loader = prompt_loader  # Store PromptLoader (may be None)
         self.model = model or "gpt-4o"
         self.temperature = temperature
         self.language = language
@@ -401,59 +471,31 @@ class SimpleDebateOrchestrator:
         """
         Execute a debate using a single structured LLM call.
 
-        This is more efficient than the multi-stage approach while
-        still providing realistic results.
+        Now uses PromptLoader to load the simple mode debate template.
+        Falls back to hardcoded prompt if PromptLoader is not available.
         """
-        # Language instruction mapping
-        language_instructions = {
-            "ru": "Вы должны вести дебаты на РУССКОМ языке. All responses must be in Russian.",
-            "en": "You must conduct the debate in ENGLISH.",
-            "de": "Sie müssen die Debatte auf DEUTSCH führen.",
-            "fr": "Vous devez mener le débat en FRANÇAIS.",
-            "es": "Debe realizar el debate en ESPAÑOL.",
-            "zh": "您必须用中文进行辩论。",
-        }
+        # Get language instruction
+        language_instruction = self._get_language_instruction()
 
-        language_instruction = language_instructions.get(
-            self.language.lower(),
-            f"You must conduct the debate in {self.language.upper()}."
-        )
-
-        debate_prompt = f"""You are simulating a product committee debate about the following question:
-
-QUESTION: {question}
-
-CONTEXT (PRD excerpt): {topic[:800]}
-
-Full PRD Content: {prd_content[:1500]}
-
----
-
-LANGUAGE: {language_instruction}
-
-You need to generate a realistic debate between two participants:
-- PRO (arguing FOR the project): {pro_prompt[:300]}
-- CON (arguing AGAINST the project): {con_prompt[:300]}
-
-Generate a debate following this structure:
-
-PRO (opening): [200-300 words arguing for the project]
-
-CON (opening): [200-300 words arguing against the project]
-
-PRO (rebuttal): [150-200 words responding to CON's opening]
-
-CON (rebuttal): [150-200 words responding to PRO's rebuttal]
-
-PRO (final): [100-150 words closing argument]
-
-CON (final): [100-150 words closing argument]
-
-JUDGE: After reviewing both arguments, WINNER: [PRO or CON]. [Brief 2-3 sentence explanation]
-
-Make the arguments specific to the actual PRD content. The PRO should focus on technical feasibility and benefits, while CON should focus on risks, costs, and concerns. The winner should be determined by who made stronger, more convincing arguments.
-
-Begin the debate now:"""
+        # Load and render debate template if PromptLoader is available
+        if self.prompt_loader:
+            try:
+                debate_prompt = self.prompt_loader.load_with_context(
+                    "debate.modes.simple",
+                    PromptContext(
+                        question=question,
+                        topic=topic[:800],
+                        prd_content=prd_content[:1500],
+                        language=language_instruction,
+                        pro_prompt=pro_prompt[:300],
+                        con_prompt=con_prompt[:300]
+                    )
+                )
+            except Exception as e:
+                logger.warning(f"Failed to load prompt from PromptLoader: {e}, using fallback")
+                debate_prompt = self._get_fallback_prompt(question, topic, prd_content, language_instruction, pro_prompt, con_prompt)
+        else:
+            debate_prompt = self._get_fallback_prompt(question, topic, prd_content, language_instruction, pro_prompt, con_prompt)
 
         try:
             response = await asyncio.to_thread(
@@ -474,6 +516,62 @@ Begin the debate now:"""
         except Exception as e:
             logger.error(f"Simple debate execution failed: {e}")
             raise
+
+    def _get_language_instruction(self) -> str:
+        """Get language instruction string."""
+        language_instructions = {
+            "ru": "Вы должны вести дебаты на РУССКОМ языке. All responses must be in Russian.",
+            "en": "You must conduct the debate in ENGLISH.",
+            "de": "Sie müssen die Debatte auf DEUTSCH führen.",
+            "fr": "Vous devez mener le débat en FRANÇAIS.",
+            "es": "Debe realizar el debate en ESPAÑOL.",
+            "zh": "您必须用中文进行辩论。",
+        }
+
+        return language_instructions.get(
+            self.language.lower(),
+            f"You must conduct the debate in {self.language.upper()}."
+        )
+
+    def _get_fallback_prompt(self, question: str, topic: str, prd_content: str,
+                             language_instruction: str, pro_prompt: str, con_prompt: str) -> str:
+        """Get fallback prompt when PromptLoader is not available."""
+        return f"""{language_instruction}
+
+You are simulating a structured debate between two participants on the following topic:
+
+Question: {question}
+
+Topic/Context:
+{topic[:800]}
+
+PRD Content:
+{prd_content[:1500]}
+
+PRO Position: {pro_prompt[:300]}
+CON Position: {con_prompt[:300]}
+
+Please conduct a complete debate with the following structure:
+
+1. PRO Opening Statement
+2. CON Opening Statement
+3. PRO Rebuttal
+4. CON Rebuttal
+5. PRO Counter-argument
+6. CON Counter-argument
+7. PRO Final Argument
+8. CON Final Argument
+9. JUDGE Verdict
+
+Format each section clearly with speaker labels like "PRO (opening):", "CON (rebuttal):", etc.
+
+At the end, the JUDGE should:
+- Evaluate both sides' arguments
+- Consider evidence, logic, and persuasiveness
+- Declare a clear winner with "WINNER: PRO" or "WINNER: CON"
+- Provide brief reasoning
+
+Make arguments realistic, thoughtful, and well-structured."""
 
     def _parse_debate_response(self, response: str) -> List[Dict[str, Any]]:
         """Parse the LLM response into structured dialogue."""
