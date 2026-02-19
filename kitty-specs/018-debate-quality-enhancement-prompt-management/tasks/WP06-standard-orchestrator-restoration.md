@@ -1,9 +1,13 @@
 ---
 work_package_id: WP06
 title: StandardDebateOrchestrator Restoration
-lane: planned
+lane: "doing"
 dependencies: []
+base_branch: main
+base_commit: a4889d6c286d6fcba56d3823e23a6e8ed4e7239f
+created_at: '2026-02-19T07:15:17.471721+00:00'
 subtasks: [T031, T032, T033, T034, T035, T036]
+shell_pid: "79032"
 history:
 - timestamp: '2025-02-19T00:00:00Z'
   action: Created
