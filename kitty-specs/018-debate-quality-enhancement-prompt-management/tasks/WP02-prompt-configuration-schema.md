@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: Prompt Configuration Schema
-lane: "doing"
+lane: "for_review"
 dependencies: []
 base_branch: main
 base_commit: e5a40914c1039c351e8fef4d2bfb51ea3c7309f5
@@ -482,3 +482,4 @@ pytest tests/shared/config/test_prompt_config.py -v
 ## Activity Log
 
 - 2026-02-19T07:04:01Z – claude-code – shell_pid=75216 – lane=doing – Assigned agent via workflow command
+- 2026-02-19T07:05:15Z – claude-code – shell_pid=75216 – lane=for_review – Ready for review: Configuration schema added with Pydantic validation models, prompt paths configured, debate mode selection added
