@@ -21,6 +21,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.shared.debate.application.analyzers import TakeawayAnalyzer, TakeawayConfig
+from src.shared.config import DebateConfigFile
 
 
 logging.basicConfig(
@@ -261,14 +262,50 @@ async def main():
         logger.error(f"File not found: {dialogue_path}")
         return 1
 
+    # Load config file for LLM parameters
+    try:
+        debate_config = DebateConfigFile.from_yaml_or_default()
+        if debate_config and debate_config.llm:
+            llm_config = debate_config.llm
+            default_model = llm_config.model
+            default_api_key = llm_config.api_key
+            default_base_url = llm_config.get_effective_base_url()
+        else:
+            default_model = None
+            default_api_key = None
+            default_base_url = None
+    except Exception:
+        default_model = None
+        default_api_key = None
+        default_base_url = None
+
     # Default question
     question = args.question or "Анализ документа продукта комитета"
+
+    # API key: CLI args > config > env vars
+    api_key = (args.api_key or
+               default_api_key or
+               os.environ.get("OPENAI_API_KEY") or
+               os.environ.get("DEBATE_API_KEY") or
+               os.environ.get("LLM_API_KEY"))
+
+    # Base URL: CLI args > config > env vars
+    base_url = (args.base_url or
+                default_base_url or
+                os.environ.get("DEBATE_BASE_URL") or
+                os.environ.get("OPENAI_API_BASE") or
+                os.environ.get("API_BASE_URL"))
+
+    # Model: CLI args > config
+    model = args.model or default_model
 
     # Configure analyzer
     config = TakeawayConfig(
         min_takeaways=args.min,
         max_takeaways=args.max,
-        model=args.model,
+        model=model,
+        api_key=api_key,
+        base_url=base_url if base_url else None,
     )
 
     # Process the file

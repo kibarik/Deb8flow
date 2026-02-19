@@ -9,7 +9,7 @@ import json
 import logging
 import os
 import sys
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from pathlib import Path
 
 from ...domain.entities import DebateRoom, DebateMessage, Verdict
@@ -19,14 +19,30 @@ from ...application.ports import DebateExecutor
 from ...application.analyzers import TakeawayAnalyzer, TakeawayConfig
 from ..retry import retry_with_backoff
 
+if TYPE_CHECKING:
+    from ....config.config_loader import LLMConfig
+
 
 logger = logging.getLogger(__name__)
 
 
 class CliDebateExecutor:
-    """Executes debates by calling document_debate_cli.py as subprocess."""
+    """Executes debates by calling document_debate_cli.py as subprocess.
+
+    Args:
+        llm_config: Optional LLM configuration from debate_config.yaml
+                    for API parameters (api_key, model, base_url).
+    """
 
     DEFAULT_TIMEOUT = 300  # 5 minutes
+
+    def __init__(self, llm_config: Optional["LLMConfig"] = None):
+        """Initialize executor with LLM configuration.
+
+        Args:
+            llm_config: LLM configuration from debate_config.yaml
+        """
+        self.llm_config = llm_config
 
     async def execute(
         self,
@@ -84,7 +100,8 @@ class CliDebateExecutor:
             "scripts/document_debate_cli.py",
             "--text", prd_content,
             "--pro-prompt", str(pro_prompt_path),
-            "--con-prompt", str(con_prompt_path)
+            "--con-prompt", str(con_prompt_path),
+            "--room-id", room_id.value  # Pass room_id for progress logging
         ]
 
         if model:
@@ -146,6 +163,9 @@ class CliDebateExecutor:
         content = await asyncio.to_thread(json_path.read_text, encoding='utf-8')
         dialogue_json = json.loads(content)
 
+        # Handle both dict format (with 'messages' key) and list format
+        messages_list = dialogue_json.get("messages", []) if isinstance(dialogue_json, dict) else dialogue_json
+
         messages = [
             DebateMessage(
                 speaker=Speaker(msg["speaker"]),
@@ -154,7 +174,7 @@ class CliDebateExecutor:
                 timestamp=msg.get("timestamp", ""),
                 validated=msg.get("validated", False)
             )
-            for msg in dialogue_json.get("messages", dialogue_json)
+            for msg in messages_list
         ]
 
         # Find verdict
@@ -229,7 +249,7 @@ class CliDebateExecutor:
                 if match:
                     winner_str = match.group(1)
                     winner = Speaker.PRO if winner_str.upper() == "PRO" else Speaker.CON
-                    return Verdict(winner=winner, explanation=content[-500:] if len(content) > 500 else content)
+                    return Verdict(winner=winner, explanation=content)
         return None
 
     def _extract_verdict_from_text(self, text: str) -> Optional[Verdict]:
@@ -241,7 +261,7 @@ class CliDebateExecutor:
         if match:
             winner_str = match.group(1)
             winner = Speaker.PRO if winner_str.upper() == "PRO" else Speaker.CON
-            return Verdict(winner=winner, explanation=text[-500:] if len(text) > 500 else text)
+            return Verdict(winner=winner, explanation=text)
 
         return None
 
@@ -262,9 +282,16 @@ class CliDebateExecutor:
         Returns:
             List of takeaway strings
         """
-        # Get API key from environment
-        api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("DEBATE_API_KEY") or os.environ.get("LLM_API_KEY")
-        base_url = os.environ.get("OPENAI_API_BASE") or os.environ.get("API_BASE_URL")
+        # Get API parameters from config or environment (fallback)
+        if self.llm_config:
+            api_key = self.llm_config.api_key
+            model = self.llm_config.model
+            base_url = self.llm_config.get_effective_base_url()
+        else:
+            # Fallback to environment variables
+            api_key = os.environ.get("OPENAI_API_KEY")
+            model = os.environ.get("DEBATE_MODEL")
+            base_url = os.environ.get("DEBATE_BASE_URL")
 
         if not api_key:
             logger.warning("No API key found for takeaway generation, skipping")
@@ -274,6 +301,7 @@ class CliDebateExecutor:
         config = TakeawayConfig(
             min_takeaways=3,
             max_takeaways=10,
+            model=model,
             api_key=api_key,
             base_url=base_url if base_url else None,
         )
@@ -281,8 +309,13 @@ class CliDebateExecutor:
         analyzer = TakeawayAnalyzer(config)
 
         # Extract dialogue data
-        messages = dialogue_json.get("messages", dialogue_json)
-        verdict_data = dialogue_json.get("verdict", {})
+        # dialogue_json can be either a dict with 'messages' key, or a list directly
+        if isinstance(dialogue_json, dict):
+            messages = dialogue_json.get("messages", [])
+            verdict_data = dialogue_json.get("verdict", {})
+        else:
+            messages = dialogue_json  # It's already a list
+            verdict_data = {}
 
         # Use question from verdict or parameter
         if not question:

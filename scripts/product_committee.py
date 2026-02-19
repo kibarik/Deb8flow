@@ -210,25 +210,10 @@ async def main_async() -> int:
         if cli_input.base_url:
             logger.info(f"Base URL (override): {cli_input.base_url}")
 
-    # Set environment variables for LLM parameters if provided
-    import os
-    if cli_input.api_key:
-        os.environ["OPENAI_API_KEY"] = cli_input.api_key
-    if cli_input.base_url:
-        os.environ["OPENAI_API_BASE"] = cli_input.base_url
-
-    # Pass additional parameters to executor via environment
-    if cli_input.model:
-        os.environ["DEBATE_MODEL"] = cli_input.model
-    if cli_input.temperature is not None:
-        os.environ["DEBATE_TEMPERATURE"] = str(cli_input.temperature)
-    if cli_input.base_url:
-        os.environ["DEBATE_BASE_URL"] = cli_input.base_url
-    if cli_input.api_key:
-        os.environ["DEBATE_API_KEY"] = cli_input.api_key
-
-    # Create infrastructure adapters
-    executor = CliDebateExecutor()
+    # Create infrastructure adapters with LLM config from file
+    # The config is already loaded with env var substitution, use it directly
+    llm_config = config.llm if config else None
+    executor = CliDebateExecutor(llm_config=llm_config)
     storage = LocalFileStorage()
     generator = ReportGeneratorAdapter()
 

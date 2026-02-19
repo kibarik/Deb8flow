@@ -70,7 +70,8 @@ class LLMDebateOrchestrator:
         max_tokens: int = 1000,
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
-        language: str = "en"
+        language: str = "en",
+        room_id: Optional[str] = None  # For logging
     ):
         """
         Initialize the debate orchestrator.
@@ -83,12 +84,14 @@ class LLMDebateOrchestrator:
             api_key: OpenAI API key (or compatible)
             base_url: Custom API base URL for compatible APIs
             language: Language code for debate output (e.g., "en", "ru", "de")
+            room_id: Room identifier for logging (optional)
         """
         self.prompt_loader = prompt_loader  # Store PromptLoader (may be None)
         self.model = model or "gpt-4o"
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.language = language
+        self.room_id = room_id or "Debate"
 
         # Initialize LLM
         llm_kwargs = {
@@ -106,6 +109,14 @@ class LLMDebateOrchestrator:
 
         # Debate history
         self.messages: List[DebateMessage] = []
+        self._current_stage = 0
+        self._total_stages = 9  # 8 debate stages + verdict
+
+    def _log_stage(self, stage_name: str, speaker: str, action: str = "generating"):
+        """Log debate stage progress."""
+        stage_symbols = ["⚪", "🟡", "🟠", "🔴", "🟤", "🔵", "🟣", "⚫", "🟢"]
+        symbol = stage_symbols[self._current_stage % len(stage_symbols)]
+        logger.info(f"{symbol} [{self.room_id}] Stage {self._current_stage + 1}/{self._total_stages}: {speaker} - {stage_name} ({action})...")
 
     async def execute_debate(
         self,
@@ -213,6 +224,8 @@ PRD Content:
         )
 
         # PRO opening
+        self._current_stage = 1
+        self._log_stage("Opening Statement", "PRO")
         if self.prompt_loader:
             try:
                 pro_template = self.prompt_loader.load_with_context(
@@ -232,8 +245,11 @@ PRD Content:
             speaker="PRO"
         )
         self.messages.append(DebateMessage("PRO", pro_response, "opening", validated=True))
+        logger.info(f"  ✓ PRO opening completed ({len(pro_response)} chars)")
 
         # CON opening
+        self._current_stage = 2
+        self._log_stage("Opening Statement", "CON")
         if self.prompt_loader:
             try:
                 con_template = self.prompt_loader.load_with_context(
@@ -253,6 +269,7 @@ PRD Content:
             speaker="CON"
         )
         self.messages.append(DebateMessage("CON", con_response, "opening", validated=True))
+        logger.info(f"  ✓ CON opening completed ({len(con_response)} chars)")
 
     async def _run_rebuttals(self, context: str, pro_prompt: str, con_prompt: str):
         """Run rebuttal stage."""
@@ -260,6 +277,8 @@ PRD Content:
         recent_context = self._get_recent_context()
 
         # CON rebuttal (responds to PRO's opening)
+        self._current_stage = 3
+        self._log_stage("Rebuttal", "CON")
         con_rebuttal = await self._generate_response(
             system_prompt=con_prompt,
             human_prompt=f"{context}\n\n{recent_context}\n\nNow provide your rebuttal to the PRO's opening statement. Address their specific points and explain why you disagree.",
@@ -267,8 +286,11 @@ PRD Content:
             speaker="CON"
         )
         self.messages.append(DebateMessage("CON", con_rebuttal, "rebuttal", validated=True))
+        logger.info(f"  ✓ CON rebuttal completed ({len(con_rebuttal)} chars)")
 
         # PRO rebuttal
+        self._current_stage = 4
+        self._log_stage("Rebuttal", "PRO")
         recent_context = self._get_recent_context()
         pro_rebuttal = await self._generate_response(
             system_prompt=pro_prompt,
@@ -277,12 +299,15 @@ PRD Content:
             speaker="PRO"
         )
         self.messages.append(DebateMessage("PRO", pro_rebuttal, "rebuttal", validated=True))
+        logger.info(f"  ✓ PRO rebuttal completed ({len(pro_rebuttal)} chars)")
 
     async def _run_counter_arguments(self, context: str, pro_prompt: str, con_prompt: str):
         """Run counter-argument stage."""
         recent_context = self._get_recent_context()
 
         # PRO counter
+        self._current_stage = 5
+        self._log_stage("Counter-argument", "PRO")
         pro_counter = await self._generate_response(
             system_prompt=pro_prompt,
             human_prompt=f"{context}\n\n{recent_context}\n\nNow provide a counter-argument. Offer new perspectives or evidence that strengthens your position while directly addressing the opponent's latest points.",
@@ -290,22 +315,28 @@ PRD Content:
             speaker="PRO"
         )
         self.messages.append(DebateMessage("PRO", pro_counter, "counter", validated=True))
+        logger.info(f"  ✓ PRO counter-argument completed ({len(pro_counter)} chars)")
 
         # CON counter
+        self._current_stage = 6
+        self._log_stage("Counter-argument", "CON")
         recent_context = self._get_recent_context()
         con_counter = await self._generate_response(
             system_prompt=con_prompt,
-            human_prompt=f"{context}\n\n{recent_context}\n\nNow provide your counter-argument. Offer new perspectives or evidence that strengthens your position while directly addressing the opponent's latest points.",
+            human_prompt=f"{context}\n\n{recent_context}\n\nNow provide a counter-argument. Offer new perspectives or evidence that strengthens your position while directly addressing the opponent's latest points.",
             stage="counter",
             speaker="CON"
         )
         self.messages.append(DebateMessage("CON", con_counter, "counter", validated=True))
+        logger.info(f"  ✓ CON counter-argument completed ({len(con_counter)} chars)")
 
     async def _run_final_arguments(self, context: str, pro_prompt: str, con_prompt: str):
         """Run final argument stage."""
         recent_context = self._get_recent_context()
 
         # PRO final
+        self._current_stage = 7
+        self._log_stage("Final Argument", "PRO")
         pro_final = await self._generate_response(
             system_prompt=pro_prompt,
             human_prompt=f"{context}\n\n{recent_context}\n\nThis is your final argument. Summarize your strongest points and explain why your position should prevail. Be compelling but fair.",
@@ -313,8 +344,11 @@ PRD Content:
             speaker="PRO"
         )
         self.messages.append(DebateMessage("PRO", pro_final, "final_argument", validated=True))
+        logger.info(f"  ✓ PRO final completed ({len(pro_final)} chars)")
 
         # CON final
+        self._current_stage = 8
+        self._log_stage("Final Argument", "CON")
         recent_context = self._get_recent_context()
         con_final = await self._generate_response(
             system_prompt=con_prompt,
@@ -323,6 +357,7 @@ PRD Content:
             speaker="CON"
         )
         self.messages.append(DebateMessage("CON", con_final, "final_argument", validated=True))
+        logger.info(f"  ✓ CON final completed ({len(con_final)} chars)")
 
     async def _run_verdict(self, context: str) -> str:
         """Run the judge's verdict using PromptLoader."""
@@ -330,6 +365,9 @@ PRD Content:
 
         # Load judge template
         question = context.split("Question:")[-1].strip() if "Question:" in context else ""
+
+        self._current_stage = 9
+        self._log_stage("Verdict", "JUDGE")
 
         if self.prompt_loader:
             try:
@@ -372,6 +410,7 @@ Provide your verdict with:
             speaker="JUDGE"
         )
         self.messages.append(DebateMessage("JUDGE", verdict, "verdict", validated=True))
+        logger.info(f"  ✓ JUDGE verdict completed ({len(verdict)} chars)")
 
         # Extract winner from verdict
         if "WINNER: PRO" in verdict.upper():

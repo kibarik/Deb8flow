@@ -7,7 +7,7 @@ from typing import Dict, Optional, Any, List
 from dataclasses import dataclass, field
 from threading import Lock
 
-from shared.config.models import PromptsConfig
+from src.shared.config.models import PromptsConfig
 
 
 logger = logging.getLogger(__name__)

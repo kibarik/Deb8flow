@@ -47,6 +47,7 @@ def parse_arguments() -> argparse.Namespace:
 Examples:
   python3 conclusion_results.py committee_output/RUN_20260217_230136_test/final_report.md
   python3 conclusion_results.py '/path/to/final_report.md' --verbose
+  python3 conclusion_results.py '/path/to/final_report.md' --prompt /path/to/custom_prompt.txt
         """
     )
 
@@ -59,6 +60,11 @@ Examples:
         "-v", "--verbose",
         action="store_true",
         help="Enable verbose logging"
+    )
+
+    parser.add_argument(
+        "-p", "--prompt",
+        help="Path to custom prompt file for conclusion generation"
     )
 
     return parser.parse_args()
@@ -288,6 +294,20 @@ def main():
 
     logger.info(f"Reading final report from: {report_path}")
 
+    # Load custom prompt if provided
+    custom_prompt = None
+    if args.prompt:
+        prompt_path = Path(args.prompt)
+        if not prompt_path.exists():
+            logger.error(f"Error: Prompt file not found: {prompt_path}")
+            sys.exit(1)
+        try:
+            custom_prompt = prompt_path.read_text(encoding="utf-8")
+            logger.info(f"Loaded custom prompt from: {prompt_path}")
+        except Exception as e:
+            logger.error(f"Error reading prompt file: {e}")
+            sys.exit(1)
+
     # Read the final report content
     try:
         content = report_path.read_text(encoding="utf-8")
@@ -313,7 +333,33 @@ def main():
         logger.error("Error: final_report.md is empty")
         sys.exit(1)
 
-    # Parse the report to extract data
+    # Collect takeaways from all dialogue JSON files
+    logger.info("Collecting takeaways from dialogue JSON files...")
+    all_takeaways = []
+    run_dir = report_path.parent
+
+    # Find all dialogue JSON files
+    dialogue_files = sorted(run_dir.glob("*_dialogue.json"))
+    logger.info(f"Found {len(dialogue_files)} dialogue files")
+
+    for dialogue_file in dialogue_files:
+        try:
+            with open(dialogue_file, 'r', encoding='utf-8') as f:
+                dialogue_data = json.load(f)
+                if 'takeaways' in dialogue_data and dialogue_data['takeaways']:
+                    room_id = dialogue_data.get('room_id', dialogue_file.stem)
+                    logger.info(f"  {room_id}: {len(dialogue_data['takeaways'])} takeaways")
+                    for takeaway in dialogue_data['takeaways']:
+                        all_takeaways.append({
+                            'room': room_id,
+                            'text': takeaway
+                        })
+        except Exception as e:
+            logger.warning(f"Could not read {dialogue_file}: {e}")
+
+    logger.info(f"Total takeaways collected: {len(all_takeaways)}")
+
+    # Parse the report to extract basic data (question, etc)
     logger.info("Parsing final report...")
     parsed_data = parse_final_report(content)
 
@@ -341,7 +387,9 @@ def main():
         conclusion = generator.generate_conclusion(
             question=parsed_data["question"],
             rooms=debate_rooms,
-            metadata=parsed_data["metadata"]
+            metadata=parsed_data["metadata"],
+            custom_prompt=custom_prompt,
+            all_takeaways=all_takeaways
         )
     except Exception as e:
         logger.error(f"Error generating conclusion: {e}")

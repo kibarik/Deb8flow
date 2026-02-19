@@ -16,6 +16,10 @@ import logging
 import os
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -114,20 +118,6 @@ async def run_committee_async(args) -> int:
     # Apply config defaults (CLI args take precedence)
     config_dict = config.get_cli_args_dict() if config else {}
 
-    # Set environment variables for LLM parameters if provided
-    if args.api_key:
-        os.environ["OPENAI_API_KEY"] = args.api_key
-    if args.base_url:
-        os.environ["OPENAI_API_BASE"] = args.base_url
-    if args.model:
-        os.environ["DEBATE_MODEL"] = args.model
-    if args.temperature is not None:
-        os.environ["DEBATE_TEMPERATURE"] = str(args.temperature)
-    if args.base_url:
-        os.environ["DEBATE_BASE_URL"] = args.base_url
-    if args.api_key:
-        os.environ["DEBATE_API_KEY"] = args.api_key
-
     # Get agents config from config file or use defaults
     if config and config.agents.main_agent:
         agents_config = config.agents
@@ -166,8 +156,9 @@ async def run_committee_async(args) -> int:
         logger.info(f"Using agents from roles directory: main={main_agent.name}, "
                    f"opponents={[opp.name for opp in opponents]}")
 
-    # Create infrastructure adapters
-    executor = CliDebateExecutor()
+    # Create infrastructure adapters with LLM config from file
+    llm_config = config.llm if config else None
+    executor = CliDebateExecutor(llm_config=llm_config)
     storage = LocalFileStorage()
 
     class ReportGeneratorAdapter:
@@ -249,6 +240,8 @@ def run_conclusion(args) -> int:
     # Monkey patch sys.argv - script expects path to final_report.md
     old_argv = sys.argv
     sys.argv = ["conclusion_results.py", str(final_report_path)]
+    if args.prompt:
+        sys.argv.extend(["--prompt", args.prompt])
 
     try:
         return conclusion_main()
@@ -274,6 +267,9 @@ Examples:
 
   # Generate conclusion from existing committee results
   %(prog)s conclusion --run-dir ./committee_output/RUN_20260218_234755
+
+  # Generate conclusion with custom instruction
+  %(prog)s conclusion --run-dir ./committee_output/RUN_20260218_234755 --prompt /path/to/instruction.txt
 
 Agent Configuration:
   Configure agents in debate_config.yaml under the 'agents' section:
@@ -339,6 +335,7 @@ Agent Configuration:
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     conclusion_parser.add_argument("--run-dir", required=True, help="Path to committee run directory")
+    conclusion_parser.add_argument("--prompt", help="Path to custom prompt file for conclusion generation")
 
     args = parser.parse_args()
 

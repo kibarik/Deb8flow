@@ -24,84 +24,59 @@ class ConclusionGenerator:
         self,
         question: str,
         rooms: List[DebateRoom],
-        metadata: Dict[str, Any]
+        metadata: Dict[str, Any],
+        custom_prompt: Optional[str] = None,
+        all_takeaways: Optional[List[Dict[str, str]]] = None
     ) -> str:
         """
-        Generate a structured conclusion with recommendations for fixes.
+        Generate a simple checklist conclusion from takeaways.
 
         Args:
             question: Committee question
-            rooms: All debate room results
+            rooms: All debate room results (not used in simplified version)
             metadata: Run metadata
+            custom_prompt: Optional custom instruction for conclusion generation
+            all_takeaways: List of {room, text} dicts from dialogue JSONs
 
         Returns:
-            Markdown conclusion content
+            Markdown conclusion content - simple checklist
         """
-        # Get PRD path from metadata
-        prd_path = metadata.get('prd_path', metadata.get('prd', 'N/A'))
-
-        # Count winners
-        successful_rooms = [r for r in rooms if r.is_successful]
-        tpm_wins = sum(1 for r in successful_rooms if r.verdict and r.verdict.winner == Speaker.PRO)
-        opponent_wins = len(successful_rooms) - tpm_wins
-
-        # Determine overall answer
-        if not successful_rooms:
-            overall_answer = "Не удалось провести анализ (все комнаты завершились ошибкой)"
-        elif tpm_wins > opponent_wins:
-            overall_answer = "Проект одобрен для дальнейшей проработки"
-        elif opponent_wins > tpm_wins:
-            overall_answer = "Требуется значительная доработка документа"
-        else:
-            overall_answer = "Требуется дополнительный анализ"
-
-        # Generate detailed description
-        detailed_description = self._generate_detailed_description(rooms, successful_rooms, tpm_wins, opponent_wins)
-
-        # Extract recommendations from judge explanations
-        recommendations = self._extract_recommendations(rooms)
-
         # Build the document
         lines = [
-            f"# Заключение комитета",
+            f"# Чеклист рекомендаций",
+            f"",
+            f"**Вопрос комитета:** {question}",
             f"",
             f"**Сгенерировано:** {metadata.get('end_time', 'N/A')}",
             f"",
-            f"---",
-            f"",
-            f"## Вопрос",
-            f"",
-            f"{question}",
-            f"",
-            f"---",
-            f"",
-            f"## Документ",
-            f"",
-            f"`{prd_path}`",
-            f"",
-            f"---",
-            f"",
-            f"## Ответ",
-            f"",
-            f"**{overall_answer}**",
-            f"",
-            f"---",
-            f"",
-            f"## Детальное описание",
-            f"",
         ]
 
-        lines.extend(detailed_description)
+        # Add custom instruction section if provided
+        if custom_prompt:
+            lines.extend([
+                f"---",
+                f"",
+                f"## Кастомная инструкция",
+                f"",
+                f"{custom_prompt}",
+                f"",
+                f"---",
+                f"",
+            ])
+
         lines.extend([
-            f"",
-            f"---",
-            f"",
-            f"## Рекомендации по доработкам",
+            f"## Рекомендации",
             f"",
         ])
 
-        for i, rec in enumerate(recommendations, 1):
-            lines.append(f"{i}. {rec}")
+        # Use takeaways from JSON files if provided
+        if all_takeaways:
+            for i, takeaway in enumerate(all_takeaways, 1):
+                room = takeaway.get('room', 'Unknown')
+                text = takeaway.get('text', '')
+                lines.append(f"{i}. {text} [{room}]")
+        else:
+            lines.append("Нет доступных рекомендаций")
 
         lines.extend([
             f"",

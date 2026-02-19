@@ -21,9 +21,9 @@ from typing import Optional
 # Add the src directory to the path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
-from src.shared.debate.infrastructure.llm.debate_orchestrator import SimpleDebateOrchestrator
+from src.shared.debate.infrastructure.llm.debate_orchestrator import LLMDebateOrchestrator
 from src.shared.debate.application.prompt_loader import PromptLoader
-from src.shared.config import load_config
+from src.shared.config import load_config, DebateConfigFile
 
 # Configure logging
 logging.basicConfig(
@@ -52,37 +52,68 @@ def parse_arguments():
                        help="Sampling temperature (default: from env or 0.8)")
     parser.add_argument("--api-key", help="OpenAI API key (default: from env)")
     parser.add_argument("--base-url", help="Custom API base URL (default: from env)")
+    parser.add_argument("--room-id", help="Room identifier for logging (default: 'Debate')")
 
     return parser.parse_args()
 
 
 def get_llm_config(args) -> tuple:
     """
-    Get LLM configuration from CLI args or environment variables.
+    Get LLM configuration from CLI args, config file, or environment variables.
 
-    Priority: CLI args > DEBATE_* env vars > OPENAI_* env vars > defaults
+    Priority: CLI args > config file > environment variables > defaults
 
     Returns:
         Tuple of (model, temperature, api_key, base_url)
     """
-    # Model
-    model = args.model or os.environ.get("DEBATE_MODEL") or os.environ.get("OPENAI_MODEL") or "gpt-4o-mini"
+    # Try to load config file first
+    try:
+        config = DebateConfigFile.from_yaml_or_default()
+        if config and config.llm:
+            llm_config = config.llm
+            # Use config values as defaults
+            default_model = llm_config.model
+            default_temperature = llm_config.temperature
+            default_api_key = llm_config.api_key
+            default_base_url = llm_config.get_effective_base_url() or ""
+        else:
+            default_model = "gpt-4o-mini"
+            default_temperature = 0.8
+            default_api_key = ""
+            default_base_url = ""
+    except Exception:
+        # Fallback to defaults if config loading fails
+        default_model = "gpt-4o-mini"
+        default_temperature = 0.8
+        default_api_key = ""
+        default_base_url = ""
 
-    # Temperature
+    # Model: CLI args > config > env vars > default
+    model = (args.model or
+             default_model or
+             os.environ.get("DEBATE_MODEL") or
+             os.environ.get("OPENAI_MODEL") or
+             "gpt-4o-mini")
+
+    # Temperature: CLI args > config > env vars > default
     if args.temperature is not None:
         temperature = args.temperature
     else:
         temp_env = os.environ.get("DEBATE_TEMPERATURE")
-        temperature = float(temp_env) if temp_env else 0.8
+        temperature = (float(temp_env) if temp_env else
+                      default_temperature if default_temperature else
+                      0.8)
 
-    # API Key
+    # API Key: CLI args > config > env vars > default
     api_key = (args.api_key or
+               default_api_key or
                os.environ.get("DEBATE_API_KEY") or
                os.environ.get("OPENAI_API_KEY") or
                os.environ.get("LLM_API_KEY") or "")
 
-    # Base URL
+    # Base URL: CLI args > config > env vars > default
     base_url = (args.base_url or
+                default_base_url or
                 os.environ.get("DEBATE_BASE_URL") or
                 os.environ.get("OPENAI_API_BASE") or
                 os.environ.get("API_BASE_URL") or "")
@@ -99,7 +130,8 @@ async def run_debate(
     json_output_path: Optional[str],
     temperature: float,
     api_key: Optional[str],
-    base_url: Optional[str]
+    base_url: Optional[str],
+    room_id: Optional[str] = None
 ) -> dict:
     """
     Run an AI-powered debate simulation.
@@ -158,13 +190,15 @@ async def run_debate(
         prompt_loader = None
 
     # Initialize orchestrator
-    orchestrator = SimpleDebateOrchestrator(
+    orchestrator = LLMDebateOrchestrator(
         prompt_loader=prompt_loader,
         model=model,
         temperature=temperature,
+        max_tokens=1000,
         api_key=api_key,
         base_url=base_url if base_url else None,
-        language=language or "en"
+        language=language or "en",
+        room_id=room_id or "Debate"
     )
 
     # Execute debate
@@ -220,7 +254,8 @@ async def main():
             json_output_path=args.json_output,
             temperature=temperature,
             api_key=api_key,
-            base_url=base_url
+            base_url=base_url,
+            room_id=args.room_id
         )
 
         # Output results as JSON
