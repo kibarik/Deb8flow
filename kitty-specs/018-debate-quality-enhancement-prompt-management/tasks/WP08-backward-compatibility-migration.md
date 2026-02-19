@@ -1,9 +1,13 @@
 ---
 work_package_id: WP08
 title: Backward Compatibility and Migration
-lane: planned
+lane: "doing"
 dependencies: []
+base_branch: main
+base_commit: 0f9e2870e2835886b05c648157cf30abe994f298
+created_at: '2026-02-19T07:17:40.950956+00:00'
 subtasks: [T042, T043, T044, T045, T046, T047]
+shell_pid: "79918"
 history:
 - timestamp: '2025-02-19T00:00:00Z'
   action: Created
