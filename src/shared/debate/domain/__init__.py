@@ -7,11 +7,11 @@ standard library - no external dependencies.
 """
 
 from .value_objects import RoomId, RunId, Speaker, RoomStatus
-from .entities import DebateMessage, Verdict, DebateRoom
+from .entities import DebateMessage, Verdict, DebateRoom, DebateMode
 from .services import validate_room_configuration, categorize_error
 
 __all__ = [
     "RoomId", "RunId", "Speaker", "RoomStatus",
-    "DebateMessage", "Verdict", "DebateRoom",
+    "DebateMessage", "Verdict", "DebateRoom", "DebateMode",
     "validate_room_configuration", "categorize_error"
 ]

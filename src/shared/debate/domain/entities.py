@@ -7,8 +7,36 @@ All entities use plain dataclasses with no external dependencies.
 
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any
+from enum import Enum
 import json
 from .value_objects import RoomId, Speaker, RoomStatus
+
+
+class DebateMode(str, Enum):
+    """Debate execution mode."""
+
+    STANDARD = "standard"  # Multi-turn, separate LLM calls per stage
+    SIMPLE = "simple"      # Single LLM call for entire debate
+
+    @classmethod
+    def from_string(cls, value: str) -> "DebateMode":
+        """Parse string to DebateMode, with validation."""
+        try:
+            return cls(value.lower())
+        except ValueError:
+            valid = [m.value for m in cls]
+            raise ValueError(
+                f"Invalid debate mode: {value}. "
+                f"Must be one of: {valid}"
+            )
+
+    def is_standard(self) -> bool:
+        """Check if this is standard mode."""
+        return self == DebateMode.STANDARD
+
+    def is_simple(self) -> bool:
+        """Check if this is simple mode."""
+        return self == DebateMode.SIMPLE
 
 
 @dataclass
