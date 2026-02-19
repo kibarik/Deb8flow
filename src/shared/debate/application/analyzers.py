@@ -7,7 +7,7 @@ and extract key insights, takeaways, and action items.
 
 import asyncio
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 from dataclasses import dataclass
 
 from langchain_openai import ChatOpenAI
@@ -37,14 +37,20 @@ class TakeawayAnalyzer:
     about the document's strengths and weaknesses.
     """
 
-    def __init__(self, config: Optional[TakeawayConfig] = None):
+    def __init__(
+        self,
+        config: Optional[TakeawayConfig] = None,
+        prompt_loader: Optional['PromptLoader'] = None
+    ):
         """
         Initialize the takeaway analyzer.
 
         Args:
             config: Configuration for takeaway generation
+            prompt_loader: Optional PromptLoader for loading analysis prompts
         """
         self.config = config or TakeawayConfig()
+        self.prompt_loader = prompt_loader  # Store PromptLoader
 
         # Initialize LLM
         llm_kwargs = {
@@ -168,7 +174,29 @@ class TakeawayAnalyzer:
         return "en"
 
     def _get_system_prompt(self, language: str) -> str:
-        """Get the system prompt for the analyst LLM."""
+        """
+        Get the system prompt for the analyst LLM.
+
+        Now loads from template instead of hardcoded strings.
+        """
+        if self.prompt_loader:
+            try:
+                # Try language-specific prompt first
+                prompt_id = f"analysis.system_{language}"
+                return self.prompt_loader.load(prompt_id)
+            except KeyError:
+                try:
+                    # Fall back to English
+                    return self.prompt_loader.load("analysis.system")
+                except KeyError:
+                    logger.warning(f"Analysis system prompt not found, using fallback")
+                    return self._get_fallback_system_prompt(language)
+        else:
+            # Fallback to hardcoded if no PromptLoader (backward compat)
+            return self._get_fallback_system_prompt(language)
+
+    def _get_fallback_system_prompt(self, language: str) -> str:
+        """Fallback hardcoded system prompt (for backward compatibility)."""
         if language == "ru":
             return """Вы аналитик продукта комитета. Ваша задача - проанализировать дебаты и извлечь ключевые выводы.
 
@@ -183,7 +211,7 @@ class TakeawayAnalyzer:
 - Основан на реальных аргументах из дебатов
 - Содержать actionable инсайт
 
-Формат输出: каждый пункт с новой строки, начиная с тире "- "."""
+Формат вывода: каждый пункт с новой строки, начиная с тире "- "."""
         else:
             return """You are a product committee analyst. Your task is to analyze debates and extract key takeaways.
 
@@ -208,7 +236,69 @@ Output format: each point on a new line starting with dash "- "."""
         winner: Optional[str],
         language: str
     ) -> str:
-        """Build the analysis prompt for the LLM."""
+        """
+        Build the analysis prompt for the LLM.
+
+        Now loads from template instead of hardcoded strings.
+        """
+        if self.prompt_loader:
+            # Import PromptContext here to avoid circular imports
+            from .prompt_loader import PromptContext
+
+            # Build verdict section
+            verdict_section = ""
+            if verdict_explanation:
+                verdict_section = f"\n\nJUDGE VERDICT (Winner: {winner or 'N/A'}):\n{verdict_explanation}"
+
+            # Build context with all variables
+            context = PromptContext(
+                question=question,
+                dialogue_summary=dialogue_summary,
+                verdict_explanation=verdict_section,
+                winner=winner or "",
+                min_takeaways=self.config.min_takeaways,
+                max_takeaways=self.config.max_takeaways
+            )
+
+            # Load and render template
+            try:
+                prompt_id = f"analysis.takeaway_{language}"
+                template = self.prompt_loader.load(prompt_id)
+            except KeyError:
+                try:
+                    template = self.prompt_loader.load("analysis.takeaway")
+                except KeyError:
+                    logger.warning("Analysis takeaway prompt not found, using fallback")
+                    return self._get_fallback_analysis_prompt(
+                        question, dialogue_summary, verdict_explanation,
+                        winner, language
+                    )
+
+            # Render with context using simple string formatting
+            try:
+                return template.format(**context.to_dict())
+            except KeyError as e:
+                logger.warning(f"Missing template variable: {e}, using fallback")
+                return self._get_fallback_analysis_prompt(
+                    question, dialogue_summary, verdict_explanation,
+                    winner, language
+                )
+        else:
+            # Fallback to hardcoded (backward compat)
+            return self._get_fallback_analysis_prompt(
+                question, dialogue_summary, verdict_explanation,
+                winner, language
+            )
+
+    def _get_fallback_analysis_prompt(
+        self,
+        question: str,
+        dialogue_summary: str,
+        verdict_explanation: Optional[str],
+        winner: Optional[str],
+        language: str
+    ) -> str:
+        """Fallback hardcoded analysis prompt."""
         if language == "ru":
             prompt = f"""ВОПРОС КОМИТЕТА:
 {question}
@@ -340,7 +430,8 @@ Generate takeaways now:"""
 
 async def generate_takeaways_from_dialogue_json(
     dialogue_json: Dict[str, Any],
-    config: Optional[TakeawayConfig] = None
+    config: Optional[TakeawayConfig] = None,
+    prompt_loader: Optional['PromptLoader'] = None
 ) -> List[str]:
     """
     Convenience function to generate takeaways from a dialogue JSON dict.
@@ -348,11 +439,12 @@ async def generate_takeaways_from_dialogue_json(
     Args:
         dialogue_json: The dialogue JSON (loaded from file)
         config: Optional configuration
+        prompt_loader: Optional PromptLoader for loading analysis prompts
 
     Returns:
         List of takeaway strings
     """
-    analyzer = TakeawayAnalyzer(config)
+    analyzer = TakeawayAnalyzer(config, prompt_loader)
 
     dialogue = dialogue_json.get("messages", [])
     verdict = dialogue_json.get("verdict", {})
