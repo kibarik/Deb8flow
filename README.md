@@ -63,6 +63,76 @@ poetry run python main.py conclusion \
 
 ---
 
+## Prompt Management
+
+Deb8flow uses file-based prompts for easy customization and debate quality enhancement.
+
+### Prompt Location
+
+All prompts are stored in `src/prompts/`:
+- `debate/stages/` - Individual stage prompts (opening, rebuttal, counter, final)
+- `debate/judge/` - Judge evaluation prompts
+- `debate/context/` - Context templates
+- `debate/modes/` - Mode-specific prompts (simple, standard)
+- `analysis/` - Takeaway analysis prompts
+- `roles/` - Agent role descriptions (TPM, CPO, CFO, CTO, BDM)
+
+### Editing Prompts
+
+1. Navigate to `src/prompts/`
+2. Open the relevant `.md` file
+3. Edit the prompt content
+4. Run debates - changes take effect immediately
+
+### Template Variables
+
+Prompts support variables using `{variable}` syntax:
+- `{question}` - Debate question
+- `{topic}` - PRD topic (excerpt)
+- `{prd_content}` - Full PRD content
+- `{language}` - Output language instruction
+- `{recent_context}` - Recent debate messages
+- `{pro_prompt}` - PRO agent role
+- `{con_prompt}` - CON agent role
+- `{dialogue_summary}` - Debate summary for analysis
+- `{verdict_explanation}` - Judge's verdict explanation
+- `{winner}` - Debate winner
+- `{min_takeaways}` - Minimum takeaways to generate
+- `{max_takeaways}` - Maximum takeaways to generate
+
+### Debate Modes
+
+Two debate execution modes are available:
+
+**Simple Mode** (`debate.modes.simple`):
+- Single LLM call for entire debate
+- Faster and cheaper
+- Good for quick iterations
+
+**Standard Mode** (`debate.modes.standard`):
+- 9 separate LLM calls (8 stages + judge)
+- Better quality and depth
+- Each stage builds on full conversation history
+
+Configure mode in `config/debate_config.yaml`:
+```yaml
+debate:
+  mode: "standard"  # or "simple"
+```
+
+### Migration
+
+If you have prompts in the old `config/prompts/` location:
+```bash
+python scripts/migrate_prompts.py
+```
+
+The system will automatically fall back to old locations if needed.
+
+See [PROMPTS.md](PROMPTS.md) for detailed prompt management guide.
+
+---
+
 ## Clean Architecture
 
 ```
