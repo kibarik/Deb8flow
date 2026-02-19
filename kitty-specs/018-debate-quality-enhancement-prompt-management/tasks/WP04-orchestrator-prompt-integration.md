@@ -1,14 +1,14 @@
 ---
 work_package_id: WP04
 title: Debate Orchestrator Prompt Integration
-lane: "doing"
+lane: "for_review"
 dependencies: []
 base_branch: main
 base_commit: 1f1b7c839bcfd4792d8494cb2090e7474766d9ca
 created_at: '2026-02-19T07:06:52.666981+00:00'
 subtasks: [T018, T019, T020, T021, T022, T023, T024, T025]
-shell_pid: "76313"
-agent: "claude-code"
+shell_pid: "78375"
+agent: "claude"
 history:
 - timestamp: '2025-02-19T00:00:00Z'
   action: Created
@@ -693,3 +693,4 @@ pytest tests/integration/test_debate_execution.py -v -m integration
 ## Activity Log
 
 - 2026-02-19T07:06:52Z – claude-code – shell_pid=76313 – lane=doing – Assigned agent via workflow command
+- 2026-02-19T07:13:29Z – claude – shell_pid=78375 – lane=for_review – Moved to for_review
