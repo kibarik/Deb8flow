@@ -202,6 +202,17 @@ def parse_final_report(content: str) -> Dict[str, Any]:
     if current_room:
         rooms.append(current_room)
 
+    # Extract PRD path from Metadata section at the end
+    for i, line in enumerate(lines):
+        if line.strip().startswith("- **PRD:**") or line.strip().startswith("**PRD:**"):
+            # Extract PRD path - format: "- **PRD:** /path/to/file" or "**PRD:** /path/to/file"
+            if "**PRD:**" in line:
+                prd_path = line.split("**PRD:**")[1].strip()
+                metadata["prd_path"] = prd_path
+            break
+    # Also try to load from metadata.json if it exists
+    # (this will be checked by the caller)
+
     return {
         "question": question or "Unknown question",
         "rooms": rooms,
@@ -284,6 +295,20 @@ def main():
         logger.error(f"Error reading file: {e}")
         sys.exit(1)
 
+    # Try to load metadata.json for additional context (e.g., prd_path)
+    metadata_json_path = report_path.parent / "metadata.json"
+    if metadata_json_path.exists():
+        try:
+            with open(metadata_json_path, 'r', encoding='utf-8') as f:
+                metadata_from_json = json.load(f)
+                # Store for later use - we'll merge it with parsed metadata
+                logger.debug(f"Loaded metadata from {metadata_json_path}")
+        except Exception as e:
+            logger.warning(f"Could not load metadata.json: {e}")
+            metadata_from_json = {}
+    else:
+        metadata_from_json = {}
+
     if not content.strip():
         logger.error("Error: final_report.md is empty")
         sys.exit(1)
@@ -291,6 +316,10 @@ def main():
     # Parse the report to extract data
     logger.info("Parsing final report...")
     parsed_data = parse_final_report(content)
+
+    # Merge metadata from JSON (JSON takes precedence for prd_path)
+    if metadata_from_json:
+        parsed_data["metadata"].update(metadata_from_json)
 
     if not parsed_data["rooms"]:
         logger.warning("Warning: No rooms found in report")

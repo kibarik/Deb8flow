@@ -115,11 +115,48 @@ class RunProductCommittee:
         # Mark complete and generate reports
         committee_run.mark_complete()
 
-        # Generate and save reports
-        metadata = CommitteeMetadata.from_run(committee_run, [])
+        # Collect errors from failed rooms
+        errors = self._collect_errors(committee_run)
+
+        # Generate and save reports (always includes metadata with errors)
+        metadata = CommitteeMetadata.from_run(committee_run, errors)
         await self._save_reports(committee_run, metadata, run_output_dir)
 
+        # Note: We no longer delete folders on complete failure
+        # metadata.json with error traces is kept for debugging
+
         return committee_run
+
+    async def _cleanup_failed_run(self, output_dir: Path) -> None:
+        """Remove output directory if all rooms failed."""
+        import shutil
+        try:
+            if output_dir.exists():
+                await asyncio.to_thread(shutil.rmtree, output_dir)
+                logger.info(f"Removed failed run directory: {output_dir}")
+        except Exception as e:
+            logger.error(f"Failed to remove directory {output_dir}: {e}")
+
+    def _collect_errors(self, run: CommitteeRun) -> List[Dict[str, Any]]:
+        """
+        Collect errors from failed rooms.
+
+        Args:
+            run: The committee run
+
+        Returns:
+            List of error dictionaries with room_id, error, and timestamp
+        """
+        errors = []
+        for room in run.rooms:
+            if room.status.value == "failed" and room.error:
+                errors.append({
+                    "room_id": room.room_id.value,
+                    "opponent": room.con_participant,
+                    "error": room.error,
+                    "timestamp": run.end_time or datetime.now(timezone.utc).isoformat()
+                })
+        return errors
 
     async def _read_prd_content(self, prd_path: str) -> str:
         """Read PRD document content."""
