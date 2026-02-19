@@ -10,9 +10,11 @@ from .debate_orchestrator import (
     SimpleDebateOrchestrator,
     DebateMessage
 )
+from .standard_orchestrator import StandardDebateOrchestrator
 
 __all__ = [
     "LLMDebateOrchestrator",
     "SimpleDebateOrchestrator",
+    "StandardDebateOrchestrator",
     "DebateMessage"
 ]
