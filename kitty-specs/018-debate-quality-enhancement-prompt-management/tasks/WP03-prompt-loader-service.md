@@ -8,6 +8,7 @@ base_commit: a28b939c400a6ec521988da83e38d70d86d105e3
 created_at: '2026-02-19T07:05:26.652570+00:00'
 subtasks: [T011, T012, T013, T014, T015, T016, T017]
 shell_pid: "75767"
+agent: "claude-code"
 history:
 - timestamp: '2025-02-19T00:00:00Z'
   action: Created
@@ -816,3 +817,7 @@ pytest tests/shared/debate/application/test_prompt_loader.py -v
 - Missing error scenarios
 - Incomplete PromptContext fields
 - Weak validation logic
+
+## Activity Log
+
+- 2026-02-19T07:05:26Z – claude-code – shell_pid=75767 – lane=doing – Assigned agent via workflow command
