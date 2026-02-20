@@ -52,9 +52,16 @@ prompts:
 ### Option 1: Product Committee (Recommended)
 
 ```bash
+# Basic committee run
 poetry run python main.py committee \
   --prd examples/sample_prd.txt \
   --question "Заработает ли этот проект?"
+
+# With automatic conclusion generation
+poetry run python main.py committee \
+  --prd examples/sample_prd.txt \
+  --question "Заработает ли этот проект?" \
+  --run-conclusion
 ```
 
 ### Option 2: Document Debate

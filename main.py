@@ -203,6 +203,23 @@ async def run_committee_async(args) -> int:
             logger.warning(f"{len(result.failed_rooms)} room(s) failed. Check metadata.json for details.")
             return 1
 
+        # Auto-run conclusion if requested
+        if args.run_conclusion:
+            logger.info("Running conclusion generation...")
+            run_dir = Path(args.output_dir if args.output_dir else DEFAULT_OUTPUT_DIR) / result.run_id.value
+
+            # Create a simple namespace for run_conclusion
+            import types
+            conclusion_args = types.SimpleNamespace(
+                run_dir=str(run_dir),
+                prompt=None  # No custom prompt
+            )
+
+            conclusion_exit_code = run_conclusion(conclusion_args)
+            if conclusion_exit_code != 0:
+                logger.warning("Conclusion generation failed, but committee completed successfully")
+                return conclusion_exit_code
+
         return 0
 
     except Exception as e:
@@ -264,6 +281,9 @@ Examples:
 
   # Run product committee with custom config
   %(prog)s committee --prd prd.txt --question "Should we build this?" --config my_config.yaml
+
+  # Run product committee and automatically generate conclusion
+  %(prog)s committee --prd prd.txt --question "What is the potential of this project?" --run-conclusion
 
   # Generate conclusion from existing committee results
   %(prog)s conclusion --run-dir ./committee_output/RUN_20260218_234755
@@ -327,6 +347,8 @@ Agent Configuration:
     committee_parser.add_argument("--roles-dir", default=DEFAULT_ROLES_DIR,
                                  help="Roles directory (fallback if agents not configured in config file)")
     committee_parser.add_argument("--run-id", help="Manual run identifier")
+    committee_parser.add_argument("--run-conclusion", action="store_true",
+                                 help="Automatically run conclusion generation after committee completes")
 
     # Conclusion subcommand
     conclusion_parser = subparsers.add_parser(

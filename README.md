@@ -50,6 +50,12 @@ poetry run python main.py committee \
   --prd test_prd.txt \
   --question "What is the potential of this project?"
 
+# Product Committee with automatic conclusion generation
+poetry run python main.py committee \
+  --prd test_prd.txt \
+  --question "What is the potential of this project?" \
+  --run-conclusion
+
 # Document-based Debate (for single topics)
 poetry run python main.py debate \
   --text "GitHub is useful for developers" \
@@ -192,6 +198,7 @@ python main.py committee --prd ./test_prd.txt --question "заработает �
 | `--output-dir <path>` | Output directory (default: ./committee_output) |
 | `--roles-dir <path>` | Roles directory (fallback if agents not configured) |
 | `--run-id <id>` | Manual run identifier |
+| `--run-conclusion` | Automatically run conclusion generation after committee completes |
 | `--verbose` | Verbose logging |
 | `--quiet` | Quiet mode |
 

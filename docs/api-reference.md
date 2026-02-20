@@ -365,6 +365,80 @@ python scripts/document_debate_cli.py \
 
 ---
 
+### Product Committee CLI
+
+**Command:** `main.py committee`
+
+Run multi-agent product committee with multiple debate rooms.
+
+```bash
+# Basic committee run
+python main.py committee \
+  --prd examples/sample_prd.txt \
+  --question "What is the potential of this project?"
+
+# With automatic conclusion generation
+python main.py committee \
+  --prd examples/sample_prd.txt \
+  --question "What is the potential of this project?" \
+  --run-conclusion
+
+# With custom output directory
+python main.py committee \
+  --prd examples/sample_prd.txt \
+  --question "Should we build this?" \
+  --output-dir ./my_results \
+  --run-conclusion
+```
+
+**Arguments:**
+
+| Argument | Type | Description |
+|----------|------|-------------|
+| `--prd <file>` | required | Path to PRD document (.docx or .txt) |
+| `--question <text>` | required | Committee question |
+| `--config <file>` | optional | Path to YAML config file |
+| `--model <name>` | optional | LLM model name (overrides config) |
+| `--base-url <url>` | optional | API base URL (overrides config) |
+| `--api-key <key>` | optional | API key (overrides config) |
+| `--temperature <n>` | optional | Sampling temperature (overrides config) |
+| `--language <text>` | optional | Language for output |
+| `--max-retries <n>` | optional | Max retry attempts (default: 2) |
+| `--max-concurrency <n>` | optional | Max parallel rooms 0-4 (default: 2) |
+| `--output-dir <path>` | optional | Output directory (default: ./committee_output) |
+| `--roles-dir <path>` | optional | Roles directory fallback |
+| `--run-id <id>` | optional | Manual run identifier |
+| `--run-conclusion` | flag | Automatically run conclusion after committee completes |
+| `--verbose` | flag | Enable verbose logging |
+| `--quiet` | flag | Enable quiet mode |
+
+---
+
+### Conclusion CLI
+
+**Command:** `main.py conclusion`
+
+Generate conclusion from existing committee results.
+
+```bash
+python main.py conclusion \
+  --run-dir ./committee_output/RUN_20260218_234755
+
+# With custom prompt
+python main.py conclusion \
+  --run-dir ./committee_output/RUN_20260218_234755 \
+  --prompt /path/to/custom_prompt.txt
+```
+
+**Arguments:**
+
+| Argument | Type | Description |
+|----------|------|-------------|
+| `--run-dir <path>` | required | Path to committee run directory |
+| `--prompt <file>` | optional | Path to custom prompt file |
+
+---
+
 ## Examples
 
 ### Loading a Custom Prompt

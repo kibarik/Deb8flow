@@ -34,7 +34,7 @@ llm:
   max_tokens: 1500
 
   # Request timeout in seconds
-  timeout: 90
+  timeout: 120
 
 # Debate Settings
 debate:

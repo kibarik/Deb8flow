@@ -19,7 +19,8 @@ from pathlib import Path
 from typing import Optional
 
 # Add the src directory to the path for imports
-sys.path.insert(0, str(Path(__file__).parent))
+# Need parent directory (project root) since src is at the root
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.shared.debate.infrastructure.llm.debate_orchestrator import LLMDebateOrchestrator
 from src.shared.debate.application.prompt_loader import PromptLoader
