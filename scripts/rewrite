@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+"""
+Rewrite CLI - Apply revisions with debate verification.
+
+This script applies revisions from a conclusion.md file to a source
+document and verifies completeness through AI-powered debate.
+"""
+import sys
+import asyncio
+from pathlib import Path
+
+# Add project root to path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
+from src.rewrite.adapters.cli import create_argument_parser, parse_arguments
+from src.rewrite.adapters.progress_reporter import ProgressReporter
+
+
+def main():
+    """Main entry point for rewrite CLI."""
+    parser = create_argument_parser()
+    args = parser.parse_args()
+
+    # Convert Namespace to dict
+    args_dict = vars(args)
+
+    try:
+        # Validate input
+        cli_input = parse_arguments(args_dict)
+
+        # Create reporter
+        reporter = ProgressReporter(verbose=args.verbose)
+
+        # TODO: Integrate with RunRewrite use case (WP07)
+        reporter.info("Rewrite feature - CLI entry point created")
+        reporter.info("Full workflow will be implemented in WP07")
+
+        return 0
+
+    except KeyboardInterrupt:
+        print("\nInterrupted by user")
+        return 130
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
