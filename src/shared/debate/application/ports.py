@@ -76,6 +76,14 @@ class FileStorage(Protocol):
         """Create output directory for a run."""
         ...
 
+    async def save_prd(
+        self,
+        output_dir: Path,
+        prd_path: str
+    ) -> None:
+        """Copy PRD file to output directory."""
+        ...
+
     async def save_dialogue_json(
         self,
         output_dir: Path,

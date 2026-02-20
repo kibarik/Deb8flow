@@ -185,3 +185,35 @@ class TestLocalFileStorage:
 
         assert "Отчёт" in content
         assert "проверка" in content
+
+    @pytest.mark.asyncio
+    async def test_save_prd(self, storage, tmp_path):
+        """Should copy PRD file to output directory."""
+        output_dir = tmp_path / "output"
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create a sample PRD file
+        prd_source = tmp_path / "sample_prd.txt"
+        prd_source.write_text("# Sample PRD\n\nThis is a test PRD document.", encoding="utf-8")
+
+        await storage.save_prd(output_dir, str(prd_source))
+
+        prd_dest = output_dir / "sample_prd.txt"
+        assert prd_dest.exists()
+        assert prd_dest.read_text(encoding="utf-8") == "# Sample PRD\n\nThis is a test PRD document."
+
+    @pytest.mark.asyncio
+    async def test_save_prd_with_docx(self, storage, tmp_path):
+        """Should copy .docx PRD file to output directory."""
+        output_dir = tmp_path / "output"
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create a sample .docx file (just copy a dummy file)
+        prd_source = tmp_path / "sample.docx"
+        prd_source.write_bytes(b"fake docx content")
+
+        await storage.save_prd(output_dir, str(prd_source))
+
+        prd_dest = output_dir / "sample.docx"
+        assert prd_dest.exists()
+        assert prd_dest.read_bytes() == b"fake docx content"

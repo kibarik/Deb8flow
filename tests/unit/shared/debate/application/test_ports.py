@@ -93,6 +93,9 @@ class MockFileStorage:
     async def create_run_directory(self, base_dir, run_id):
         return base_dir / run_id.value
 
+    async def save_prd(self, output_dir, prd_path):
+        pass
+
     async def save_dialogue_json(self, output_dir, room):
         pass
 
@@ -115,6 +118,8 @@ async def test_file_storage_protocol():
     assert "test" in str(path)
 
     # These should not raise errors
+    await storage.save_prd(Path("/tmp"), "test.txt")
+
     await storage.save_dialogue_json(Path("/tmp"), DebateRoom(
         room_id=RoomId("test"),
         pro_participant="TPM",

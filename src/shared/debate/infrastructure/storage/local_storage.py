@@ -32,6 +32,18 @@ class LocalFileStorage:
         await asyncio.to_thread(run_dir.mkdir, parents=True, exist_ok=True)
         return run_dir
 
+    async def save_prd(
+        self,
+        output_dir: Path,
+        prd_path: str
+    ) -> None:
+        """Copy PRD file to output directory."""
+        import shutil
+        source_path = Path(prd_path)
+        dest_path = output_dir / source_path.name
+        await asyncio.to_thread(shutil.copy2, source_path, dest_path)
+        logger.info(f"Copied PRD to: {dest_path}")
+
     async def save_dialogue_json(
         self,
         output_dir: Path,

@@ -79,6 +79,9 @@ class RunProductCommittee:
         # Create output directory
         run_output_dir = await self.storage.create_run_directory(output_dir, run_id)
 
+        # Save PRD file to run directory
+        await self.storage.save_prd(run_output_dir, prd_path)
+
         # Read PRD content
         prd_content = await self._read_prd_content(prd_path)
 
