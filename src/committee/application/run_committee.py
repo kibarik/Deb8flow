@@ -346,7 +346,13 @@ class RunProductCommittee:
         metadata: CommitteeMetadata,
         output_dir: Path
     ) -> None:
-        """Generate and save all reports."""
+        """Generate and save all reports.
+
+        Args:
+            run: The committee run
+            metadata: Run metadata with errors
+            output_dir: Directory to save reports
+        """
         # Save metadata always
         await self.storage.save_metadata(output_dir, asdict(metadata))
 
@@ -364,14 +370,15 @@ class RunProductCommittee:
             metadata=asdict(metadata)
         )
 
+        # Save final report
+        await self.storage.save_report(output_dir, "final_report.md", final_report)
+
+        # Generate conclusion
         conclusion = self.generator.generate_conclusion(
             question=run.question,
             rooms=run.rooms,
             metadata=asdict(metadata)
         )
-
-        # Save via storage
-        await self.storage.save_report(output_dir, "final_report.md", final_report)
         await self.storage.save_report(output_dir, "conclusion.md", conclusion)
 
         # Save dialogue JSONs

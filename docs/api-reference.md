@@ -377,18 +377,11 @@ python main.py committee \
   --prd examples/sample_prd.txt \
   --question "What is the potential of this project?"
 
-# With automatic conclusion generation
-python main.py committee \
-  --prd examples/sample_prd.txt \
-  --question "What is the potential of this project?" \
-  --run-conclusion
-
 # With custom output directory
 python main.py committee \
   --prd examples/sample_prd.txt \
   --question "Should we build this?" \
-  --output-dir ./my_results \
-  --run-conclusion
+  --output-dir ./my_results
 ```
 
 **Arguments:**
@@ -408,7 +401,6 @@ python main.py committee \
 | `--output-dir <path>` | optional | Output directory (default: ./committee_output) |
 | `--roles-dir <path>` | optional | Roles directory fallback |
 | `--run-id <id>` | optional | Manual run identifier |
-| `--run-conclusion` | flag | Automatically run conclusion after committee completes |
 | `--verbose` | flag | Enable verbose logging |
 | `--quiet` | flag | Enable quiet mode |
 
