@@ -28,6 +28,7 @@ pytest = "^8.3.5"
 [tool.poetry.scripts]
 product-committee = "product_committee:main"
 conclusion-results = "conclusion_results:main"
+rewrite = "scripts.rewrite:main"
 
 [build-system]
 requires = ["poetry-core"]
