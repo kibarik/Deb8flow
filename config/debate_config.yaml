@@ -132,3 +132,20 @@ logging:
 
   # Enable quiet mode (minimal output)
   quiet: false
+
+# Rewrite Configuration
+# Settings for the document rewrite script with debate verification
+rewrite:
+  # Maximum verification rounds (default: 5)
+  # Increase for more thorough verification, decrease for faster execution
+  max_rounds: 5
+
+  # Prompt paths for rewrite-specific debate
+  prompts:
+    pro: "src/prompts/rewrite/pro_verification.md"
+    con: "src/prompts/rewrite/con_verification.md"
+    judge: "src/prompts/rewrite/judge_verdict.md"
+
+  # Output settings
+  backup_suffix: ".backup"  # Suffix for backup files
+  partial_report: "rewrite_partial_report.md"  # Partial completion report filename
