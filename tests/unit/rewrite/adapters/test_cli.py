@@ -40,15 +40,15 @@ class TestRewriteCliInput:
             )
 
     def test_invalid_max_rounds(self, tmp_path):
-        """Test error when max_rounds < 1."""
+        """Test error when max_rounds < 0."""
         source = tmp_path / "test.md"
         source.write_text("# Test")
         conclusion = tmp_path / "conclusion.md"
         conclusion.write_text("## Рекомендации\n\n1. Item")
 
-        with pytest.raises(ValidationError, match="greater than or equal to 1"):
+        with pytest.raises(ValidationError, match="greater than or equal to 0"):
             RewriteCliInput(
                 file_path=source,
                 conclusion_path=conclusion,
-                max_rounds=0
+                max_rounds=-1
             )

@@ -87,8 +87,8 @@ class RewriteConfig:
 
     def __post_init__(self):
         """Validate configuration values."""
-        if self.max_rounds < 1:
-            raise ValueError("max_rounds must be at least 1")
+        if self.max_rounds < 0:
+            raise ValueError("max_rounds must be at least 0 (0 = skip verification)")
         if not self.backup_suffix or self.backup_suffix.strip() == "":
             raise ValueError("backup_suffix cannot be empty")
 

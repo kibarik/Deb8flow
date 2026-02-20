@@ -7,14 +7,28 @@ document and verifies completeness through AI-powered debate.
 """
 import sys
 import asyncio
+import logging
 from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.rewrite.adapters.cli import create_argument_parser, parse_arguments
+from src.rewrite.adapters.cli import create_argument_parser, parse_arguments, load_rewrite_config
 from src.rewrite.adapters.progress_reporter import ProgressReporter
+from src.rewrite.adapters.review_reporter import ReviewReporter
+from src.rewrite.adapters.revision_parser import ConclusionParser
+from src.rewrite.infrastructure.storage import RewriteStorage
+from src.rewrite.application.run_rewrite import RunRewrite
+from src.rewrite.adapters.ai_document_editor import AIEditConfig
+from src.shared.config import DebateConfigFile
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(message)s'
+)
+logger = logging.getLogger(__name__)
 
 
 def main():
@@ -26,23 +40,66 @@ def main():
     args_dict = vars(args)
 
     try:
+        # Load full debate configuration with explicit path
+        # This ensures .env file is loaded before parsing config
+        debate_config = DebateConfigFile.from_yaml_or_default(
+            path="config/debate_config.yaml",
+            load_env=True
+        )
+        debate_config.setup_logging()
+        logger.info(f"Loaded configuration from: config/debate_config.yaml")
+
+        # Get config dictionary
+        config_dict = debate_config.get_cli_args_dict()
+
         # Validate input
         cli_input = parse_arguments(args_dict)
 
-        # Create reporter
+        # Load rewrite configuration
+        config = load_rewrite_config(cli_input, config_path=Path("config/debate_config.yaml"))
+
+        # Create AI config from debate config
+        ai_config = AIEditConfig(
+            model=config_dict.get("model", "gpt-4o-mini"),
+            temperature=config_dict.get("temperature", 0.3),
+            max_tokens=2000,  # Fixed for rewrite
+            api_key=config_dict.get("api_key"),
+            base_url=config_dict.get("base_url")
+        )
+
+        # Create dependencies
+        parser_obj = ConclusionParser()
+        storage = RewriteStorage(config)
         reporter = ProgressReporter(verbose=args.verbose)
+        review_reporter = ReviewReporter(output_dir=Path.cwd())
 
-        # TODO: Integrate with RunRewrite use case (WP07)
-        reporter.info("Rewrite feature - CLI entry point created")
-        reporter.info("Full workflow will be implemented in WP07")
+        orchestrator = RunRewrite(
+            parser_obj, storage, reporter, config,
+            review_reporter=review_reporter,
+            use_ai=cli_input.use_ai,
+            ai_config=ai_config
+        )
 
-        return 0
+        # Execute rewrite
+        result = asyncio.run(orchestrator.execute(
+            source_path=cli_input.file_path,
+            conclusion_path=cli_input.conclusion_path,
+            output_path=cli_input.output_path,
+            max_rounds=cli_input.max_rounds,
+            skip_backup=cli_input.no_backup
+        ))
+
+        # Report result
+        reporter.report_result(result)
+
+        # Return exit code
+        return orchestrator.get_exit_code(result)
 
     except KeyboardInterrupt:
         print("\nInterrupted by user")
         return 130
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+        logger.error(f"Error: {e}")
         return 1
 
 

@@ -10,11 +10,14 @@ from .value_objects import (
     DocumentType,
     RewriteConfig
 )
+from .change_record import ChangeRecord
 
 __all__ = [
     # Entities
     "RevisionItem",
     "RewriteResult",
+    # Change tracking
+    "ChangeRecord",
     # Value objects
     "RevisionAction",
     "RewriteStatus",

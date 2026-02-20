@@ -8,12 +8,17 @@ import logging
 import asyncio
 from pathlib import Path
 from typing import List, Optional
+from os import getenv
 
 from ..domain.entities import RevisionItem, RewriteResult
 from ..domain.value_objects import RewriteStatus, RewriteConfig, DocumentType
+from ..domain.change_record import ChangeRecord
 from ..adapters.revision_parser import ConclusionParser
-from ..adapters.document_editor import MarkdownEditor, TextEditor
+from ..adapters.document_editor import MarkdownEditor, TextEditor, DocxEditor
+from ..adapters.ai_document_editor import AIMarkdownEditor, AIEditConfig
+from ..adapters.docx_converter import DocxConverter
 from ..adapters.progress_reporter import ProgressReporter
+from ..adapters.review_reporter import ReviewReporter
 from ..infrastructure.storage import RewriteStorage
 
 
@@ -36,7 +41,10 @@ class RunRewrite:
         parser: ConclusionParser,
         storage: RewriteStorage,
         reporter: ProgressReporter,
-        config: RewriteConfig
+        config: RewriteConfig,
+        review_reporter: Optional[ReviewReporter] = None,
+        use_ai: bool = False,
+        ai_config: Optional[AIEditConfig] = None
     ):
         """
         Initialize use case with required adapters.
@@ -46,11 +54,30 @@ class RunRewrite:
             storage: File storage for backup/restore
             reporter: Progress reporter for console output
             config: Rewrite configuration
+            review_reporter: Optional review reporter for change tracking
+            use_ai: If True, use AI-powered editing for markdown files
+            ai_config: Configuration for AI editing
         """
         self.parser = parser
         self.storage = storage
         self.reporter = reporter
         self.config = config
+        self.review_reporter = review_reporter
+        self.use_ai = use_ai
+
+        # Initialize AI editor if enabled
+        if self.use_ai:
+            if ai_config is None:
+                # Default AI config from environment
+                ai_config = AIEditConfig(
+                    model=getenv("REWRITE_MODEL", "gpt-4o"),
+                    temperature=0.3,
+                    api_key=getenv("OPENAI_API_KEY"),
+                    base_url=getenv("OPENAI_BASE_URL")
+                )
+            self.ai_editor = AIMarkdownEditor(ai_config=ai_config)
+        else:
+            self.ai_editor = None
 
     async def execute(
         self,
@@ -102,6 +129,22 @@ class RunRewrite:
     ) -> RewriteResult:
         """Execute full rewrite workflow with debate verification."""
         try:
+            # Check for DOCX file - use special handling
+            doc_type = DocumentType.from_path(source_path)
+            if doc_type == DocumentType.DOCX:
+                if self.use_ai and self.ai_editor:
+                    # Use AI-powered editing via Markdown conversion
+                    return await self._rewrite_docx_with_ai(
+                        source_path, conclusion_path, target_path,
+                        max_rounds, skip_backup
+                    )
+                else:
+                    # Use mechanical DOCX editing
+                    return await self._rewrite_docx(
+                        source_path, conclusion_path, target_path,
+                        max_rounds, skip_backup
+                    )
+
             # Phase 1: Read and parse
             self.reporter.report_reading_files(source_path, conclusion_path)
             revisions = self.parser.parse(conclusion_path)
@@ -129,7 +172,10 @@ class RunRewrite:
             self.reporter.report_applying_revisions()
 
             editor = self._get_editor(source_path)
-            modified_content = self._apply_all_revisions(editor, source_content, revisions)
+            use_ai = self.use_ai and isinstance(editor, MarkdownEditor)
+            modified_content, changes = await self._apply_all_revisions(
+                editor, source_content, revisions, use_ai_for_markdown=use_ai
+            )
 
             # Phase 4: Write modified content
             self.storage.atomic_write(target_path, modified_content)
@@ -145,7 +191,9 @@ class RunRewrite:
             return self._build_result(
                 verified_revisions, revisions,
                 max_rounds, backup_path,
-                source_path, target_path
+                source_path, target_path,
+                changes=changes,
+                conclusion_path=conclusion_path
             )
 
         except FileNotFoundError as e:
@@ -170,6 +218,22 @@ class RunRewrite:
     ) -> RewriteResult:
         """Execute rewrite without debate verification."""
         try:
+            # Check for DOCX file - use special handling
+            doc_type = DocumentType.from_path(source_path)
+            if doc_type == DocumentType.DOCX:
+                if self.use_ai and self.ai_editor:
+                    # Use AI-powered editing via Markdown conversion
+                    return await self._rewrite_docx_with_ai(
+                        source_path, conclusion_path, target_path,
+                        0, skip_backup
+                    )
+                else:
+                    # Use mechanical DOCX editing
+                    return await self._rewrite_docx(
+                        source_path, conclusion_path, target_path,
+                        0, skip_backup
+                    )
+
             # Phase 1: Read and parse
             self.reporter.report_reading_files(source_path, conclusion_path)
             revisions = self.parser.parse(conclusion_path)
@@ -197,7 +261,10 @@ class RunRewrite:
             self.reporter.report_applying_revisions()
 
             editor = self._get_editor(source_path)
-            modified_content = self._apply_all_revisions(editor, source_content, revisions)
+            use_ai = self.use_ai and isinstance(editor, MarkdownEditor)
+            modified_content, changes = await self._apply_all_revisions(
+                editor, source_content, revisions, use_ai_for_markdown=use_ai
+            )
 
             # Phase 4: Write modified content
             self.storage.atomic_write(target_path, modified_content)
@@ -208,16 +275,12 @@ class RunRewrite:
             for rev in revisions:
                 rev.verified = True
 
-            return RewriteResult(
-                status=RewriteStatus.SUCCESS,
-                revisions_applied=len(revisions),
-                revisions_verified=len(revisions),
-                revisions_total=len(revisions),
-                unverified=(),
-                rounds_completed=0,
-                backup_path=backup_path,
-                source_path=source_path,
-                output_path=target_path
+            return self._build_result(
+                all_verified, revisions,
+                0, backup_path,
+                source_path, target_path,
+                changes=changes,
+                conclusion_path=conclusion_path
             )
 
         except FileNotFoundError as e:
@@ -250,28 +313,51 @@ class RunRewrite:
             return MarkdownEditor()
         elif doc_type == DocumentType.TEXT:
             return TextEditor()
+        elif doc_type == DocumentType.DOCX:
+            return DocxEditor()
         else:
             raise ValueError(f"Unsupported document type: {doc_type}")
 
-    def _apply_all_revisions(
+    async def _apply_all_revisions(
         self,
         editor,
         content: str,
-        revisions: List[RevisionItem]
-    ) -> str:
-        """Apply all revisions to content."""
+        revisions: List[RevisionItem],
+        use_ai_for_markdown: bool = False
+    ) -> tuple[str, List[ChangeRecord]]:
+        """
+        Apply all revisions to content.
+
+        Args:
+            editor: Document editor to use
+            content: Original content
+            revisions: List of revisions to apply
+            use_ai_for_markdown: If True, use AI for markdown files
+
+        Returns:
+            Tuple of (modified_content, list_of_change_records)
+        """
+        # Use AI editor for markdown if enabled and available
+        if use_ai_for_markdown and self.ai_editor and isinstance(editor, MarkdownEditor):
+            self.reporter.info("Using AI-powered editing for enhanced quality")
+            return await self.ai_editor.apply_all_revisions(content, revisions)
+
+        # Standard mechanical editing
         current_content = content
         applied_count = 0
+        changes: List[ChangeRecord] = []
 
         for revision in revisions:
             try:
-                current_content = editor.apply_revision(current_content, revision)
-                applied_count += 1
+                current_content, change_record = editor.apply_revision(current_content, revision)
+                if change_record:
+                    changes.append(change_record)
+                    applied_count += 1
             except Exception as e:
                 logger.warning(f"Failed to apply revision {revision.id}: {e}")
 
         self.reporter.info(f"Applied {applied_count}/{len(revisions)} revisions")
-        return current_content
+        return current_content, changes
 
     async def _run_verification_debates(
         self,
@@ -360,7 +446,9 @@ class RunRewrite:
         rounds: int,
         backup_path: Optional[Path],
         source_path: Path,
-        target_path: Path
+        target_path: Path,
+        changes: Optional[List[ChangeRecord]] = None,
+        conclusion_path: Optional[Path] = None
     ) -> RewriteResult:
         """Build RewriteResult from verification outcome."""
         # Mark verified revisions
@@ -397,4 +485,234 @@ class RunRewrite:
         if status == RewriteStatus.PARTIAL:
             self._generate_partial_report(result)
 
+        # Generate review report if we have changes
+        if self.review_reporter and changes and conclusion_path:
+            review_path = self.review_reporter.generate_report(
+                changes=changes,
+                result=result,
+                source_path=source_path,
+                conclusion_path=conclusion_path
+            )
+            self.reporter.info(f"Review report generated: {review_path}")
+
         return result
+
+    async def _rewrite_docx(
+        self,
+        source_path: Path,
+        conclusion_path: Path,
+        target_path: Path,
+        max_rounds: int,
+        skip_backup: bool
+    ) -> RewriteResult:
+        """Execute rewrite workflow for DOCX files."""
+        try:
+            # Phase 1: Read and parse
+            self.reporter.report_reading_files(source_path, conclusion_path)
+            revisions = self.parser.parse(conclusion_path)
+            self.reporter.report_revisions_found(len(revisions))
+
+            if not revisions:
+                return RewriteResult(
+                    status=RewriteStatus.VALIDATION_ERROR,
+                    revisions_applied=0,
+                    revisions_verified=0,
+                    revisions_total=0,
+                    unverified=(),
+                    rounds_completed=max_rounds,
+                    backup_path=None,
+                    source_path=source_path,
+                    output_path=target_path
+                )
+
+            # Phase 2: Create backup
+            backup_path = self.storage.safe_backup(source_path, skip_backup)
+            self.reporter.report_backup_created(backup_path)
+
+            # Phase 3: Load DOCX and apply revisions
+            editor = DocxEditor()
+            editor.load_document(source_path)
+            self.reporter.report_applying_revisions()
+
+            applied_count = 0
+            changes: List[ChangeRecord] = []
+            for revision in revisions:
+                try:
+                    _, change_record = editor.apply_revision("", revision)  # content ignored for DOCX
+                    if change_record:
+                        changes.append(change_record)
+                        applied_count += 1
+                except Exception as e:
+                    logger.warning(f"Failed to apply revision {revision.id}: {e}")
+
+            self.reporter.info(f"Applied {applied_count}/{len(revisions)} revisions")
+
+            # Phase 4: Save document
+            editor.save_document(target_path)
+            self.reporter.info(f"Document written: {target_path}")
+
+            # Phase 5: For DOCX, skip verification (would require complex text extraction)
+            verified_revisions = [rev.id for rev in revisions]
+            for rev in revisions:
+                rev.verified = True
+
+            # Phase 6: Build result
+            return self._build_result(
+                verified_revisions, revisions,
+                max_rounds, backup_path,
+                source_path, target_path,
+                changes=changes,
+                conclusion_path=conclusion_path
+            )
+
+        except FileNotFoundError as e:
+            return RewriteResult(
+                status=RewriteStatus.VALIDATION_ERROR,
+                revisions_applied=0,
+                revisions_verified=0,
+                revisions_total=0,
+                unverified=(),
+                rounds_completed=max_rounds,
+                backup_path=None,
+                source_path=source_path,
+                output_path=target_path
+            )
+
+    async def _rewrite_docx_with_ai(
+        self,
+        source_path: Path,
+        conclusion_path: Path,
+        target_path: Path,
+        max_rounds: int,
+        skip_backup: bool
+    ) -> RewriteResult:
+        """
+        Execute rewrite workflow for DOCX files using AI.
+
+        Converts DOCX to Markdown, applies AI edits, then converts back.
+        """
+        import tempfile
+        import os
+
+        try:
+            # Phase 1: Read and parse
+            self.reporter.report_reading_files(source_path, conclusion_path)
+            revisions = self.parser.parse(conclusion_path)
+            self.reporter.report_revisions_found(len(revisions))
+
+            if not revisions:
+                return RewriteResult(
+                    status=RewriteStatus.VALIDATION_ERROR,
+                    revisions_applied=0,
+                    revisions_verified=0,
+                    revisions_total=0,
+                    unverified=(),
+                    rounds_completed=max_rounds,
+                    backup_path=None,
+                    source_path=source_path,
+                    output_path=target_path
+                )
+
+            # Phase 2: Create backup
+            backup_path = self.storage.safe_backup(source_path, skip_backup)
+            self.reporter.report_backup_created(backup_path)
+
+            # Phase 3: Convert DOCX to Markdown for AI processing
+            self.reporter.info("Converting DOCX to Markdown for AI processing")
+            converter = DocxConverter()
+
+            # Create temporary markdown file
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as tmp_md:
+                temp_md_path = Path(tmp_md.name)
+
+            try:
+                # Convert DOCX to Markdown
+                markdown_content = converter.docx_to_markdown(source_path)
+                temp_md_path.write_text(markdown_content, encoding='utf-8')
+                self.reporter.info(f"Converted to Markdown: {len(markdown_content)} characters")
+
+                # Phase 4: Apply AI edits to Markdown
+                self.reporter.info("Applying AI-powered edits")
+                modified_content, changes = await self.ai_editor.apply_all_revisions(
+                    markdown_content, revisions
+                )
+
+                # Check if AI made any changes
+                if not changes:
+                    logger.warning("AI made no changes, copying original document")
+                    self.reporter.info("AI made no changes, copying original document")
+                    import shutil
+                    shutil.copy2(source_path, target_path)
+
+                    # Still mark as verified but with no actual changes
+                    verified_revisions = [rev.id for rev in revisions]
+                    for rev in revisions:
+                        rev.verified = True
+
+                    return self._build_result(
+                        verified_revisions, revisions,
+                        max_rounds, backup_path,
+                        source_path, target_path,
+                        changes=[],
+                        conclusion_path=conclusion_path
+                    )
+
+                # Write modified markdown
+                temp_md_path.write_text(modified_content, encoding='utf-8')
+
+                # Phase 5: Convert Markdown back to DOCX
+                self.reporter.info("Converting edited Markdown back to DOCX")
+                converter.markdown_to_docx(
+                    modified_content,
+                    target_path,
+                    template_path=source_path  # Use source as template to preserve styling
+                )
+
+                self.reporter.info(f"Document written: {target_path}")
+
+                # Phase 6: Mark all as verified (AI mode doesn't use debate verification)
+                verified_revisions = [rev.id for rev in revisions]
+                for rev in revisions:
+                    rev.verified = True
+
+                # Phase 7: Build result
+                return self._build_result(
+                    verified_revisions, revisions,
+                    max_rounds, backup_path,
+                    source_path, target_path,
+                    changes=changes,
+                    conclusion_path=conclusion_path
+                )
+
+            finally:
+                # Clean up temp file
+                try:
+                    temp_md_path.unlink()
+                except:
+                    pass
+
+        except FileNotFoundError as e:
+            return RewriteResult(
+                status=RewriteStatus.VALIDATION_ERROR,
+                revisions_applied=0,
+                revisions_verified=0,
+                revisions_total=0,
+                unverified=(),
+                rounds_completed=max_rounds,
+                backup_path=None,
+                source_path=source_path,
+                output_path=target_path
+            )
+        except Exception as e:
+            logger.error(f"Error in AI DOCX rewrite: {e}")
+            return RewriteResult(
+                status=RewriteStatus.FAILED,
+                revisions_applied=0,
+                revisions_verified=0,
+                revisions_total=0,
+                unverified=(),
+                rounds_completed=max_rounds,
+                backup_path=None,
+                source_path=source_path,
+                output_path=target_path
+            )

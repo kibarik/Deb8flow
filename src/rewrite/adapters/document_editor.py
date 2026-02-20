@@ -1,16 +1,20 @@
 """
 Document editor for applying revisions to source documents.
 
-Supports markdown (section-based) and text (keyword-based) editing.
+Supports markdown (section-based), text (keyword-based), and DOCX editing.
 """
 import re
 import logging
 from pathlib import Path
 from typing import List, Optional, Tuple
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from docx import Document
+from docx.shared import Pt
 
 from ..domain.entities import RevisionItem
 from ..domain.value_objects import DocumentType, RevisionAction
+from ..domain.change_record import ChangeRecord
 
 
 logger = logging.getLogger(__name__)
@@ -20,8 +24,18 @@ class BaseEditor(ABC):
     """Abstract base for document editors."""
 
     @abstractmethod
-    def apply_revision(self, content: str, revision: RevisionItem) -> str:
-        """Apply a single revision to document content."""
+    def apply_revision(
+        self,
+        content: str,
+        revision: RevisionItem
+    ) -> tuple[str, Optional[ChangeRecord]]:
+        """
+        Apply a single revision to document content.
+
+        Returns:
+            Tuple of (new_content, change_record)
+            change_record is None if revision was not applied
+        """
         pass
 
     @abstractmethod
@@ -206,7 +220,11 @@ class MarkdownEditor(BaseEditor):
         new_section = '\n'.join(lines)
         return content[:start] + new_section + content[end:]
 
-    def apply_revision(self, content: str, revision: RevisionItem) -> str:
+    def apply_revision(
+        self,
+        content: str,
+        revision: RevisionItem
+    ) -> tuple[str, Optional[ChangeRecord]]:
         """
         Apply revision to markdown content with validation.
 
@@ -215,12 +233,12 @@ class MarkdownEditor(BaseEditor):
             revision: Revision to apply
 
         Returns:
-            Modified content
-
-        Raises:
-            ValueError: If revision cannot be applied
+            Tuple of (modified_content, change_record)
+            change_record is None if revision could not be applied
         """
         try:
+            before_content = content
+
             if revision.action == RevisionAction.DELETE:
                 new_content = self._delete_content(content, revision)
             elif revision.action == RevisionAction.INSERT:
@@ -230,18 +248,57 @@ class MarkdownEditor(BaseEditor):
                 new_content = self._update_content(content, revision, self.find_target_location(content, revision))
             else:
                 logger.warning(f"Unknown action {revision.action}, skipping")
-                return content
+                return content, None
 
             # Validate result is not empty
             if not new_content or not new_content.strip():
                 logger.warning(f"Revision {revision.id} resulted in empty content, skipping")
-                return content
+                return content, None
 
-            return new_content
+            # Extract the actual change for review
+            before_text = self._extract_changed_text(before_content, new_content, revision, is_before=True)
+            after_text = self._extract_changed_text(before_content, new_content, revision, is_before=False)
+
+            change_record = ChangeRecord(
+                revision_id=revision.id,
+                section=revision.section,
+                action=revision.action.value,
+                before=before_text,
+                after=after_text,
+                line_number=None  # Could be enhanced to track line numbers
+            )
+
+            return new_content, change_record
 
         except Exception as e:
             logger.error(f"Failed to apply revision {revision.id}: {e}")
-            return content  # Return original on error
+            return content, None  # Return original on error
+
+    def _extract_changed_text(
+        self,
+        before_content: str,
+        after_content: str,
+        revision: RevisionItem,
+        is_before: bool
+    ) -> str:
+        """
+        Extract the relevant changed text for review.
+
+        For INSERT: returns the inserted content (after)
+        For DELETE: returns the deleted content (before)
+        For UPDATE: returns context showing the change
+        """
+        if revision.action == RevisionAction.INSERT:
+            return revision.content if is_before else ""  # Empty before, full content after
+        elif revision.action == RevisionAction.DELETE:
+            return revision.content if not is_before else ""  # Full content before, empty after
+        else:  # UPDATE
+            # Try to find and show the relevant section
+            section = self.find_section(before_content, revision.section)
+            if section:
+                start, end = section
+                return before_content[start:end] if is_before else after_content[start:end]
+            return revision.content
 
 
 class TextEditor(BaseEditor):
@@ -279,32 +336,209 @@ class TextEditor(BaseEditor):
         # Fallback: append to end
         return len(content)
 
-    def apply_revision(self, content: str, revision: RevisionItem) -> str:
+    def apply_revision(
+        self,
+        content: str,
+        revision: RevisionItem
+    ) -> tuple[str, Optional[ChangeRecord]]:
         """Apply revision to text content."""
         pos = self.find_target_location(content, revision)
+        before_content = content
+        new_content = content
+        before_text = ""
+        after_text = ""
 
         if revision.action == RevisionAction.DELETE:
             # Find and remove line containing keyword
             lines = content.split('\n')
             for i, line in enumerate(lines):
                 if revision.section.lower() in line.lower():
+                    before_text = line
                     lines.pop(i)
                     break
-            return '\n'.join(lines)
+            new_content = '\n'.join(lines)
+            after_text = ""
 
         elif revision.action == RevisionAction.INSERT:
-            return content[:pos] + revision.content + '\n' + content[pos:]
+            before_text = ""
+            after_text = revision.content
+            new_content = content[:pos] + revision.content + '\n' + content[pos:]
 
         elif revision.action == RevisionAction.UPDATE:
             # Find line with keyword and replace
             lines = content.split('\n')
             for i, line in enumerate(lines):
                 if revision.section.lower() in line.lower():
+                    before_text = line
                     lines[i] = revision.content
+                    after_text = revision.content
                     break
-            return '\n'.join(lines)
+            new_content = '\n'.join(lines)
 
-        return content
+        change_record = ChangeRecord(
+            revision_id=revision.id,
+            section=revision.section,
+            action=revision.action.value,
+            before=before_text,
+            after=after_text
+        )
+
+        return new_content, change_record
+
+
+class DocxEditor(BaseEditor):
+    """
+    Editor for Word .docx files with paragraph-based editing.
+
+    Uses python-docx library to read and modify Word documents.
+    """
+
+    def __init__(self):
+        """Initialize DOCX editor."""
+        self.doc = None
+        self.file_path = None
+
+    def load_document(self, file_path: Path) -> None:
+        """Load DOCX document from file."""
+        self.file_path = file_path
+        self.doc = Document(str(file_path))
+
+    def save_document(self, file_path: Path) -> None:
+        """Save DOCX document to file."""
+        self.doc.save(str(file_path))
+
+    def get_text_content(self) -> str:
+        """Extract all text content from document."""
+        text_parts = []
+        for para in self.doc.paragraphs:
+            if para.text.strip():
+                text_parts.append(para.text)
+        return '\n'.join(text_parts)
+
+    def find_target_paragraph(self, revision: RevisionItem) -> Optional[int]:
+        """
+        Find the paragraph index that best matches the revision section.
+
+        Args:
+            revision: Revision with section reference
+
+        Returns:
+            Paragraph index or None if no match found
+        """
+        if not self.doc:
+            return None
+
+        keywords = [revision.section]
+        if revision.context:
+            keywords.append(revision.context)
+
+        # Search for best matching paragraph
+        best_idx = None
+        best_score = 0.0
+
+        for i, para in enumerate(self.doc.paragraphs):
+            text = para.text.lower()
+            for keyword in keywords:
+                keyword_lower = keyword.lower()
+                if keyword_lower in text:
+                    # Calculate score based on position of match
+                    score = 1.0
+                    if text.startswith(keyword_lower):
+                        score = 1.0
+                    elif keyword_lower in text:
+                        score = 0.7
+
+                    if score > best_score:
+                        best_score = score
+                        best_idx = i
+
+        return best_idx
+
+    def find_target_location(self, content: str, revision: RevisionItem) -> int:
+        """Find character position (not used for DOCX)."""
+        return 0
+
+    def apply_revision(
+        self,
+        content: str,
+        revision: RevisionItem
+    ) -> tuple[str, Optional[ChangeRecord]]:
+        """
+        Apply revision to DOCX document.
+
+        Note: For DOCX, this modifies the document object directly.
+        The content parameter is ignored.
+
+        Args:
+            content: Ignored for DOCX (uses document object)
+            revision: Revision to apply
+
+        Returns:
+            Tuple of (original_content, change_record)
+            DOCX modifications are in-place on the document object
+        """
+        if not self.doc:
+            logger.error("Document not loaded")
+            return content, None
+
+        target_idx = self.find_target_paragraph(revision)
+
+        # Get before/after text for change record
+        before_text = ""
+        after_text = ""
+
+        if target_idx is not None and target_idx < len(self.doc.paragraphs):
+            before_text = self.doc.paragraphs[target_idx].text
+
+        if revision.action == RevisionAction.INSERT:
+            self._insert_paragraph(revision, target_idx)
+            after_text = revision.content
+
+        elif revision.action == RevisionAction.UPDATE:
+            self._update_paragraph(revision, target_idx)
+            after_text = revision.content
+
+        elif revision.action == RevisionAction.DELETE:
+            self._delete_paragraph(revision, target_idx)
+            after_text = ""  # Empty after delete
+
+        change_record = ChangeRecord(
+            revision_id=revision.id,
+            section=revision.section,
+            action=revision.action.value,
+            before=before_text,
+            after=after_text
+        )
+
+        return content, change_record
+
+    def _insert_paragraph(self, revision: RevisionItem, target_idx: Optional[int]) -> None:
+        """Insert a new paragraph with revision content."""
+        new_para = self.doc.add_paragraph(revision.content)
+
+        if target_idx is not None and target_idx + 1 < len(self.doc.paragraphs):
+            # Move new paragraph to after target
+            target_para = self.doc.paragraphs[target_idx + 1]
+            target_para._element.addprevious(new_para._element)
+
+    def _update_paragraph(self, revision: RevisionItem, target_idx: Optional[int]) -> None:
+        """Update paragraph with revision content."""
+        if target_idx is not None:
+            para = self.doc.paragraphs[target_idx]
+            para.text = revision.content
+        else:
+            # Add new paragraph if no match found
+            self.doc.add_paragraph(revision.content)
+
+    def _delete_paragraph(self, revision: RevisionItem, target_idx: Optional[int]) -> None:
+        """Delete paragraph that matches revision content."""
+        if target_idx is not None:
+            # Remove paragraph by clearing its content
+            para = self.doc.paragraphs[target_idx]
+            p = para._element
+            p.getparent().remove(p)
+        else:
+            logger.warning(f"Could not find target paragraph for deletion: {revision.content}")
 
 
 def create_editor(doc_type: DocumentType) -> BaseEditor:
@@ -324,5 +558,7 @@ def create_editor(doc_type: DocumentType) -> BaseEditor:
         return MarkdownEditor()
     elif doc_type == DocumentType.TEXT:
         return TextEditor()
+    elif doc_type == DocumentType.DOCX:
+        return DocxEditor()
     else:
         raise ValueError(f"Unsupported document type: {doc_type}")

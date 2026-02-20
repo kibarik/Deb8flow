@@ -31,13 +31,15 @@ class RewriteCliInput(BaseModel):
         output_path: Optional output file path (default: overwrite input)
         no_backup: Skip backup creation flag
         verbose: Enable verbose output flag
+        use_ai: Use AI-powered editing for enhanced quality
     """
     file_path: Path = Field(..., description="Path to source document")
     conclusion_path: Path = Field(..., description="Path to conclusion.md")
-    max_rounds: Optional[int] = Field(None, ge=1, description="Max debate rounds")
+    max_rounds: Optional[int] = Field(None, ge=0, description="Max debate rounds (0 = skip verification)")
     output_path: Optional[Path] = Field(None, description="Output file path")
     no_backup: bool = Field(False, description="Skip backup creation")
     verbose: bool = Field(False, description="Enable verbose output")
+    use_ai: bool = Field(True, description="Use AI-powered editing for markdown files")
 
     @field_validator("file_path", "conclusion_path")
     @classmethod
@@ -47,6 +49,50 @@ class RewriteCliInput(BaseModel):
             raise ValueError(f"File not found: {v}")
         if not v.is_file():
             raise ValueError(f"Path is not a file: {v}")
+        return v
+
+    @field_validator("conclusion_path")
+    @classmethod
+    def validate_conclusion_has_recommendations(cls, v: Path) -> Path:
+        """Validate that conclusion.md contains recommendations."""
+        import re
+
+        content = v.read_text(encoding="utf-8", errors="ignore")
+
+        # Check for Recommendations section
+        if "## Рекомендации" not in content:
+            raise ValueError(
+                f"conclusion.md does not contain a '## Рекомендации' section.\n"
+                f"Please run the committee first to generate recommendations:\n"
+                f"  python3 scripts/product_committee --file <document> --question \"<question>\"\n"
+                f"Or generate conclusion from existing dialogues:\n"
+                f"  python3 scripts/conclusion_results --dir <committee_run_dir>"
+            )
+
+        # Check for actual numbered recommendations (not just "Нет доступных рекомендаций")
+        recommendations_section = re.search(r'## Рекомендации\s*(.*?)(?:\n##|\Z)', content, re.DOTALL)
+        if recommendations_section:
+            section_text = recommendations_section.group(1)
+            # Check for numbered items (1. 2. 3. etc.)
+            has_numbered = bool(re.search(r'^\d+\.', section_text, re.MULTILINE))
+            # Check if it says "нет рекомендаций" or similar
+            has_no_rec = any(phrase in section_text.lower() for phrase in [
+                "нет доступных рекомендаций",
+                "нет рекомендаций",
+                "no recommendations",
+                "no available"
+            ])
+
+            if has_no_rec and not has_numbered:
+                raise ValueError(
+                    f"conclusion.md contains no recommendations (\"нет доступных рекомендаций\").\n"
+                    f"The committee did not produce any actionable revisions.\n"
+                    f"\n"
+                    f"Please run the committee again to generate recommendations:\n"
+                    f"  python3 scripts/product_committee --file <document> --question \"<question>\"\n"
+                    f"Or use a conclusion from a different committee run that has recommendations."
+                )
+
         return v
 
     @field_validator("file_path")
@@ -83,11 +129,11 @@ def create_argument_parser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(
         prog="rewrite",
-        description="Apply revisions from conclusion.md to source document with debate verification",
+        description="Apply revisions from conclusion.md to source document with AI-powered editing",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Basic rewrite
+  # Basic rewrite (AI-powered by default)
   %(prog)s --file prd.md --conclusion committee_output/RUN_123/conclusion.md
 
   # Custom round limit
@@ -98,6 +144,9 @@ Examples:
 
   # Skip backup
   %(prog)s --file prd.md --conclusion ... --no-backup
+
+  # Disable AI (mechanical text replacement only)
+  %(prog)s --file prd.md --conclusion ... --no-ai
         """
     )
 
@@ -149,6 +198,22 @@ Examples:
         help="Enable verbose output"
     )
 
+    parser.add_argument(
+        "--ai",
+        dest="ai",
+        action="store_true",
+        help="Use AI-powered editing for enhanced quality (default: enabled)"
+    )
+
+    parser.add_argument(
+        "--no-ai",
+        dest="ai",
+        action="store_false",
+        help="Disable AI-powered editing (use mechanical text replacement)"
+    )
+
+    parser.set_defaults(ai=True)
+
     return parser
 
 
@@ -165,8 +230,19 @@ def parse_arguments(args: dict) -> RewriteCliInput:
     Raises:
         ValueError: If validation fails
     """
+    # Map argparse argument names to Pydantic field names
+    mapped_args = {
+        "file_path": args.get("file"),
+        "conclusion_path": args.get("conclusion"),
+        "max_rounds": args.get("max_rounds"),
+        "output_path": args.get("output"),
+        "no_backup": args.get("no_backup", False),
+        "verbose": args.get("verbose", False),
+        "use_ai": args.get("ai", True)
+    }
+
     try:
-        return RewriteCliInput(**args)
+        return RewriteCliInput(**mapped_args)
     except Exception as e:
         logger.error(f"CLI validation failed: {e}")
         raise
