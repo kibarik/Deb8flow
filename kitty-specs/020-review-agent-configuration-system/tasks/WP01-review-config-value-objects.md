@@ -1,14 +1,18 @@
 ---
-work_package_id: "WP01"
-title: "Review Config Value Objects"
-lane: "planned"
+work_package_id: WP01
+title: Review Config Value Objects
+lane: "doing"
 dependencies: []
-subtasks: ["T001", "T002", "T003", "T004", "T005", "T006", "T007", "T008"]
+base_branch: main
+base_commit: 63396379c2cf6a54188f3252c15d3fee32db3f19
+created_at: '2026-02-21T10:59:29.536139+00:00'
+subtasks: [T001, T002, T003, T004, T005, T006, T007, T008]
+shell_pid: "78439"
 history:
-  - version: "1.0.0"
-    date: "2025-02-21"
-    author: "spec-kitty.tasks"
-    changes: ["Initial work package definition"]
+- version: 1.0.0
+  date: '2025-02-21'
+  author: spec-kitty.tasks
+  changes: [Initial work package definition]
 ---
 
 # WP01: Review Config Value Objects
