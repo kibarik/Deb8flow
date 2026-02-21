@@ -1,10 +1,14 @@
 ---
 work_package_id: WP11
 title: Integration Testing & Fixtures
-lane: planned
-dependencies: ["WP01", "WP02", "WP03", "WP04", "WP05", "WP06", "WP07", "WP08", "WP09", "WP10"]
+lane: "doing"
+dependencies: [WP01, WP02, WP03, WP04, WP05, WP06, WP07, WP08, WP09, WP10]
+base_branch: 021-docker-orchestrator-automated-document-rewrite-spec-kitty-WP01
+base_commit: efea11972a13c65db4a9d9082e60ae9e967d2558
+created_at: '2026-02-21T22:31:12.881646+00:00'
 subtasks: [T063, T064, T065, T066, T067]
 phase: Phase 4 - Quality
+shell_pid: "55426"
 history:
 - timestamp: '2026-02-21T19:45:00Z'
   lane: planned
