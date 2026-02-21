@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: Domain Models & State Machine
-lane: "doing"
+lane: "for_review"
 dependencies: [WP01]
 base_branch: 021-docker-orchestrator-automated-document-rewrite-spec-kitty-WP01
 base_commit: efea11972a13c65db4a9d9082e60ae9e967d2558
@@ -292,3 +292,4 @@ Implement core domain entities and workflow state machine with thread-safe trans
 
 - 2026-02-21T19:45:00Z – system – lane=planned – Prompt created.
 - 2026-02-21T22:19:52Z – claude-opus – shell_pid=50813 – lane=doing – Assigned agent via workflow command
+- 2026-02-21T22:22:18Z – claude-opus – shell_pid=50813 – lane=for_review – Ready for review: Domain Models & State Machine complete with 24 passing tests
