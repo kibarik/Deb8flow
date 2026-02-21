@@ -1,7 +1,7 @@
 ---
 work_package_id: WP08
 title: File Operations & Output Management
-lane: "doing"
+lane: "for_review"
 dependencies: [WP01]
 base_branch: 021-docker-orchestrator-automated-document-rewrite-spec-kitty-WP01
 base_commit: efea11972a13c65db4a9d9082e60ae9e967d2558
@@ -66,3 +66,4 @@ Implement file reading, output generation, and preservation of originals.
 
 ## Activity Log
 - 2026-02-21T19:45:00Z – system – lane=planned – Prompt created.
+- 2026-02-21T22:28:49Z – unknown – shell_pid=52262 – lane=for_review – Ready for review: File Operations & Output Management complete with 17 passing tests
