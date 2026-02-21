@@ -118,10 +118,10 @@ This document contains all work packages for implementing the Review Agent Confi
 **Summary**: Create config loader with YAML parsing, environment variable expansion, and validation.
 
 **Included Subtasks**:
-- [ ] T014: Create config_loader.py with load_config(path: Path) function
-- [ ] T015: Add environment variable expansion (${VAR:default} syntax)
-- [ ] T016: Implement configuration validation with clear error messages
-- [ ] T017: Add error handling for missing files, invalid YAML, validation failures
+- [x] T014: Create config_loader.py with load_config(path: Path) function
+- [x] T015: Add environment variable expansion (${VAR:default} syntax)
+- [x] T016: Implement configuration validation with clear error messages
+- [x] T017: Add error handling for missing files, invalid YAML, validation failures
 
 **Implementation Sketch**:
 1. Create `src/rewrite/infrastructure/config_loader.py`
