@@ -8,6 +8,7 @@ base_commit: add8e148c801af6906614dcb1459157db211fdd3
 created_at: '2026-02-21T11:18:34.637788+00:00'
 subtasks: [T032, T033, T034, T035, T036]
 shell_pid: "81109"
+agent: "claude"
 history:
 - version: 1.0.0
   date: '2025-02-21'
@@ -616,3 +617,7 @@ If `MODEL` is not set, uses `gpt-4o-mini` as fallback.
 
 - **Low Risk**: Documentation task
 - **Mitigation**: Reference spec for complete option list
+
+## Activity Log
+
+- 2026-02-21T11:18:34Z – claude – shell_pid=81109 – lane=doing – Assigned agent via workflow command
