@@ -193,11 +193,13 @@ class CliDebateExecutor:
                 return result
             # SUCCESS: Valid complete result
             elif result.status == RoomStatus.SUCCESS:
-                logger.info(f"Debate TPM vs {opponent} completed successfully")
+                winner = result.verdict.winner.value if result.verdict else "UNKNOWN"
+                print(f"  [{room_id.value}] Completed - WINNER: {winner} - Stages: 9/9", file=sys.stderr, flush=True)
                 return result
             # Has verdict but status might be different - still valid
             elif result.verdict is not None:
-                logger.info(f"Debate TPM vs {opponent} completed with verdict")
+                winner = result.verdict.winner.value if result.verdict else "UNKNOWN"
+                print(f"  [{room_id.value}] Completed - WINNER: {winner} - Stages: 9/9", file=sys.stderr, flush=True)
                 return result
             else:
                 # Execution returned but no verdict - treat as failure
@@ -262,6 +264,11 @@ class CliDebateExecutor:
             cmd.extend(["--language", language])
         if json_output_path:
             cmd.extend(["--json-output", str(json_output_path)])
+
+        # Add fallback models if configured
+        if self.llm_config and self.llm_config.fallback_models:
+            fallback_models_str = ",".join(self.llm_config.fallback_models)
+            cmd.extend(["--fallback-models", fallback_models_str])
 
         # Run subprocess with stderr going directly to console for real-time progress
         # For 429 detection, we'll check the JSON file or return code
@@ -416,7 +423,7 @@ class CliDebateExecutor:
                         explanation = msg.content
                         break
                 verdict = Verdict(winner=winner, explanation=explanation)
-                logger.info(f"Completed room: TPM vs {opponent} - WINNER: {winner.value} (from JSON)")
+                logger.debug(f"Completed room: TPM vs {opponent} - WINNER: {winner.value} (from JSON)")
             except Exception as e:
                 logger.warning(f"Failed to parse winner from JSON: {e}, falling back to extraction")
 

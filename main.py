@@ -18,8 +18,16 @@ import asyncio
 import logging
 import os
 import sys
+import warnings
 from pathlib import Path
 from dotenv import load_dotenv
+
+# Suppress Pydantic warnings for Python 3.14
+warnings.filterwarnings("ignore", message="Core Pydantic V1 functionality isn't compatible with Python 3.14")
+
+# Suppress httpx and httpcore INFO logs globally
+logging.getLogger('httpx').setLevel(logging.WARNING)
+logging.getLogger('httpcore').setLevel(logging.WARNING)
 
 # Load environment variables from .env file
 load_dotenv()

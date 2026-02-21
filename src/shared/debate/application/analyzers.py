@@ -16,6 +16,10 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 logger = logging.getLogger(__name__)
 
+# Suppress httpx and httpcore INFO logs for takeaway generation
+logging.getLogger('httpx').setLevel(logging.WARNING)
+logging.getLogger('httpcore').setLevel(logging.WARNING)
+
 
 @dataclass
 class TakeawayConfig:
@@ -122,7 +126,7 @@ class TakeawayAnalyzer:
             if len(takeaways) > self.config.max_takeaways:
                 takeaways = takeaways[:self.config.max_takeaways]
 
-            logger.info(f"Generated {len(takeaways)} takeaways")
+            logger.debug(f"Generated {len(takeaways)} takeaways")
             return takeaways
 
         except Exception as e:
