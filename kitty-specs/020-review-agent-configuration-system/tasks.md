@@ -38,14 +38,14 @@ This document contains all work packages for implementing the Review Agent Confi
 **Summary**: Create all dataclass value objects for review configuration following the existing `RewriteConfig` pattern.
 
 **Included Subtasks**:
-- [ ] T001: Create LLMConfig dataclass with validation (provider, model, temperature, top_p, max_tokens, timeout)
-- [ ] T002: Create PromptConfig dataclass (system_prompt, user_prompt, result_template, variables)
-- [ ] T003: Create RetryConfig dataclass with validation (max_retries, backoff, initial_delay)
-- [ ] T004: Create CheckConfig dataclass (security, performance, style flags)
-- [ ] T005: Create OutputConfig dataclass with validation (format, include_snippets, max_comment_length)
-- [ ] T006: Create ContextConfig dataclass (window_size, include_patterns, exclude_patterns)
-- [ ] T007: Create LoggingConfig dataclass with validation (level, debug)
-- [ ] T008: Create ReviewConfig root dataclass with from_dict() classmethod
+- [x] T001: Create LLMConfig dataclass with validation (provider, model, temperature, top_p, max_tokens, timeout)
+- [x] T002: Create PromptConfig dataclass (system_prompt, user_prompt, result_template, variables)
+- [x] T003: Create RetryConfig dataclass with validation (max_retries, backoff, initial_delay)
+- [x] T004: Create CheckConfig dataclass (security, performance, style flags)
+- [x] T005: Create OutputConfig dataclass with validation (format, include_snippets, max_comment_length)
+- [x] T006: Create ContextConfig dataclass (window_size, include_patterns, exclude_patterns)
+- [x] T007: Create LoggingConfig dataclass with validation (level, debug)
+- [x] T008: Create ReviewConfig root dataclass with from_dict() classmethod
 
 **Implementation Sketch**:
 1. Create `src/rewrite/domain/review_config.py` file
