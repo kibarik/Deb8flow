@@ -103,7 +103,7 @@ class LLMConfig(BaseModel):
     model: str = Field(default="gpt-4o-mini", description="Model name")
     api_key: str = Field(default="", description="API key (empty to use env var)")
     temperature: float = Field(default=0.8, ge=0.0, le=2.0)
-    max_tokens: int = Field(default=1500, ge=1, le=32000)
+    max_tokens: int = Field(default=5000, ge=1, le=32000)
     timeout: int = Field(default=60, ge=1)
 
     @field_validator("api_key")

@@ -56,7 +56,7 @@ class TakeawayAnalyzer:
         llm_kwargs = {
             "model": self.config.model or "gpt-4o",
             "temperature": 0.5,  # Lower temperature for more focused analysis
-            "max_tokens": 2000,
+            "max_tokens": 4000,  # Increased for complete takeaway generation
         }
 
         if self.config.api_key:
@@ -313,24 +313,26 @@ Output format: each point on a new line starting with dash "- "."""
 """
             prompt += f"""
 
-ЗАДАЧА:
-Проанализируйте дебаты и создайте список от {self.config.min_takeaways} до {self.config.max_takeaways} ключевых выводов (takeaways).
+## Задача
+На основе анализа дебатов сгенерируйте от {self.config.min_takeaways} до {self.config.max_takeaways} **конкретных рекомендаций по доработке** документа.
 
-Каждый takeaway должен быть в формате: "- [Краткое описание вывода]"
+Каждая рекомендация должна следовать формату:
+- **[КАТЕГОРИЯ]**: [Раздел] → [Конкретное действие]
 
-Примеры:
-- Сильная техническая архитектура с модульным подходом позволяет гибкую адаптацию
-- Риск: размытый фокус на 5 разных сегментах может расточить ресурсы
-- Необходимо уточнить конкурентную стратегию для банковского сегмента
-- Хорошо проработанный план онбординга клиентов снижает риски внедрения
+**Категории:**
+- **ДОБАВИТЬ** = Контент для добавления
+- **УТОЧНИТЬ** = Размытые места
+- **ИСПРАВИТЬ** = Противоречия
+- **УДАЛИТЬ** = Лишний контент
+- **СОХРАНИТЬ** = Сильные стороны
 
-ВАЖНО:
-- Сосредоточьтесь на конкретных, actionable инсайтах
-- Используйте аргументы ОБЕИХ сторон
-- Указывайте как сильные стороны, так и зоны роста
-- Будьте объективны и конструктивны
+## Примеры:
+- **ДОБАВИТЬ**: Раздел 2.4 → Включить TAM/SAM/SOM с источниками
+- **УТОЧНИТЬ**: Go-to-Market → Указать % каналов сбыта
+- **ИСПРАВИТЬ**: Секция команды (5 vs 8?) → Согласовать цифры
+- **СОХРАНИТЬ**: Архитектура → Не изменять
 
-Генерируйте выводы сейчас:"""
+Генерируйте рекомендации сейчас:"""
         else:
             prompt = f"""COMMITTEE QUESTION:
 {question}
@@ -345,63 +347,137 @@ JUDGE VERDICT (Winner: {winner or 'N/A'}):
 """
             prompt += f"""
 
-TASK:
-Analyze the debate and create a list of {self.config.min_takeaways} to {self.config.max_takeaways} key takeaways.
+## Task
+Generate {self.config.min_takeaways} to {self.config.max_takeaways} **actionable revision recommendations** for the document.
 
-Each takeaway should be in format: "- [Brief description of insight]"
+Each recommendation must follow:
+- **[CATEGORY]**: [Section] → [Specific action]
 
-Examples:
-- Strong technical architecture with modular approach allows flexible adaptation
-- Risk: unfocused focus on 5 different segments may drain resources
-- Need to clarify competitive strategy for banking segment
-- Well-developed client onboarding plan reduces implementation risks
+**Categories:**
+- **ADD** = Content to add
+- **CLARIFY** = Vague sections
+- **RESOLVE** = Contradictions
+- **REMOVE** = Unnecessary content
+- **KEEP** = Strengths to preserve
 
-IMPORTANT:
-- Focus on specific, actionable insights
-- Use arguments from BOTH sides
-- Indicate both strengths and areas for improvement
-- Be objective and constructive
+## Examples:
+- **ADD**: Section 2.4 → Include TAM/SAM/SOM breakdown with sources
+- **CLARIFY**: Go-to-Market → Specify channel mix percentages
+- **RESOLVE**: Team section (5 vs 8?) → Reconcile numbers
+- **KEEP**: Architecture → Preserve without changes
 
-Generate takeaways now:"""
+Generate recommendations now:"""
 
         return prompt
 
     def _parse_takeaways(self, response: str) -> List[str]:
-        """Parse the LLM response into a list of takeaways."""
+        """Parse the LLM response into a list of takeaways.
+
+        Handles various LLM response formats:
+        - Direct list items starting with dash/number
+        - Items with **CATEGORY** markers
+        - Preamble text followed by list
+        - Multi-line takeaways with continuation
+        """
         takeaways = []
+        lines = response.split('\n')
 
-        # Split by lines and extract items starting with dash
-        for line in response.split('\n'):
-            line = line.strip()
+        # Find the start of the actual list (skip preamble)
+        list_started = False
+        preamble_end_keywords = ['вывод:', 'выводы:', 'analysis:', 'insights:', 'примеры:',
+                                 'пункты:', 'recommendations:', 'пример:', 'задача:']
 
-            # Check for dash prefix
-            if line.startswith('- '):
-                takeaway = line[2:].strip()
-                if takeaway:
-                    takeaways.append(takeaway)
-            # Check for numbered list
-            elif line and line[0].isdigit() and ('.' in line or ')' in line):
-                # Remove the number prefix
-                for sep in ['. ', ') ', '.)', ')']:
-                    if line.startswith(sep) or (len(line) > 2 and line[1] == sep[0]):
-                        parts = line.split(sep, 1)
-                        if len(parts) > 1:
-                            takeaway = parts[1].strip()
-                            if takeaway:
-                                takeaways.append(takeaway)
+        for i, line in enumerate(lines):
+            line_stripped = line.strip()
+            if not line_stripped:
+                continue
+
+            # Check if this line starts a list item (supports **CATEGORY** format)
+            is_list_item = (
+                line_stripped.startswith('- ') or
+                line_stripped.startswith('•') or
+                (line_stripped[0].isdigit() and ('.' in line_stripped[:5] or ')' in line_stripped[:5])) or
+                ('**' in line_stripped and '**:' in line_stripped)  # **CATEGORY**: format
+            )
+
+            if is_list_item:
+                list_started = True
+                # Extract the takeaway content
+                if line_stripped.startswith('- '):
+                    takeaway = line_stripped[2:].strip()
+                elif line_stripped.startswith('•'):
+                    takeaway = line_stripped[1:].strip()
+                elif '**' in line_stripped and '**:' in line_stripped:
+                    # Handle **CATEGORY** format - keep the whole line as formatted
+                    takeaway = line_stripped
+                elif line_stripped[0].isdigit():
+                    # Remove number prefix (1. or 1) or 1.)
+                    for sep in ['. ', ') ', '.)', ')']:
+                        if sep in line_stripped:
+                            parts = line_stripped.split(sep, 1)
+                            if len(parts) > 1:
+                                takeaway = parts[1].strip()
                                 break
-            # Check for bullet points
-            elif line.startswith(('•', '*', '·')):
-                takeaway = line[1:].strip()
-                if takeaway:
+                    else:
+                        takeaway = line_stripped
+                else:
+                    continue
+
+                # Clean up common LLM artifacts (but preserve **CATEGORY** format)
+                takeaway = self._clean_takeaway(takeaway)
+                if takeaway and len(takeaway) > 10:  # Minimum meaningful length
                     takeaways.append(takeaway)
-            # Non-empty lines that might be takeaways (if we have few items)
-            elif len(line) > 20 and len(takeaways) < self.config.min_takeaways:
-                # Check if it looks like a sentence (starts with capital, ends with punctuation)
-                if line[0].isupper() or line[0] in '/*-•':
-                    takeaways.append(line)
+
+            elif list_started:
+                # We're in the list section, check for multi-line continuations
+                if not line_stripped:
+                    continue
+                # Check if it's a continuation of previous takeaway
+                # (indented, starting with lowercase, or arrow continuation)
+                if takeaways and (line.startswith('  ') or line.startswith('\t') or
+                    (line_stripped[0].islower() and len(line_stripped) > 20) or
+                    line_stripped.startswith('→') or line_stripped.startswith('->')):
+                    # Append to previous takeaway
+                    takeaways[-1] += ' ' + line_stripped
+                # Check for end-of-list keywords
+                elif any(kw in line_stripped.lower() for kw in ['важно:', 'заметка:', 'note:',
+                                                                   'summary:', '###', '## ']):
+                    break
+
+        # If no structured list found, try to extract from paragraph text
+        if not takeaways:
+            takeaways = self._extract_from_paragraph_text(response)
 
         return takeaways
+
+    def _clean_takeaway(self, takeaway: str) -> str:
+        """Clean up common LLM artifacts in takeaways."""
+        # Remove trailing punctuation issues
+        takeaway = takeaway.rstrip('.,;:')
+
+        # Remove common LLM prefixes
+        for prefix in ['-', '•', '*', '* ', '- ']:
+            if takeaway.startswith(prefix):
+                takeaway = takeaway[len(prefix):].strip()
+
+        return takeaway
+
+    def _extract_from_paragraph_text(self, response: str) -> List[str]:
+        """Extract takeaways from unstructured paragraph text as fallback."""
+        takeaways = []
+
+        # Split into sentences
+        import re
+        sentences = re.split(r'[.!?]+', response)
+
+        for sentence in sentences:
+            sentence = sentence.strip()
+            # Filter out preamble sentences and very short ones
+            if (len(sentence) > 30 and
+                not any(kw in sentence.lower() for kw in ['проанализировал', 'вот анализ', 'following', 'here is'])):
+                takeaways.append(sentence)
+
+        return takeaways[:self.config.max_takeaways]
 
     def _generate_fallback_takeaways(
         self,
