@@ -241,8 +241,9 @@ class TestProfileMerge:
 
     def test_empty_profile_unchanged(self):
         """Test that empty profile dict doesn't change config."""
+        import dataclasses
         base = ReviewConfig(llm=LLMConfig(temperature=0.5))
-        base.profiles = {"empty": {}}
+        base = dataclasses.replace(base, profiles={"empty": {}})
         merged = base.merge_with_profile("empty")
 
         assert merged.llm.temperature == 0.5

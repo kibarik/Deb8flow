@@ -95,26 +95,67 @@ def _expand_env_vars(config: Dict[str, Any]) -> Dict[str, Any]:
 
     Supports ${VAR} and ${VAR:default} syntax.
     Recursively processes nested dictionaries and lists.
+    Auto-converts expanded strings to int/float/bool.
 
     Args:
         config: Configuration dict with potential env vars
 
     Returns:
-        Config with env vars expanded
+        Config with env vars expanded and types coerced
 
     Examples:
         "${API_KEY}" → os.environ["API_KEY"]
         "${API_KEY:default_value}" → "default_value" if API_KEY not set
         "${MODEL:gpt-4o-mini}" → "gpt-4o-mini" if MODEL not set
+        "${PORT:8000}" → 8000 (converted to int)
+        "${TEMP:0.7}" → 0.7 (converted to float)
+        "${DEBUG:true}" → True (converted to bool)
     """
     if isinstance(config, dict):
-        return {k: _expand_env_vars(v) for k, v in config.items()}
+        return {k: _coerce_type(_expand_env_vars(v)) for k, v in config.items()}
     elif isinstance(config, list):
-        return [_expand_env_vars(item) for item in config]
+        return [_coerce_type(_expand_env_vars(item)) for item in config]
     elif isinstance(config, str):
-        return _expand_env_vars_string(config)
+        return _coerce_type(_expand_env_vars_string(config))
     else:
         return config
+
+
+def _coerce_type(value: Any) -> Any:
+    """Coerce string values to appropriate types.
+
+    After env var expansion, strings that look like numbers
+    or booleans are converted to their proper types.
+
+    Args:
+        value: Value to coerce (usually string after expansion)
+
+    Returns:
+        Coerced value (int, float, bool, or original value)
+    """
+    if not isinstance(value, str):
+        return value
+
+    # Boolean conversion
+    if value.lower() == "true":
+        return True
+    if value.lower() == "false":
+        return False
+
+    # Integer conversion
+    try:
+        return int(value)
+    except ValueError:
+        pass
+
+    # Float conversion
+    try:
+        return float(value)
+    except ValueError:
+        pass
+
+    # Return as-is if no conversion matches
+    return value
 
 
 def _expand_env_vars_string(value: str) -> str:
