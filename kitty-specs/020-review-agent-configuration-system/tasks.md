@@ -282,11 +282,11 @@ This document contains all work packages for implementing the Review Agent Confi
 **Summary**: User documentation for review agent configuration system.
 
 **Included Subtasks**:
-- [ ] T032: Create docs/review-agent-config.md with overview
-- [ ] T033: Add configuration examples for common scenarios
-- [ ] T034: Document profile system and merge behavior
-- [ ] T035: Document placeholder system and variables
-- [ ] T036: Add migration guide from old config (if applicable)
+- [x] T032: Create docs/review-agent-config.md with overview
+- [x] T033: Add configuration examples for common scenarios
+- [x] T034: Document profile system and merge behavior
+- [x] T035: Document placeholder system and variables
+- [x] T036: Add migration guide from old config (if applicable)
 
 **Implementation Sketch**:
 1. Create `docs/review-agent-config.md`
