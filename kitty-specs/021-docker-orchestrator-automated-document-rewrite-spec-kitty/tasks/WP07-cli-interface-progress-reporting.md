@@ -2,7 +2,7 @@
 work_package_id: WP07
 title: CLI Interface & Progress Reporting
 lane: planned
-dependencies: []
+dependencies: ["WP01", "WP05"]
 subtasks: [T041, T042, T043, T044, T045, T046]
 phase: Phase 3 - User Interface
 history:

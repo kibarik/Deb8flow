@@ -2,7 +2,7 @@
 work_package_id: WP04
 title: Claude Code Agent Communication
 lane: planned
-dependencies: []
+dependencies: ["WP02"]
 subtasks:
 - T019
 - T020

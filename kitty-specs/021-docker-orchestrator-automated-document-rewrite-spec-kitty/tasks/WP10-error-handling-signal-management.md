@@ -2,7 +2,7 @@
 work_package_id: WP10
 title: Error Handling & Signal Management
 lane: planned
-dependencies: []
+dependencies: ["WP03", "WP04", "WP05"]
 subtasks: [T057, T058, T059, T060, T061, T062]
 phase: Phase 4 - Quality
 history:

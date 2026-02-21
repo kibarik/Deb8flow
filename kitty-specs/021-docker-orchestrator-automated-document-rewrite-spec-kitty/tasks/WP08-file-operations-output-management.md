@@ -2,7 +2,7 @@
 work_package_id: WP08
 title: File Operations & Output Management
 lane: planned
-dependencies: []
+dependencies: ["WP01"]
 subtasks: [T047, T048, T049, T050, T051]
 phase: Phase 3 - User Interface
 history:

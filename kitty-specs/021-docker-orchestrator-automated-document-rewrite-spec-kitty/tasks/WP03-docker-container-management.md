@@ -2,7 +2,7 @@
 work_package_id: WP03
 title: Docker Container Management
 lane: planned
-dependencies: []
+dependencies: ["WP01"]
 subtasks:
 - T012
 - T013

@@ -2,7 +2,7 @@
 work_package_id: WP09
 title: Logging & Observability
 lane: planned
-dependencies: []
+dependencies: ["WP01"]
 subtasks: [T052, T053, T054, T055, T056]
 phase: Phase 3 - User Interface
 history:

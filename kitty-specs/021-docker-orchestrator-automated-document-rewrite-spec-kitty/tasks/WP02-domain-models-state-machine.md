@@ -2,7 +2,7 @@
 work_package_id: WP02
 title: Domain Models & State Machine
 lane: planned
-dependencies: []
+dependencies: ["WP01"]
 subtasks:
 - T006
 - T007
