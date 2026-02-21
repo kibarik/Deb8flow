@@ -2,7 +2,7 @@
 work_package_id: WP06
 title: Phase Execution & Validation
 lane: planned
-dependencies: []
+dependencies: ["WP04", "WP05"]
 subtasks: [T034, T035, T036, T037, T038, T039, T040]
 phase: Phase 2 - Core Workflow
 history:

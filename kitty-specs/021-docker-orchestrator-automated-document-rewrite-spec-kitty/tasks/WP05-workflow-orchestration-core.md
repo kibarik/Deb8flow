@@ -2,7 +2,7 @@
 work_package_id: WP05
 title: Workflow Orchestration Core
 lane: planned
-dependencies: []
+dependencies: ["WP02", "WP03", "WP04"]
 subtasks: [T027, T028, T029, T030, T031, T032, T033]
 phase: Phase 2 - Core Workflow
 history:
