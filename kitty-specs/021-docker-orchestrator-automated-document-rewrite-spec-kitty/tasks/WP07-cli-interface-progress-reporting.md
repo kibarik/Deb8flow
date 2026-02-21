@@ -1,7 +1,7 @@
 ---
 work_package_id: WP07
 title: CLI Interface & Progress Reporting
-lane: "doing"
+lane: "for_review"
 dependencies: [WP01, WP05]
 base_branch: 021-docker-orchestrator-automated-document-rewrite-spec-kitty-WP01
 base_commit: efea11972a13c65db4a9d9082e60ae9e967d2558
@@ -76,3 +76,4 @@ Implement CLI argument parsing and console progress reporting.
 ## Activity Log
 - 2026-02-21T19:45:00Z – system – lane=planned – Prompt created.
 - 2026-02-21T22:24:35Z – claude-opus – shell_pid=52176 – lane=doing – Assigned agent via workflow command
+- 2026-02-21T22:26:58Z – claude-opus – shell_pid=52176 – lane=for_review – Ready for review: CLI Interface & Progress Reporting complete with 21 passing tests
