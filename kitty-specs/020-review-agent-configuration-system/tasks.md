@@ -78,11 +78,11 @@ This document contains all work packages for implementing the Review Agent Confi
 **Summary**: Implement hierarchical merge logic for profiles and CLI overrides with key-based (not full) override behavior.
 
 **Included Subtasks**:
-- [ ] T009: Implement merge_with_profile() method on ReviewConfig
-- [ ] T010: Implement merge_with_cli() method on ReviewConfig
-- [ ] T011: Create deep_merge helper function for nested dict merging
-- [ ] T012: Implement placeholder substitution (format variables into prompts)
-- [ ] T013: Add profile validation (profile exists in profiles dict)
+- [x] T009: Implement merge_with_profile() method on ReviewConfig
+- [x] T010: Implement merge_with_cli() method on ReviewConfig
+- [x] T011: Create deep_merge helper function for nested dict merging
+- [x] T012: Implement placeholder substitution (format variables into prompts)
+- [x] T013: Add profile validation (profile exists in profiles dict)
 
 **Implementation Sketch**:
 1. Add merge_with_profile(profile_name: str) -> ReviewConfig method
