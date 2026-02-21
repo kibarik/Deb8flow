@@ -1,9 +1,13 @@
 ---
 work_package_id: WP03
 title: Config Loader Infrastructure
-lane: planned
+lane: "doing"
 dependencies: []
+base_branch: main
+base_commit: 228e94976f3278af45211400c017a9f6bcde34d3
+created_at: '2026-02-21T11:12:33.059167+00:00'
 subtasks: [T014, T015, T016, T017]
+shell_pid: "79802"
 history:
 - version: 1.0.0
   date: '2025-02-21'
