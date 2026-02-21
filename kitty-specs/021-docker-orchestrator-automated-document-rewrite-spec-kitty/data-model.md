@@ -23,11 +23,11 @@ Configuration loaded from `config/debate_config.yaml` under the `orchestrator:` 
 | `output_suffix` | str | No | ".corrected." | Suffix for output files |
 | `timestamp_output` | bool | No | false | Add timestamp to output filename |
 | `docker_image` | str | No | "claude-code:latest" | Container image to use |
-| `keep_containers` | bool | No | false | Don't stop containers after completion |
 | `container_timeout` | int | No | 3600 | Max seconds for container execution |
 | `log_dir` | str | No | ".orchestrator/logs" | Directory for logs |
 | `log_level` | str | No | "INFO" | Logging level |
 | `verbose` | bool | No | false | Enable verbose output |
+| `claude_cli_path` | str \| None | No | null | Optional path to Claude Code CLI binary |
 | `phases` | list[PhaseConfig] | No | All enabled | Phase-specific configuration |
 
 **Validation Rules**:

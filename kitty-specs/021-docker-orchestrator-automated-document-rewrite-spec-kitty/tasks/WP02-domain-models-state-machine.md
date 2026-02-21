@@ -224,6 +224,13 @@ Implement core domain entities and workflow state machine with thread-safe trans
            self._status = value
    ```
 4. Add thread-safe `increment_attempts()` method
+5. **Identify mutable fields requiring synchronization**:
+   - `self._status` (PhaseStatus) - mutable via transitions
+   - `self.attempts` (int) - mutable via increment_attempts()
+   - `self.started_at` (datetime|None) - mutable on first start
+   - `self.completed_at` (datetime|None) - mutable on terminal states
+   - `self.error_message` (str|None) - mutable on failures
+   - **Immutable fields** (no lock needed for reads): `name`, `artifact_path`, `validation_result`
 
 **Files**:
 - `src/orchestrator/domain/phase.py` (extends T006)
@@ -233,6 +240,7 @@ Implement core domain entities and workflow state machine with thread-safe trans
 **Notes**:
 - RLock allows re-acquisition in same thread
 - All reads of mutable state must also use lock
+- Immutable fields can be read without synchronization
 
 ---
 

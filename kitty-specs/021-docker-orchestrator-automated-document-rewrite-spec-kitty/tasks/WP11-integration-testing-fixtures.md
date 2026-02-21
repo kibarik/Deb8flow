@@ -2,7 +2,7 @@
 work_package_id: WP11
 title: Integration Testing & Fixtures
 lane: planned
-dependencies: []
+dependencies: ["WP01", "WP02", "WP03", "WP04", "WP05", "WP06", "WP07", "WP08", "WP09", "WP10"]
 subtasks: [T063, T064, T065, T066, T067]
 phase: Phase 4 - Quality
 history:

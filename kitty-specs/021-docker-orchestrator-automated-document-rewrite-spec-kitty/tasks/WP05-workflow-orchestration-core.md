@@ -63,10 +63,12 @@ Implement main orchestration loop driving Spec-Kitty phases sequentially.
 - Add error_summary from phase error_messages
 - Calculate duration from first phase start to last phase end
 
-### T033 – Handle workflow pause/resume (if feasible)
-- Check feasibility: requires state persistence to disk
-- If infeasible: document limitation, skip implementation
-- Phase 0 research indicated state persistence may be complex
+### T033 – Document workflow pause/resume as out-of-scope
+- **Decision**: Pause/resume is out-of-scope for v1.0
+- **Rationale**: State persistence to disk adds complexity (serialization, recovery logic, state validation)
+- **Alternative**: Full workflow completes in one session. On failure, user restarts from beginning.
+- **Documentation**: Add note to `docs/orchestrator.md` explaining this limitation
+- **Future consideration**: If demand emerges, add as v2.0 feature with state checkpointing
 
 ## Test Strategy
 **Test File**: `tests/orchestrator/unit/test_orchestrator.py`

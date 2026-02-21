@@ -11,6 +11,8 @@ subtasks:
 - T016
 - T017
 - T018
+- T018-A
+- T018-B
 phase: Phase 1 - Infrastructure
 assignee: ''
 agent: ''
@@ -176,7 +178,39 @@ Implement Docker container lifecycle management using Docker SDK with health che
 
 ---
 
-### Subtask T018 – Handle container resource limits and timeouts
+### Subtask T018-A – Add Docker image pre-flight check
+
+**Purpose**: Verify required Docker image exists before starting container.
+
+**Steps**:
+1. Implement `check_image(self) -> tuple[bool, str]`:
+   - Try `client.images.get(self.config.docker_image)`
+   - If image exists, return (True, "")
+   - If image not found, try `client.images.pull(self.config.docker_image)`
+   - If pull succeeds, return (True, "pulled")
+   - If pull fails, return (False, error_message)
+2. Add check in `start()` before container run:
+   - Call `check_image()`
+   - If failed, raise `DockerImageError` with actionable message
+3. Log image status: "Using image: {image_name} (cached)" or "Using image: {image_name} (pulled)"
+
+**Files**:
+- `src/orchestrator/adapters/docker_client.py` (extends T012)
+
+**Parallel?**: No (depends on T012, T017)
+
+**Notes**:
+- Pull may take time; consider config option to skip pull (use --no-pull flag)
+- Handle network errors during pull gracefully
+
+**Files**:
+- `src/orchestrator/adapters/docker_client.py` (extends T012)
+
+**Parallel?**: No (depends on T012)
+
+---
+
+### Subtask T018-B – Handle container resource limits and timeouts
 
 **Purpose**: Apply resource limits from configuration.
 

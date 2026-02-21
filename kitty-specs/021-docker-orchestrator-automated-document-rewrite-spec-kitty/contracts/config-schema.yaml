@@ -58,6 +58,10 @@ orchestrator:
   # Enable verbose console output
   verbose: <boolean, default: false>
 
+  # === Claude Code CLI ===
+  # Optional path to Claude Code CLI binary (if not in PATH)
+  claude_cli_path: <string, optional: true, example: "/usr/local/bin/claude">
+
   # === Phase Configuration ===
   phases:
     - name: <enum: specify|research|plan|tasks|implement|review|accept>
@@ -92,6 +96,9 @@ orchestrator:
   log_dir: ".orchestrator/logs"
   log_level: "INFO"
   verbose: false
+
+  # Claude Code CLI
+  # claude_cli_path: null  # Uncomment to specify custom path
 
   # Phase configuration
   phases:

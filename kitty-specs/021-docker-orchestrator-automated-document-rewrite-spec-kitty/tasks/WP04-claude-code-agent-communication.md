@@ -5,6 +5,7 @@ lane: planned
 dependencies: ["WP02"]
 subtasks:
 - T019
+- T019-A
 - T020
 - T021
 - T022
@@ -75,13 +76,52 @@ Implement subprocess communication with Claude Code CLI using JSON-based protoco
 
 ---
 
+### Subtask T019-A – Verify Claude Code CLI protocol support
+
+**Purpose**: CRITICAL - Verify Claude Code CLI actually supports stdin/stdout JSON protocol before implementing full communication layer.
+
+**Steps**:
+1. **Manual verification test**:
+   ```bash
+   # Test if Claude Code CLI accepts stdin input
+   echo '{"type":"system","command":"ping"}' | claude --interactive
+   ```
+2. **Check for protocol documentation**:
+   - Search Claude Code CLI docs for "stdin", "JSON protocol", "programmatic interface"
+   - Check if there's an official Python SDK or API
+3. **Alternative discovery**:
+   - Run `claude --help` to check for programmatic flags
+   - Test with simple JSON echo to see if CLI responds
+4. **Document findings**:
+   - If protocol works: Proceed with T020-T026
+   - If protocol doesn't work: Document alternative approach (socket API, file-based IPC, direct Python API)
+5. **Update agent-protocol.md** if needed based on actual CLI behavior
+
+**Files**:
+- `kitty-specs/.../contracts/agent-protocol.md` (update if needed)
+- Create `kitty-specs/.../research/claude-cli-protocol-verification.md` with findings
+
+**Parallel?**: No (MUST complete before T020-T026)
+
+**Notes**:
+- This is a BLOCKER task for entire WP04
+- If Claude Code CLI doesn't support stdin/stdout JSON, the entire WP04 design needs revision
+- Budget time: 1-2 hours for verification
+- If alternative approach needed, update plan.md and re-run `/spec-kitty.tasks` for affected WPs
+
+---
+
 ### Subtask T020 – Implement subprocess start with stdin/stdout pipes
 
 **Purpose**: Start Claude Code CLI subprocess with correct configuration.
 
 **Steps**:
 1. Implement `start(self) -> None`:
-   - Build command: `['claude', '--interactive']` (or equivalent)
+   - Resolve Claude Code CLI path:
+     - Check config `claude_cli_path` if set
+     - Otherwise use `shutil.which('claude')` to find in PATH
+     - Fall back to `'claude'` as default (relies on PATH)
+   - Build command: `[claude_path, '--interactive']` (or equivalent flags)
    - Create Popen with `stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1`
    - Start response reader thread (for T022)
    - Store in `self.subprocess`

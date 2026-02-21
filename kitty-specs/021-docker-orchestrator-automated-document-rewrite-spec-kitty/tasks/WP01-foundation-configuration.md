@@ -151,6 +151,7 @@ Establish the project foundation with proper directory structure, configuration 
    - `log_dir: str = ".orchestrator/logs"`
    - `log_level: str = "INFO"` (enum: DEBUG|INFO|WARNING|ERROR|CRITICAL)
    - `verbose: bool = False`
+   - `claude_cli_path: Optional[str] = None` (optional path to Claude Code CLI)
    - `phases: List[PhaseConfig] = []`
 4. Define nested `PhaseConfig` model with fields: `name`, `enabled`, `validate`, `timeout`
 5. Add Pydantic validators for constraints:
