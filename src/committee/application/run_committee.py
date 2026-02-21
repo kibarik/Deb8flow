@@ -118,12 +118,17 @@ class RunProductCommittee:
         # Mark complete and generate reports
         committee_run.mark_complete()
 
-        # Collect errors from failed rooms
+        # Collect errors from failed and timed out rooms
         errors = self._collect_errors(committee_run)
+        timeout_rooms = self._collect_timeout_rooms(committee_run)
 
         # Generate and save reports (always includes metadata with errors)
         metadata = CommitteeMetadata.from_run(committee_run, errors)
         await self._save_reports(committee_run, metadata, run_output_dir)
+
+        # Print timeout message if any rooms timed out
+        if timeout_rooms:
+            self._print_timeout_message(timeout_rooms, run_output_dir, run_id)
 
         # Note: We no longer delete folders on complete failure
         # metadata.json with error traces is kept for debugging
@@ -160,6 +165,47 @@ class RunProductCommittee:
                     "timestamp": run.end_time or datetime.now(timezone.utc).isoformat()
                 })
         return errors
+
+    def _collect_timeout_rooms(self, run: CommitteeRun) -> List[str]:
+        """
+        Collect rooms that timed out.
+
+        Args:
+            run: The committee run
+
+        Returns:
+            List of room IDs that timed out
+        """
+        timeout_rooms = []
+        for room in run.rooms:
+            if room.status.value == "timeout":
+                timeout_rooms.append(room.room_id.value)
+        return timeout_rooms
+
+    def _print_timeout_message(self, timeout_rooms: List[str], output_dir: Path, run_id: RunId) -> None:
+        """
+        Print informative message about timed out debates.
+
+        Args:
+            timeout_rooms: List of room IDs that timed out
+            output_dir: Directory where partial results are saved
+            run_id: Run identifier
+        """
+        import sys
+
+        print("\n" + "="*80, file=sys.stderr)
+        print("⚠️  ДЕБАТЫ НЕ УСПЕЛИ ЗАВЕРШИТЬСЯ ПО TIMEOUT", file=sys.stderr)
+        print("="*80, file=sys.stderr)
+        print(f"\nСледующие комнатыdebатов не успели завершиться в отведенное время:", file=sys.stderr)
+        for room_id in timeout_rooms:
+            print(f"  - {room_id}", file=sys.stderr)
+        print(f"\nВсе наработки сохранены в папке: {output_dir}", file=sys.stderr)
+        print(f"Run ID: {run_id.value}", file=sys.stderr)
+        print("\nДля продолжения работы с прерванными дебатами используйте:", file=sys.stderr)
+        print(f"  python main.py committee --prd <prd_file> --question \"{run_id.value}\" --run-id {run_id.value}", file=sys.stderr)
+        print("\nИли просмотрите результаты в папке:", file=sys.stderr)
+        print(f"  {output_dir}", file=sys.stderr)
+        print("="*80 + "\n", file=sys.stderr)
 
     async def _read_prd_content(self, prd_path: str) -> str:
         """Read PRD document content."""

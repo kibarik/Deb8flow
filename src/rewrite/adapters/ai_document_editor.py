@@ -60,6 +60,7 @@ class AIDocumentEditor:
             "model": self.config.model,
             "temperature": self.config.temperature,
             "max_tokens": self.config.max_tokens,
+            "max_retries": 0,  # Disable built-in retry - we handle retries at orchestration level
         }
 
         if self.config.api_key:

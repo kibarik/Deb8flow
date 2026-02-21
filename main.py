@@ -24,6 +24,22 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+# Validate required environment variables
+REQUIRED_ENV_VARS = ["OPENAI_API_KEY"]
+missing_vars = [var for var in REQUIRED_ENV_VARS if not os.getenv(var)]
+
+if missing_vars:
+    print("ERROR: Missing required environment variables:")
+    for var in missing_vars:
+        print(f"  - {var}")
+    print("\nPlease set these variables in your .env file or environment.")
+    print("Example .env file:")
+    print("  OPENAI_API_KEY=your_api_key_here")
+    print("  DEBATE_MODEL=gpt-4o-mini")
+    print("  DEBATE_TEMPERATURE=0.8")
+    print("  DEBATE_BASE_URL=https://api.openai.com/v1")
+    sys.exit(1)
+
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent))
 

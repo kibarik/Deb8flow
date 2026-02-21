@@ -70,6 +70,7 @@ class StandardDebateOrchestrator:
             "model": self.model,
             "temperature": temperature,
             "max_tokens": max_tokens,
+            "max_retries": 0,  # Disable built-in retry - we handle retries at orchestration level
         }
 
         if api_key:

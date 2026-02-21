@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import sys
+import shutil
 from typing import Optional, TYPE_CHECKING
 from pathlib import Path
 
@@ -17,7 +18,7 @@ from ...domain.value_objects import RoomId, Speaker, RoomStatus
 from ...domain.services import categorize_error
 from ...application.ports import DebateExecutor
 from ...application.analyzers import TakeawayAnalyzer, TakeawayConfig
-from ..retry import retry_with_backoff
+from ..retry import retry_with_backoff, RateLimitError
 
 if TYPE_CHECKING:
     from ....config.config_loader import LLMConfig
@@ -34,7 +35,8 @@ class CliDebateExecutor:
                     for API parameters (api_key, model, base_url).
     """
 
-    DEFAULT_TIMEOUT = 300  # 5 minutes
+    DEFAULT_TIMEOUT = 900  # 15 minutes - increased for 9-stage debates
+    MIN_DISK_MB = 100  # Minimum required disk space in MB
 
     def __init__(self, llm_config: Optional["LLMConfig"] = None):
         """Initialize executor with LLM configuration.
@@ -43,6 +45,102 @@ class CliDebateExecutor:
             llm_config: LLM configuration from debate_config.yaml
         """
         self.llm_config = llm_config
+
+    def _check_disk_space(self, output_dir: Optional[Path]) -> bool:
+        """Check if there's enough disk space for debate output.
+
+        Args:
+            output_dir: Directory to check disk space for
+
+        Returns:
+            True if enough space, False otherwise
+        """
+        try:
+            # Check disk space
+            stat = shutil.disk_usage(output_dir if output_dir else Path.cwd())
+            free_mb = stat.free / (1024 * 1024)
+
+            if free_mb < self.MIN_DISK_MB:
+                logger.error(f"Insufficient disk space: {free_mb:.1f}MB free, {self.MIN_DISK_MB}MB required")
+                return False
+
+            return True
+
+        except Exception as e:
+            logger.warning(f"Could not check disk space: {e}")
+            # Assume OK if we can't check
+            return True
+
+    async def _has_valid_result(self, json_path: Optional[Path]) -> bool:
+        """Check if a valid debate result already exists.
+
+        Args:
+            json_path: Path to JSON result file
+
+        Returns:
+            True if valid result exists, False otherwise
+        """
+        if not json_path or not json_path.exists():
+            return False
+
+        try:
+            content = await asyncio.to_thread(json_path.read_text, encoding='utf-8')
+            data = json.loads(content)
+
+            # Check if debate completed successfully
+            # A valid result should have:
+            # - 'winner' field (not None or empty)
+            # - 'messages' array with at least 9 entries (8 stages + verdict)
+            # - 'in_progress' should be False or not present
+
+            if isinstance(data, dict):
+                winner = data.get("winner")
+                messages = data.get("messages", [])
+                in_progress = data.get("in_progress", False)
+
+                if in_progress:
+                    # Check if nearly complete (8+ messages) - might be worth using
+                    if len(messages) >= 8:
+                        logger.info(f"Found nearly complete debate at {json_path.name} ({len(messages)} messages), will reuse")
+                        return True
+                    logger.info(f"Found incomplete debate at {json_path.name}, will re-run")
+                    return False
+
+                if not winner:
+                    # No winner but has messages - check if nearly complete
+                    if len(messages) >= 8:
+                        logger.info(f"Found debate without winner but with {len(messages)} messages at {json_path.name}, will reuse")
+                        return True
+                    logger.info(f"Found debate result without winner at {json_path.name}, will re-run")
+                    return False
+
+                if len(messages) < 9:
+                    logger.info(f"Found incomplete debate ({len(messages)} messages) at {json_path.name}, will re-run")
+                    return False
+
+                # Found valid result
+                logger.info(f"Found valid debate result at {json_path.name}, will reuse")
+                return True
+
+        except Exception as e:
+            logger.warning(f"Error checking existing result: {e}")
+
+        return False
+
+    def _is_nearly_complete(self, data: dict) -> bool:
+        """Check if a debate result is nearly complete (8+ messages).
+
+        Args:
+            data: Parsed JSON data
+
+        Returns:
+            True if debate has 8 or more messages
+        """
+        if not isinstance(data, dict):
+            return False
+
+        messages = data.get("messages", [])
+        return len(messages) >= 8
 
     async def execute(
         self,
@@ -59,6 +157,25 @@ class CliDebateExecutor:
         """Execute debate room with retry logic."""
         opponent = room_id.value.split("_vs_")[-1]
 
+        # Check if we already have a valid result (including nearly complete)
+        if await self._has_valid_result(json_output_path):
+            logger.info(f"Reusing existing result for TPM vs {opponent}")
+            return await self._parse_json_output(json_output_path, room_id, opponent, question)
+
+        # Check disk space before starting
+        output_dir = json_output_path.parent if json_output_path else None
+        if not self._check_disk_space(output_dir):
+            error_msg = f"Insufficient disk space (need {self.MIN_DISK_MB}MB)"
+            logger.error(error_msg)
+            return DebateRoom(
+                room_id=room_id,
+                pro_participant="TPM",
+                con_participant=opponent,
+                status=RoomStatus.FAILED,
+                messages=[],
+                error=error_msg
+            )
+
         async def _execute_once():
             return await self._execute_room(
                 room_id, pro_prompt_path, con_prompt_path,
@@ -67,9 +184,44 @@ class CliDebateExecutor:
             )
 
         try:
-            return await retry_with_backoff(_execute_once, max_retries)
+            result = await retry_with_backoff(_execute_once, max_retries)
+
+            # After execution, check the result status
+            # TIMEOUT: Preserve partial results, don't retry
+            if result.status == RoomStatus.TIMEOUT:
+                logger.warning(f"Debate TPM vs {opponent} timed out - partial results preserved")
+                return result
+            # SUCCESS: Valid complete result
+            elif result.status == RoomStatus.SUCCESS:
+                logger.info(f"Debate TPM vs {opponent} completed successfully")
+                return result
+            # Has verdict but status might be different - still valid
+            elif result.verdict is not None:
+                logger.info(f"Debate TPM vs {opponent} completed with verdict")
+                return result
+            else:
+                # Execution returned but no verdict - treat as failure
+                error_msg = result.error or "Debate completed without verdict"
+                logger.warning(f"Debate TPM vs {opponent} returned invalid result: {error_msg}")
+
+                # Check if we should retry (only if attempts remaining)
+                if max_retries > 0:
+                    raise RuntimeError(f"Invalid result: {error_msg}")
+                else:
+                    return result
+
         except Exception as e:
             logger.error(f"Failed room: TPM vs {opponent} - {e}")
+            # Check if we have a partial result to return (including TIMEOUT results)
+            if json_output_path and json_output_path.exists():
+                try:
+                    partial_result = await self._parse_json_output(json_output_path, room_id, opponent, question)
+                    if partial_result.status in (RoomStatus.SUCCESS, RoomStatus.TIMEOUT):
+                        logger.info(f"Using partial result for TPM vs {opponent} despite error")
+                        return partial_result
+                except Exception as parse_error:
+                    logger.warning(f"Could not parse partial result: {parse_error}")
+
             return DebateRoom(
                 room_id=room_id,
                 pro_participant="TPM",
@@ -111,12 +263,12 @@ class CliDebateExecutor:
         if json_output_path:
             cmd.extend(["--json-output", str(json_output_path)])
 
-        # Run subprocess
-        # stderr=None makes stderr go directly to parent process stderr (realtime feedback)
+        # Run subprocess with stderr going directly to console for real-time progress
+        # For 429 detection, we'll check the JSON file or return code
         process = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
-            stderr=None  # stderr goes directly to parent for realtime feedback
+            stderr=None  # Real-time progress output to console
         )
 
         try:
@@ -126,12 +278,65 @@ class CliDebateExecutor:
             )
         except asyncio.TimeoutError:
             process.kill()
-            # Clean up JSON file on timeout
-            await self._cleanup_json_file(json_output_path)
-            raise TimeoutError(f"Debate room {room_id.value} timed out")
+            # Wait for process to actually terminate
+            await process.wait()
 
+            # On timeout, preserve partial progress and return TIMEOUT status
+            if json_output_path and json_output_path.exists():
+                try:
+                    content = await asyncio.to_thread(json_output_path.read_text, encoding='utf-8')
+                    data = json.loads(content)
+                    messages = data.get("messages", [])
+                    stage_info = data.get("stage", "unknown")
+
+                    # Parse partial result and mark as TIMEOUT
+                    logger.warning(f"Debate {room_id.value} timed out with {len(messages)} messages at stage {stage_info}, preserving partial result")
+                    return await self._parse_json_output(json_output_path, room_id, opponent, question, is_timeout=True)
+                except Exception as e:
+                    logger.warning(f"Could not parse partial result after timeout: {e}")
+
+            # Even if we can't parse, return a TIMEOUT room with the file path
+            logger.warning(f"Debate {room_id.value} timed out after {self.DEFAULT_TIMEOUT}s, partial results saved to {json_output_path}")
+            return DebateRoom(
+                room_id=room_id,
+                pro_participant="TPM",
+                con_participant=opponent,
+                status=RoomStatus.TIMEOUT,
+                messages=[],
+                error=f"Debate timed out after {self.DEFAULT_TIMEOUT}s. Partial results available."
+            )
+
+        # Check if process failed
         if process.returncode != 0:
-            # Clean up JSON file on error
+            # Try to detect 429 from JSON file if it exists
+            is_429_error = False
+
+            if json_output_path and json_output_path.exists():
+                try:
+                    content = await asyncio.to_thread(json_output_path.read_text, encoding='utf-8')
+                    data = json.loads(content)
+
+                    # Check if there are error messages indicating 429
+                    messages = data.get("messages", [])
+                    for msg in messages:
+                        msg_content = msg.get("content", "").lower()
+                        if "429" in msg_content or "rate limit" in msg_content or "resource exhausted" in msg_content:
+                            is_429_error = True
+                            break
+                except Exception:
+                    pass  # If JSON parsing fails, fall back to other detection
+
+            # Also check stdout for 429 indicators
+            stdout_text = stdout.decode('utf-8', errors='replace') if stdout else ""
+            if not is_429_error:
+                if "429" in stdout_text.lower() or "rate limit" in stdout_text.lower() or "resource exhausted" in stdout_text.lower():
+                    is_429_error = True
+
+            if is_429_error:
+                # Raise RateLimitError for retry logic to handle
+                raise RateLimitError(f"Rate limit hit for room {room_id.value}")
+
+            # For other errors, clean up and raise RuntimeError
             await self._cleanup_json_file(json_output_path)
             raise RuntimeError(f"Debate failed with return code {process.returncode}")
 
@@ -157,9 +362,24 @@ class CliDebateExecutor:
         room_id: RoomId,
         opponent: str,
         question: Optional[str] = None,
-        generate_takeaways: bool = True
+        generate_takeaways: bool = True,
+        is_timeout: bool = False
     ) -> DebateRoom:
-        """Parse debate results from JSON file."""
+        """Parse debate results from JSON file.
+
+        Handles both complete and partial results:
+        - Complete: has winner field and 9+ messages
+        - Partial: has messages but might be missing winner or some stages
+        - Timeout: debate timed out but partial results are available
+
+        Args:
+            json_path: Path to JSON result file
+            room_id: Room identifier
+            opponent: Opponent name
+            question: Optional committee question
+            generate_takeaways: Whether to generate takeaways
+            is_timeout: If True, mark result as TIMEOUT status
+        """
         content = await asyncio.to_thread(json_path.read_text, encoding='utf-8')
         dialogue_json = json.loads(content)
 
@@ -176,6 +396,10 @@ class CliDebateExecutor:
             )
             for msg in messages_list
         ]
+
+        # Determine if this is a partial or complete result
+        is_nearly_complete = self._is_nearly_complete(dialogue_json) if isinstance(dialogue_json, dict) else len(messages_list) >= 8
+        in_progress = dialogue_json.get("in_progress", False) if isinstance(dialogue_json, dict) else False
 
         # Find verdict - first check if winner field exists in JSON (new format)
         verdict = None
@@ -200,20 +424,27 @@ class CliDebateExecutor:
         if not verdict:
             verdict = self._extract_verdict(messages)
 
-        if verdict:
-            logger.info(f"Completed room: TPM vs {opponent} - WINNER: {verdict.winner.value}")
+        # Determine status and error message
+        if is_timeout:
+            # Timeout case - preserve partial progress
+            status = RoomStatus.TIMEOUT
+            stage_info = dialogue_json.get("stage", "unknown") if isinstance(dialogue_json, dict) else "unknown"
+            error_msg = f"Debate timed out at stage {stage_info} with {len(messages)} messages. Partial results preserved."
+            logger.warning(f"Room TPM vs {opponent} marked as TIMEOUT: {error_msg}")
+        elif verdict:
+            status = RoomStatus.SUCCESS
+            error_msg = None
+        elif is_nearly_complete:
+            # Nearly complete but no verdict - still count as success
+            status = RoomStatus.SUCCESS
+            error_msg = "Debate completed with most stages but no clear verdict"
         else:
-            logger.warning(f"Completed room: TPM vs {opponent} - NO VERDICT")
-            # Remove JSON file for failed room
-            try:
-                await asyncio.to_thread(json_path.unlink)
-                logger.info(f"Removed JSON file for failed room: {json_path.name}")
-            except Exception as e:
-                logger.warning(f"Failed to remove JSON file {json_path}: {e}")
+            status = RoomStatus.FAILED
+            error_msg = "No verdict found in JUDGE response - expected WINNER: PRO or WINNER: CON format"
 
-        # Generate takeaways if requested and verdict exists
+        # Generate takeaways only for successful complete results
         takeaways = []
-        if generate_takeaways and verdict:
+        if generate_takeaways and verdict and not in_progress and not is_timeout:
             try:
                 takeaways = await self._generate_takeaways(
                     dialogue_json=dialogue_json,
@@ -224,16 +455,11 @@ class CliDebateExecutor:
             except Exception as e:
                 logger.warning(f"Failed to generate takeaways: {e}")
 
-        # Set error message if verdict not found
-        error_msg = None
-        if not verdict:
-            error_msg = "No verdict found in JUDGE response - expected WINNER: PRO or WINNER: CON format"
-
         return DebateRoom(
             room_id=room_id,
             pro_participant="TPM",
             con_participant=opponent,
-            status=RoomStatus.SUCCESS if verdict else RoomStatus.FAILED,
+            status=status,
             messages=messages,
             verdict=verdict,
             takeaways=takeaways,

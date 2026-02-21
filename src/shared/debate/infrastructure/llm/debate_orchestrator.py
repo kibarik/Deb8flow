@@ -102,6 +102,7 @@ class LLMDebateOrchestrator:
             "model": self.model,
             "temperature": temperature,
             "max_tokens": max_tokens,
+            "max_retries": 0,  # Disable built-in retry - we handle retries at orchestration level
         }
 
         if api_key:
@@ -131,6 +132,12 @@ class LLMDebateOrchestrator:
 
         Args:
             winner: Optional winner string if verdict is complete
+
+        Note:
+            Errors during saving are logged but DO NOT fail the debate.
+            The debate result (winner, messages) is still returned to the caller
+            even if saving fails. This prevents losing completed debates due to
+            disk space issues.
         """
         if not self.json_output_path:
             return
@@ -148,6 +155,9 @@ class LLMDebateOrchestrator:
             import tempfile
             import shutil
 
+            # Ensure parent directory exists
+            self.json_output_path.parent.mkdir(parents=True, exist_ok=True)
+
             # Write to temp file first, then move (atomic operation)
             temp_path = self.json_output_path.with_suffix('.tmp')
             temp_path.write_text(
@@ -156,6 +166,12 @@ class LLMDebateOrchestrator:
             )
             shutil.move(str(temp_path), str(self.json_output_path))
 
+        except OSError as e:
+            # Specifically handle disk space errors
+            if e.errno == 28:  # ENOSPC - No space left on device
+                logger.error(f"Disk full - cannot save debate state to {self.json_output_path}. Debate will continue without saving.")
+            else:
+                logger.warning(f"OS error saving progressive state: {e}")
         except Exception as e:
             # Don't fail the debate if saving fails
             logger.warning(f"Failed to save progressive state: {e}")
@@ -547,6 +563,7 @@ class SimpleDebateOrchestrator:
             "model": self.model,
             "temperature": temperature,
             "max_tokens": 5000,
+            "max_retries": 0,  # Disable built-in retry - we handle retries at orchestration level
         }
 
         if api_key:

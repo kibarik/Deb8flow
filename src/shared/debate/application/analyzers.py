@@ -57,6 +57,7 @@ class TakeawayAnalyzer:
             "model": self.config.model or "gpt-4o",
             "temperature": 0.5,  # Lower temperature for more focused analysis
             "max_tokens": 4000,  # Increased for complete takeaway generation
+            "max_retries": 0,  # Disable built-in retry - we handle retries at orchestration level
         }
 
         if self.config.api_key:
