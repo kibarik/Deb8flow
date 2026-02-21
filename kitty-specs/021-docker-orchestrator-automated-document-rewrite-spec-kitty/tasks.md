@@ -322,11 +322,11 @@ Error handling, signal management, and integration testing.
 - Output file conflicts handled per config
 
 **Included Subtasks**:
-- [ ] T047 – Create FileOperations infrastructure class
-- [ ] T048 – Implement file reading with encoding detection
-- [ ] T049 – Implement output path generation
-- [ ] T050 – Implement corrected file writing
-- [ ] T051 – Add output file conflict handling
+- [x] T047 – Create FileOperations infrastructure class
+- [x] T048 – Implement file reading with encoding detection
+- [x] T049 – Implement output path generation
+- [x] T050 – Implement corrected file writing
+- [x] T051 – Add output file conflict handling
 
 **Implementation Sketch**:
 1. Create FileOperations class in infrastructure/
