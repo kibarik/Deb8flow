@@ -285,12 +285,12 @@ Error handling, signal management, and integration testing.
 - Progress reporter formats output consistently
 
 **Included Subtasks**:
-- [ ] T041 – Create CLI argument parser adapter
-- [ ] T042 – Implement argument validation
-- [ ] T043 – Create ProgressReporter adapter
-- [ ] T044 – Implement phase progress display
-- [ ] T045 – Implement summary and result display
-- [ ] T046 – Add Ctrl+C signal handler
+- [x] T041 – Create CLI argument parser adapter
+- [x] T042 – Implement argument validation
+- [x] T043 – Create ProgressReporter adapter
+- [x] T044 – Implement phase progress display
+- [x] T045 – Implement summary and result display
+- [x] T046 – Add Ctrl+C signal handler
 
 **Implementation Sketch**:
 1. Use argparse following patterns from scripts/rewrite
