@@ -1,7 +1,7 @@
 ---
 work_package_id: WP07
 title: Documentation
-lane: "doing"
+lane: "for_review"
 dependencies: []
 base_branch: main
 base_commit: add8e148c801af6906614dcb1459157db211fdd3
@@ -621,3 +621,4 @@ If `MODEL` is not set, uses `gpt-4o-mini` as fallback.
 ## Activity Log
 
 - 2026-02-21T11:18:34Z – claude – shell_pid=81109 – lane=doing – Assigned agent via workflow command
+- 2026-02-21T11:20:19Z – claude – shell_pid=81109 – lane=for_review – Ready for review: Complete user documentation for review agent configuration system
