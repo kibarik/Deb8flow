@@ -1,26 +1,29 @@
 ---
-work_package_id: "WP01"
-subtasks:
-  - "T001"
-  - "T002"
-  - "T003"
-  - "T004"
-  - "T005"
-title: "Foundation & Configuration"
-phase: "Phase 0 - Foundation"
-lane: "planned"
-assignee: ""
-agent: ""
-shell_pid: ""
-review_status: ""
-reviewed_by: ""
-history:
-  - timestamp: "2026-02-21T19:45:00Z"
-    lane: "planned"
-    agent: "system"
-    shell_pid: ""
-    action: "Prompt created via /spec-kitty.tasks"
+work_package_id: WP01
+title: Foundation & Configuration
+lane: "doing"
 dependencies: []
+base_branch: main
+base_commit: 7d5f984f0956b8bb12921e803c64af2513eb7b26
+created_at: '2026-02-21T22:15:13.246062+00:00'
+subtasks:
+- T001
+- T002
+- T003
+- T004
+- T005
+phase: Phase 0 - Foundation
+assignee: ''
+agent: ''
+shell_pid: "49798"
+review_status: ''
+reviewed_by: ''
+history:
+- timestamp: '2026-02-21T19:45:00Z'
+  lane: planned
+  agent: system
+  shell_pid: ''
+  action: Prompt created via /spec-kitty.tasks
 ---
 
 # Work Package Prompt: WP01 – Foundation & Configuration
