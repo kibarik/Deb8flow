@@ -59,11 +59,11 @@ Error handling, signal management, and integration testing.
 - Docker dependency added to pyproject.toml
 
 **Included Subtasks**:
-- [ ] T001 – Create project structure and module hierarchy
-- [ ] T002 – Add Docker dependency to pyproject.toml
-- [ ] T003 – Implement OrchestratorConfig domain model
-- [ ] T004 – Create configuration loader adapter
-- [ ] T005 – Add configuration schema validation
+- [x] T001 – Create project structure and module hierarchy
+- [x] T002 – Add Docker dependency to pyproject.toml
+- [x] T003 – Implement OrchestratorConfig domain model
+- [x] T004 – Create configuration loader adapter
+- [x] T005 – Add configuration schema validation
 
 **Implementation Sketch**:
 1. Create `src/orchestrator/` directory with clean architecture subdirs
