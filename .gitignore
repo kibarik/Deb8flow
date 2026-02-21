@@ -161,3 +161,6 @@ cython_debug/
 committee_output/
 # Excluded via sparse-checkout
 kitty-specs/
+
+# Web directory
+web/
