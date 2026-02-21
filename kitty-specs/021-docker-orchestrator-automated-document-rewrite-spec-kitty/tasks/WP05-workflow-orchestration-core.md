@@ -1,10 +1,14 @@
 ---
 work_package_id: WP05
 title: Workflow Orchestration Core
-lane: planned
-dependencies: ["WP02", "WP03", "WP04"]
+lane: "doing"
+dependencies: [WP02, WP03, WP04]
+base_branch: 021-docker-orchestrator-automated-document-rewrite-spec-kitty-WP02
+base_commit: b8709ff21832280547a97707d77a0d508d2dd9e8
+created_at: '2026-02-21T23:18:50.114171+00:00'
 subtasks: [T027, T028, T029, T030, T031, T032, T033]
 phase: Phase 2 - Core Workflow
+shell_pid: "70386"
 history:
 - timestamp: '2026-02-21T19:45:00Z'
   lane: planned
