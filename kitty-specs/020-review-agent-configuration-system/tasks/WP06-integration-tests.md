@@ -1,9 +1,13 @@
 ---
 work_package_id: WP06
 title: Integration Tests
-lane: planned
+lane: "doing"
 dependencies: []
+base_branch: main
+base_commit: c3cca89a8b6cc1f938600e31e70a8e6503856943
+created_at: '2026-02-21T11:17:04.555523+00:00'
 subtasks: [T028, T029, T030, T031]
+shell_pid: "80791"
 history:
 - version: 1.0.0
   date: '2025-02-21'
