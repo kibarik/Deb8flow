@@ -1,8 +1,11 @@
 ---
 work_package_id: WP03
 title: Docker Container Management
-lane: planned
-dependencies: ["WP01"]
+lane: "doing"
+dependencies: [WP01]
+base_branch: 021-docker-orchestrator-automated-document-rewrite-spec-kitty-WP02
+base_commit: b8709ff21832280547a97707d77a0d508d2dd9e8
+created_at: '2026-02-21T22:22:23.885678+00:00'
 subtasks:
 - T012
 - T013
@@ -16,7 +19,7 @@ subtasks:
 phase: Phase 1 - Infrastructure
 assignee: ''
 agent: ''
-shell_pid: ''
+shell_pid: "51418"
 review_status: ''
 reviewed_by: ''
 history:
