@@ -1,7 +1,7 @@
 ---
 work_package_id: WP09
 title: Logging & Observability
-lane: "doing"
+lane: "for_review"
 dependencies: [WP01]
 base_branch: 021-docker-orchestrator-automated-document-rewrite-spec-kitty-WP01
 base_commit: efea11972a13c65db4a9d9082e60ae9e967d2558
@@ -65,3 +65,4 @@ Implement structured logging to files and optional verbose console output.
 
 ## Activity Log
 - 2026-02-21T19:45:00Z – system – lane=planned – Prompt created.
+- 2026-02-21T22:31:04Z – unknown – shell_pid=54551 – lane=for_review – Ready for review: Logging & Observability complete with 15 passing tests
