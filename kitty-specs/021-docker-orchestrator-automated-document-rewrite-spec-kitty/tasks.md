@@ -358,11 +358,11 @@ Error handling, signal management, and integration testing.
 - Log format matches existing patterns
 
 **Included Subtasks**:
-- [ ] T052 – Create LoggingSetup infrastructure
-- [ ] T053 – Implement structured log formatting
-- [ ] T054 – Add file logging with rotation
-- [ ] T055 – Implement verbose mode logging
-- [ ] T056 – Add log cleanup on startup
+- [x] T052 – Create LoggingSetup infrastructure
+- [x] T053 – Implement structured log formatting
+- [x] T054 – Add file logging with rotation
+- [x] T055 – Implement verbose mode logging
+- [x] T056 – Add log cleanup on startup
 
 **Implementation Sketch**:
 1. Create logging setup in infrastructure/logging.py
