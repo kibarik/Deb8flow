@@ -202,12 +202,12 @@ This document contains all work packages for implementing the Review Agent Confi
 **Summary**: Comprehensive unit tests for all configuration objects and merge logic.
 
 **Included Subtasks**:
-- [ ] T022: Test LLMConfig validation (temperature, top_p ranges, etc.)
-- [ ] T023: Test profile merge logic (inheritance, override behavior)
-- [ ] T024: Test CLI override logic (priority over profile)
-- [ ] T025: Test placeholder substitution (file_path, project_name, custom vars)
-- [ ] T026: Test configuration validation errors (all error paths)
-- [ ] T027: Test edge cases (missing profiles, empty configs, invalid types)
+- [x] T022: Test LLMConfig validation (temperature, top_p ranges, etc.)
+- [x] T023: Test profile merge logic (inheritance, override behavior)
+- [x] T024: Test CLI override logic (priority over profile)
+- [x] T025: Test placeholder substitution (file_path, project_name, custom vars)
+- [x] T026: Test configuration validation errors (all error paths)
+- [x] T027: Test edge cases (missing profiles, empty configs, invalid types)
 
 **Implementation Sketch**:
 1. Create `tests/unit/rewrite/test_review_config.py`
