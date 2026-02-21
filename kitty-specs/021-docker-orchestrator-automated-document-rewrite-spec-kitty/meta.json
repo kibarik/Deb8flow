@@ -1,0 +1,10 @@
+{
+  "feature_number": "021",
+  "slug": "021-docker-orchestrator-automated-document-rewrite-spec-kitty",
+  "friendly_name": "Docker Orchestrator for Automated Document Rewrite via Claude Code + Spec-Kitty",
+  "mission": "software-dev",
+  "source_description": "/spec-kitty.specify Создать Docker-оркестратор для автоматической доработки документов через Claude Code + Spec-Kitty. Запуск: poetry run python scripts/rewrite <source-file> <corrections-file>. В Python-скрипте поверх Claude Code работает отдельный AI-агент‑«вайб‑кодер», который следит за состоянием проекта, анализирует артефакты Spec-Kitty (spec, plan, tasks и т.д.) и сам отправляет команды в Claude Code/Spec‑Kit, его единственная миссия — довести весь workflow от начала до конца. Под капотом скрипт управляет Docker-контейнерами с преднастроенным окружением Claude Code + Spec-Kitty и необходимыми MCP/CLI‑инструментами, прогоняя документ через полный цикл: specify → research → plan → tasks → implement → review → accept. Режим работы полностью автоматический задаётся в config/debate_config.yaml, все паузы после /specify, /plan, /tasks, /implement обрабатываются этим агентом без участия человека, включая базовую валидацию качества промежуточных артефактов и ограниченные ретраи при неудаче. Выход: всегда новый исправленный файл рядом с исходником, оригинал сохраняется. Никакой кастомной разработки ядра агентов или собственных LLM — только оркестрация и настройка поверх уже существующих инструментов Claude Code + Spec-Kitty.",
+  "created_at": "2026-02-21T19:44:11Z",
+  "target_branch": "main",
+  "vcs": "git"
+}
