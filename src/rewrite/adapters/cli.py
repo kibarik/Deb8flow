@@ -4,6 +4,7 @@ CLI adapter for rewrite feature.
 Provides argument parsing and validation for the rewrite command.
 """
 import argparse
+import json
 import logging
 import re
 from pathlib import Path
@@ -18,6 +19,62 @@ logger = logging.getLogger(__name__)
 # Constants
 DEFAULT_MAX_ROUNDS = None  # None = use config default
 DEFAULT_OUTPUT = None  # None = overwrite source
+
+
+def find_latest_committee_run() -> tuple[Optional[Path], Optional[Path]]:
+    """
+    Find the latest committee run directory and return paths to conclusion.md and source file.
+
+    Returns:
+        Tuple of (conclusion_path, source_file_path) or (None, None) if not found
+    """
+    committee_dir = Path("committee_output")
+    if not committee_dir.exists():
+        return None, None
+
+    # Find all conclusion.md files and sort by modification time
+    conclusion_files = list(committee_dir.glob("*/conclusion.md"))
+    if not conclusion_files:
+        return None, None
+
+    # Sort by modification time (newest first)
+    conclusion_files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+    latest_conclusion = conclusion_files[0]
+    run_dir = latest_conclusion.parent
+
+    # Try to get source file from metadata.json
+    metadata_file = run_dir / "metadata.json"
+    source_file = None
+
+    if metadata_file.exists():
+        try:
+            with open(metadata_file, "r", encoding="utf-8") as f:
+                metadata = json.load(f)
+            prd_path = metadata.get("prd_path")
+            if prd_path:
+                source_file = Path(prd_path)
+                if source_file.exists():
+                    logger.info(f"Found source file from metadata: {source_file}")
+                else:
+                    # Try relative path from run directory
+                    source_file = run_dir / Path(prd_path).name
+                    if source_file.exists():
+                        logger.info(f"Found source file in run directory: {source_file}")
+                    else:
+                        source_file = None
+        except Exception as e:
+            logger.debug(f"Could not read metadata.json: {e}")
+
+    # If no source file from metadata, look for document files in run directory
+    if source_file is None:
+        for ext in [".docx", ".md", ".txt"]:
+            candidates = list(run_dir.glob(f"*{ext}"))
+            if candidates:
+                source_file = candidates[0]
+                logger.info(f"Found source file in run directory: {source_file}")
+                break
+
+    return latest_conclusion, source_file
 
 
 class RewriteCliInput(BaseModel):
@@ -134,7 +191,10 @@ def create_argument_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Basic rewrite (AI-powered by default)
+  # Quick mode - use latest committee run (auto-detects file and conclusion)
+  %(prog)s
+
+  # Basic rewrite with explicit paths
   %(prog)s --file prd.md --conclusion committee_output/RUN_123/conclusion.md
 
   # Custom round limit
@@ -148,24 +208,30 @@ Examples:
 
   # Disable AI (mechanical text replacement only)
   %(prog)s --file prd.md --conclusion ... --no-ai
+
+Quick Mode:
+  When --file and --conclusion are not specified, the script will:
+  - Find the most recent committee run in committee_output/
+  - Use its conclusion.md
+  - Extract the source file path from metadata.json
         """
     )
 
-    # Required arguments
+    # Optional arguments (auto-detect if not specified)
     parser.add_argument(
         "--file",
         type=Path,
-        required=True,
+        required=False,
         metavar="PATH",
-        help="Path to source document to modify (.md, .txt, .docx)"
+        help="Path to source document to modify (.md, .txt, .docx). Auto-detected from latest committee run if not specified."
     )
 
     parser.add_argument(
         "--conclusion",
         type=Path,
-        required=True,
+        required=False,
         metavar="PATH",
-        help="Path to conclusion.md with revisions"
+        help="Path to conclusion.md with revisions. Auto-detected from latest committee run if not specified."
     )
 
     # Optional arguments
@@ -230,6 +296,8 @@ def parse_arguments(args: dict) -> RewriteCliInput:
     """
     Parse raw CLI arguments dict to validated RewriteCliInput.
 
+    If file or conclusion are not specified, auto-detect from latest committee run.
+
     Args:
         args: Dictionary of CLI arguments (e.g., from argparse.Namespace)
 
@@ -239,10 +307,36 @@ def parse_arguments(args: dict) -> RewriteCliInput:
     Raises:
         ValueError: If validation fails
     """
+    # Auto-detect if not specified
+    file_path = args.get("file")
+    conclusion_path = args.get("conclusion")
+
+    if file_path is None or conclusion_path is None:
+        logger.info("No --file or --conclusion specified, auto-detecting from latest committee run...")
+        auto_conclusion, auto_file = find_latest_committee_run()
+
+        if conclusion_path is None:
+            if auto_conclusion is None:
+                raise ValueError(
+                    "Could not auto-detect conclusion.md. Please specify --conclusion argument.\n"
+                    "Run the committee first: python3 scripts/product_committee --file <document>"
+                )
+            conclusion_path = auto_conclusion
+            logger.info(f"Auto-detected conclusion: {conclusion_path}")
+
+        if file_path is None:
+            if auto_file is None:
+                raise ValueError(
+                    "Could not auto-detect source file from metadata.json.\n"
+                    "Please specify --file argument."
+                )
+            file_path = auto_file
+            logger.info(f"Auto-detected source file: {file_path}")
+
     # Map argparse argument names to Pydantic field names
     mapped_args = {
-        "file_path": args.get("file"),
-        "conclusion_path": args.get("conclusion"),
+        "file_path": file_path,
+        "conclusion_path": conclusion_path,
         "max_rounds": args.get("max_rounds"),
         "batch_size": args.get("batch_size"),
         "output_path": args.get("output"),

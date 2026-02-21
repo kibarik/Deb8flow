@@ -68,7 +68,7 @@ def main():
         )
 
         # Get batch_size from CLI or config
-        batch_size = cli_input.batch_size if cli_input.batch_size is not None else config.get("batch_size", 5)
+        batch_size = cli_input.batch_size if cli_input.batch_size is not None else config.batch_size
 
         # Create dependencies
         parser_obj = ConclusionParser()
