@@ -362,7 +362,8 @@ class StructuredAIDocumentEditor:
             temperature=temperature,
             max_tokens=3000,  # Lower for more focused output
             api_key=api_key,
-            base_url=base_url
+            base_url=base_url,
+            max_retries=0  # Disable built-in retry - we handle retries at orchestration level
         )
 
         self.analyzer = ConclusionAnalyzer()

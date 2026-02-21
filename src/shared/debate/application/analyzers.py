@@ -16,6 +16,10 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 logger = logging.getLogger(__name__)
 
+# Suppress httpx and httpcore INFO logs for takeaway generation
+logging.getLogger('httpx').setLevel(logging.WARNING)
+logging.getLogger('httpcore').setLevel(logging.WARNING)
+
 
 @dataclass
 class TakeawayConfig:
@@ -57,6 +61,7 @@ class TakeawayAnalyzer:
             "model": self.config.model or "gpt-4o",
             "temperature": 0.5,  # Lower temperature for more focused analysis
             "max_tokens": 4000,  # Increased for complete takeaway generation
+            "max_retries": 0,  # Disable built-in retry - we handle retries at orchestration level
         }
 
         if self.config.api_key:
@@ -121,7 +126,7 @@ class TakeawayAnalyzer:
             if len(takeaways) > self.config.max_takeaways:
                 takeaways = takeaways[:self.config.max_takeaways]
 
-            logger.info(f"Generated {len(takeaways)} takeaways")
+            logger.debug(f"Generated {len(takeaways)} takeaways")
             return takeaways
 
         except Exception as e:

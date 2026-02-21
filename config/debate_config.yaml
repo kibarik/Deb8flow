@@ -13,12 +13,20 @@ llm:
   # Other OpenAI-compatible APIs: provide your base URL
   base_url: "${DEBATE_BASE_URL:}"
 
-  # Model name
+  # Primary model name
   # OpenAI examples: gpt-4o, gpt-4o-mini, gpt-3.5-turbo
-  # DeepSeek: deepseek-chat, deepseek-coder
+  # DeepSeek: deepseek-chat, deepseek-coder, deepseek-reasoner
   # Zhipu AI: glm-4, glm-3-turbo
-  # Anthropic (via compatibility): claude-3-5-sonnet-20241022
+  # Anthropic (via compatibility): claude-3-5-sonnet-20241022, claude-3-5-haiku-20241022
+  # Coding models: coding/gemini-2.5-pro, coding/claude-3-5-haiku-20241022
   model: "${DEBATE_MODEL:gpt-4o-mini}"
+
+  # Fallback models to use when primary model hits rate limits (429)
+  # These will be tried in order if the primary model fails
+  fallback_models:
+    - "deepseek/deepseek-reasoner"
+    - "coding/gemini-2.5-pro"
+    - "anthropic/claude-3-5-haiku-20241022"
 
   # API Key
   # Reads from OPENAI_API_KEY from .env file
@@ -78,6 +86,7 @@ prompts:
 
   # Role prompts (optional - fallback to config/prompts/roles/)
   roles:
+    po: "src/prompts/roles/po.md"
     tpm: "src/prompts/roles/tpm.md"
     cpo: "src/prompts/roles/cpo.md"
     cfo: "src/prompts/roles/cfo.md"
@@ -91,13 +100,15 @@ agents:
   # Main agent (PRO position) - REQUIRED
   # This agent argues FOR the project
   main:
-    name: "TPM"
-    prompt: "config/prompts/roles/tpm.txt"
+    name: "PO"
+    prompt: "config/prompts/roles/po.txt"
 
   # Opponents (CON position) - OPTIONAL
   # These agents argue AGAINST the project
   # Remove or comment out any opponents you don't want to include
   opponents:
+    - name: "TPM"
+      prompt: "config/prompts/roles/tpm.txt"
     - name: "CPO"
       prompt: "config/prompts/roles/cpo.txt"
     - name: "CFO"

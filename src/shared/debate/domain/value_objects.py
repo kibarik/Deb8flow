@@ -64,3 +64,4 @@ class RoomStatus(Enum):
     SUCCESS = "success"
     FAILED = "failed"
     SKIPPED = "skipped"
+    TIMEOUT = "timeout"  # Debate timed out but partial results are available

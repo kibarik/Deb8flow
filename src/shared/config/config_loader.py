@@ -101,6 +101,7 @@ class LLMConfig(BaseModel):
     """LLM provider configuration."""
     base_url: str = Field(default="", description="API base URL (empty for OpenAI default)")
     model: str = Field(default="gpt-4o-mini", description="Model name")
+    fallback_models: list[str] = Field(default_factory=list, description="Fallback models to try on rate limits")
     api_key: str = Field(default="", description="API key (empty to use env var)")
     temperature: float = Field(default=0.8, ge=0.0, le=2.0)
     max_tokens: int = Field(default=5000, ge=1, le=32000)
@@ -123,6 +124,10 @@ class LLMConfig(BaseModel):
     def get_effective_base_url(self) -> Optional[str]:
         """Get the effective base URL (None for OpenAI default)."""
         return self.base_url if self.base_url else None
+
+    def get_all_models(self) -> list[str]:
+        """Get all models (primary + fallbacks)."""
+        return [self.model] + self.fallback_models
 
 
 class DebateConfig(BaseModel):

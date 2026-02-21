@@ -67,6 +67,7 @@ class LLMDebateOrchestrator:
         self,
         prompt_loader=None,  # Optional PromptLoader
         model: Optional[str] = None,
+        fallback_models: Optional[list[str]] = None,
         temperature: float = 0.7,
         max_tokens: int = 5000,
         api_key: Optional[str] = None,
@@ -80,7 +81,8 @@ class LLMDebateOrchestrator:
 
         Args:
             prompt_loader: PromptLoader for loading prompts (optional, for backward compatibility)
-            model: Model name (e.g., "gpt-4o", "gpt-3.5-turbo")
+            model: Primary model name (e.g., "gpt-4o", "gpt-3.5-turbo")
+            fallback_models: List of fallback models to try on rate limits
             temperature: Sampling temperature for creativity
             max_tokens: Maximum tokens per response
             api_key: OpenAI API key (or compatible)
@@ -90,31 +92,56 @@ class LLMDebateOrchestrator:
             json_output_path: Path to save progressive JSON state (optional)
         """
         self.prompt_loader = prompt_loader  # Store PromptLoader (may be None)
-        self.model = model or "gpt-4o"
+        self.primary_model = model or "gpt-4o"
+        self.fallback_models = fallback_models or []
+        self.all_models = [self.primary_model] + self.fallback_models
+        self.current_model_index = 0  # Start with primary model
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.language = language
         self.room_id = room_id or "Debate"
         self.json_output_path = json_output_path
+        self.api_key = api_key
+        self.base_url = base_url
 
-        # Initialize LLM
-        llm_kwargs = {
-            "model": self.model,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-        }
-
-        if api_key:
-            llm_kwargs["api_key"] = api_key
-        if base_url:
-            llm_kwargs["base_url"] = base_url
-
-        self.llm = ChatOpenAI(**llm_kwargs)
+        # Initialize LLM with primary model
+        self.llm = self._create_llm(self.primary_model)
 
         # Debate history
         self.messages: List[DebateMessage] = []
         self._current_stage = 0
         self._total_stages = 9  # 8 debate stages + verdict
+
+    def _create_llm(self, model: str) -> ChatOpenAI:
+        """Create a ChatOpenAI instance for the given model."""
+        llm_kwargs = {
+            "model": model,
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
+            "max_retries": 0,  # Disable built-in retry - we handle retries at orchestration level
+        }
+
+        if self.api_key:
+            llm_kwargs["api_key"] = self.api_key
+        if self.base_url:
+            llm_kwargs["base_url"] = self.base_url
+
+        return ChatOpenAI(**llm_kwargs)
+
+    def _switch_to_next_model(self) -> bool:
+        """Switch to next available model. Returns True if successful, False if no more models."""
+        if self.current_model_index + 1 < len(self.all_models):
+            self.current_model_index += 1
+            new_model = self.all_models[self.current_model_index]
+            self.llm = self._create_llm(new_model)
+            print(f"  ⚠️ Switching to fallback model: {new_model}", file=sys.stderr, flush=True)
+            return True
+        return False
+
+    @property
+    def model(self) -> str:
+        """Get current model name."""
+        return self.all_models[self.current_model_index]
 
     def _log_stage(self, stage_name: str, speaker: str, action: str = "generating"):
         """Log debate stage progress to stderr for realtime feedback."""
@@ -131,6 +158,12 @@ class LLMDebateOrchestrator:
 
         Args:
             winner: Optional winner string if verdict is complete
+
+        Note:
+            Errors during saving are logged but DO NOT fail the debate.
+            The debate result (winner, messages) is still returned to the caller
+            even if saving fails. This prevents losing completed debates due to
+            disk space issues.
         """
         if not self.json_output_path:
             return
@@ -144,18 +177,49 @@ class LLMDebateOrchestrator:
                 "in_progress": winner is None  # True if debate still ongoing
             }
 
-            # Write to file atomically
-            import tempfile
-            import shutil
+            # Ensure parent directory exists
+            self.json_output_path.parent.mkdir(parents=True, exist_ok=True)
 
             # Write to temp file first, then move (atomic operation)
+            # Use asyncio.to_thread to ensure synchronous operations complete
+            import shutil
+
             temp_path = self.json_output_path.with_suffix('.tmp')
-            temp_path.write_text(
+
+            # Write and flush synchronously to ensure data is on disk
+            await asyncio.to_thread(
+                temp_path.write_text,
                 json.dumps(output_data, indent=2, ensure_ascii=False),
                 encoding="utf-8"
             )
-            shutil.move(str(temp_path), str(self.json_output_path))
 
+            # Move atomically (ensuring data is persisted)
+            await asyncio.to_thread(
+                shutil.move,
+                str(temp_path),
+                str(self.json_output_path)
+            )
+
+            # Verify the file was written (read back to confirm)
+            verification = await asyncio.to_thread(
+                self.json_output_path.read_text,
+                encoding="utf-8"
+            )
+            if not verification:
+                logger.warning(f"Verification failed: JSON file appears empty after write")
+
+            # Log successful save with current stage for debugging
+            stage_symbols = ["⚪", "🟡", "🟠", "🔴", "🟤", "🔵", "🟣", "⚫", "🟢"]
+            symbol = stage_symbols[min(self._current_stage, len(stage_symbols) - 1)]
+            print(f"{symbol} [{self.room_id}] Stage {self._current_stage}/{self._total_stages} - json_updated - {self.json_output_path}", file=sys.stderr, flush=True)
+            logger.debug(f"Progressive state saved: stage {self._current_stage}/{self._total_stages}, messages: {len(self.messages)}")
+
+        except OSError as e:
+            # Specifically handle disk space errors
+            if e.errno == 28:  # ENOSPC - No space left on device
+                logger.error(f"Disk full - cannot save debate state to {self.json_output_path}. Debate will continue without saving.")
+            else:
+                logger.warning(f"OS error saving progressive state: {e}")
         except Exception as e:
             # Don't fail the debate if saving fails
             logger.warning(f"Failed to save progressive state: {e}")
@@ -267,7 +331,6 @@ PRD Content:
 
         # PRO opening
         self._current_stage = 1
-        self._log_stage("Opening Statement", "PRO")
         if self.prompt_loader:
             try:
                 pro_template = self.prompt_loader.load_with_context(
@@ -287,12 +350,10 @@ PRD Content:
             speaker="PRO"
         )
         self.messages.append(DebateMessage("PRO", pro_response, "opening", validated=True))
-        print(f"  ✓ PRO opening completed ({len(pro_response)} chars)", file=sys.stderr, flush=True)
         await self._save_progressive_state()  # Save after PRO opening
 
         # CON opening
         self._current_stage = 2
-        self._log_stage("Opening Statement", "CON")
         if self.prompt_loader:
             try:
                 con_template = self.prompt_loader.load_with_context(
@@ -312,7 +373,6 @@ PRD Content:
             speaker="CON"
         )
         self.messages.append(DebateMessage("CON", con_response, "opening", validated=True))
-        self._log_completed(f"CON opening completed ({len(con_response)} chars)")
         await self._save_progressive_state()  # Save after CON opening
 
     async def _run_rebuttals(self, context: str, pro_prompt: str, con_prompt: str):
@@ -322,7 +382,6 @@ PRD Content:
 
         # CON rebuttal (responds to PRO's opening)
         self._current_stage = 3
-        self._log_stage("Rebuttal", "CON")
         con_rebuttal = await self._generate_response(
             system_prompt=con_prompt,
             human_prompt=f"{context}\n\n{recent_context}\n\nNow provide your rebuttal to the PRO's opening statement. Address their specific points and explain why you disagree.",
@@ -330,12 +389,10 @@ PRD Content:
             speaker="CON"
         )
         self.messages.append(DebateMessage("CON", con_rebuttal, "rebuttal", validated=True))
-        self._log_completed(f"CON rebuttal completed ({len(con_rebuttal)} chars)")
         await self._save_progressive_state()  # Save after CON rebuttal
 
         # PRO rebuttal
         self._current_stage = 4
-        self._log_stage("Rebuttal", "PRO")
         recent_context = self._get_recent_context()
         pro_rebuttal = await self._generate_response(
             system_prompt=pro_prompt,
@@ -344,7 +401,6 @@ PRD Content:
             speaker="PRO"
         )
         self.messages.append(DebateMessage("PRO", pro_rebuttal, "rebuttal", validated=True))
-        self._log_completed(f"PRO rebuttal completed ({len(pro_rebuttal)} chars)")
         await self._save_progressive_state()  # Save after PRO rebuttal
 
     async def _run_counter_arguments(self, context: str, pro_prompt: str, con_prompt: str):
@@ -353,7 +409,6 @@ PRD Content:
 
         # PRO counter
         self._current_stage = 5
-        self._log_stage("Counter-argument", "PRO")
         pro_counter = await self._generate_response(
             system_prompt=pro_prompt,
             human_prompt=f"{context}\n\n{recent_context}\n\nNow provide a counter-argument. Offer new perspectives or evidence that strengthens your position while directly addressing the opponent's latest points.",
@@ -361,12 +416,10 @@ PRD Content:
             speaker="PRO"
         )
         self.messages.append(DebateMessage("PRO", pro_counter, "counter", validated=True))
-        self._log_completed(f"PRO counter-argument completed ({len(pro_counter)} chars)")
         await self._save_progressive_state()  # Save after PRO counter
 
         # CON counter
         self._current_stage = 6
-        self._log_stage("Counter-argument", "CON")
         recent_context = self._get_recent_context()
         con_counter = await self._generate_response(
             system_prompt=con_prompt,
@@ -375,7 +428,6 @@ PRD Content:
             speaker="CON"
         )
         self.messages.append(DebateMessage("CON", con_counter, "counter", validated=True))
-        self._log_completed(f"CON counter-argument completed ({len(con_counter)} chars)")
         await self._save_progressive_state()  # Save after CON counter
 
     async def _run_final_arguments(self, context: str, pro_prompt: str, con_prompt: str):
@@ -384,7 +436,6 @@ PRD Content:
 
         # PRO final
         self._current_stage = 7
-        self._log_stage("Final Argument", "PRO")
         pro_final = await self._generate_response(
             system_prompt=pro_prompt,
             human_prompt=f"{context}\n\n{recent_context}\n\nThis is your final argument. Summarize your strongest points and explain why your position should prevail. Be compelling but fair.",
@@ -392,12 +443,10 @@ PRD Content:
             speaker="PRO"
         )
         self.messages.append(DebateMessage("PRO", pro_final, "final_argument", validated=True))
-        self._log_completed(f"PRO final completed ({len(pro_final)} chars)")
         await self._save_progressive_state()  # Save after PRO final
 
         # CON final
         self._current_stage = 8
-        self._log_stage("Final Argument", "CON")
         recent_context = self._get_recent_context()
         con_final = await self._generate_response(
             system_prompt=con_prompt,
@@ -406,7 +455,6 @@ PRD Content:
             speaker="CON"
         )
         self.messages.append(DebateMessage("CON", con_final, "final_argument", validated=True))
-        self._log_completed(f"CON final completed ({len(con_final)} chars)")
         await self._save_progressive_state()  # Save after CON final
 
     async def _run_verdict(self, context: str) -> str:
@@ -417,7 +465,6 @@ PRD Content:
         question = context.split("Question:")[-1].strip() if "Question:" in context else ""
 
         self._current_stage = 9
-        self._log_stage("Verdict", "JUDGE")
 
         if self.prompt_loader:
             try:
@@ -460,7 +507,6 @@ Provide your verdict with:
             speaker="JUDGE"
         )
         self.messages.append(DebateMessage("JUDGE", verdict, "verdict", validated=True))
-        self._log_completed(f"JUDGE verdict completed ({len(verdict)} chars)")
 
         # Extract winner from verdict
         if "WINNER: PRO" in verdict.upper():
@@ -496,26 +542,86 @@ Provide your verdict with:
         stage: str,
         speaker: str
     ) -> str:
-        """Generate a response using the LLM."""
-        try:
-            messages = [
-                SystemMessage(content=system_prompt),
-                HumanMessage(content=human_prompt)
-            ]
+        """Generate a response using the LLM with fallback to other models on rate limits."""
+        max_model_attempts = len(self.all_models)
 
-            response = await asyncio.to_thread(
-                self.llm.invoke,
-                messages
-            )
+        for attempt in range(max_model_attempts):
+            try:
+                messages = [
+                    SystemMessage(content=system_prompt),
+                    HumanMessage(content=human_prompt)
+                ]
 
-            content = response.content.strip()
-            logger.debug(f"{speaker} ({stage}): {content[:100]}...")
+                # Estimate request tokens (rough approximation: 1 token ~= 4 chars)
+                request_text = system_prompt + human_prompt
+                estimated_req_tokens = len(request_text) // 4
 
-            return content
+                # Normalize stage name for display (uppercase, replace final_argument with FINAL)
+                stage_display = stage.upper().replace("FINAL_ARGUMENT", "FINAL")
 
-        except Exception as e:
-            logger.error(f"Error generating response for {speaker} at {stage}: {e}")
-            raise
+                # Log request tokens BEFORE API call
+                stage_symbols = ["⚪", "🟡", "🟠", "🔴", "🟤", "🔵", "🟣", "⚫", "🟢"]
+                symbol = stage_symbols[self._current_stage % len(stage_symbols)]
+                # For verdict (stage 9), display stage 9, not 10
+                display_stage = self._current_stage if self._current_stage == 9 else self._current_stage + 1
+                print(f"{symbol} [{self.room_id}] Stage {display_stage}/{self._total_stages} - {speaker} - {stage_display} - {self.model} - {estimated_req_tokens} req/tokens", file=sys.stderr, flush=True)
+
+                response = await asyncio.to_thread(
+                    self.llm.invoke,
+                    messages
+                )
+
+                content = response.content.strip()
+                logger.debug(f"{speaker} ({stage}): {content[:100]}...")
+
+                # Extract response tokens from LangChain response metadata
+                res_tokens = 0
+                if hasattr(response, 'response_metadata'):
+                    # Check for OpenAI format usage
+                    if 'usage' in response.response_metadata:
+                        usage = response.response_metadata['usage']
+                        if isinstance(usage, dict):
+                            res_tokens = usage.get('completion_tokens', 0)
+                if hasattr(response, 'usage_metadata'):
+                    # LangChain's usage_metadata
+                    res_tokens = response.usage_metadata.get('output_tokens', 0) or response.usage_metadata.get('completion_tokens', 0)
+
+                # Fallback: estimate from response content
+                if res_tokens == 0:
+                    res_tokens = len(content) // 4
+
+                # Log response tokens AFTER API call
+                # For verdict (stage 9), display stage 9, not 10
+                display_stage = self._current_stage if self._current_stage == 9 else self._current_stage + 1
+                print(f"{symbol} [{self.room_id}] Stage {display_stage}/{self._total_stages} - {speaker} - {stage_display} - {self.model} - {res_tokens} res/tokens", file=sys.stderr, flush=True)
+
+                # Successfully generated response
+                if attempt > 0:
+                    print(f"  ✓ Generated using model: {self.model}", file=sys.stderr, flush=True)
+
+                return content
+
+            except Exception as e:
+                error_str = str(e).lower()
+
+                # Check if this is a rate limit error (429)
+                is_rate_limit = (
+                    "429" in error_str or
+                    "rate limit" in error_str or
+                    "resource exhausted" in error_str
+                )
+
+                if is_rate_limit and self._switch_to_next_model():
+                    # Try next model
+                    logger.warning(f"Rate limit hit for {self.all_models[self.current_model_index - 1]}, switching to {self.model}")
+                    continue
+                else:
+                    # Not a rate limit or no more models - fail
+                    logger.error(f"Error generating response for {speaker} at {stage}: {e}")
+                    raise
+
+        # All models failed
+        raise RuntimeError(f"Failed to generate response for {speaker} at {stage} after trying all models")
 
 
 class SimpleDebateOrchestrator:
@@ -530,6 +636,7 @@ class SimpleDebateOrchestrator:
         self,
         prompt_loader=None,  # Optional PromptLoader
         model: Optional[str] = None,
+        fallback_models: Optional[list[str]] = None,
         temperature: float = 0.8,
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
@@ -538,23 +645,48 @@ class SimpleDebateOrchestrator:
     ):
         """Initialize the simple debate orchestrator."""
         self.prompt_loader = prompt_loader  # Store PromptLoader (may be None)
-        self.model = model or "gpt-4o"
+        self.primary_model = model or "gpt-4o"
+        self.fallback_models = fallback_models or []
+        self.all_models = [self.primary_model] + self.fallback_models
+        self.current_model_index = 0  # Start with primary model
         self.temperature = temperature
         self.language = language
         self.json_output_path = json_output_path  # Stored for compatibility
+        self.api_key = api_key
+        self.base_url = base_url
 
+        self.llm = self._create_llm(self.primary_model)
+
+    def _create_llm(self, model: str) -> ChatOpenAI:
+        """Create a ChatOpenAI instance for the given model."""
         llm_kwargs = {
-            "model": self.model,
-            "temperature": temperature,
+            "model": model,
+            "temperature": self.temperature,
             "max_tokens": 5000,
+            "max_retries": 0,  # Disable built-in retry - we handle retries at orchestration level
         }
 
-        if api_key:
-            llm_kwargs["api_key"] = api_key
-        if base_url:
-            llm_kwargs["base_url"] = base_url
+        if self.api_key:
+            llm_kwargs["api_key"] = self.api_key
+        if self.base_url:
+            llm_kwargs["base_url"] = self.base_url
 
-        self.llm = ChatOpenAI(**llm_kwargs)
+        return ChatOpenAI(**llm_kwargs)
+
+    def _switch_to_next_model(self) -> bool:
+        """Switch to next available model. Returns True if successful, False if no more models."""
+        if self.current_model_index + 1 < len(self.all_models):
+            self.current_model_index += 1
+            new_model = self.all_models[self.current_model_index]
+            self.llm = self._create_llm(new_model)
+            print(f"  ⚠️ Switching to fallback model: {new_model}", file=sys.stderr, flush=True)
+            return True
+        return False
+
+    @property
+    def model(self) -> str:
+        """Get current model name."""
+        return self.all_models[self.current_model_index]
 
     async def execute_debate(
         self,
@@ -593,25 +725,51 @@ class SimpleDebateOrchestrator:
         else:
             debate_prompt = self._get_fallback_prompt(question, topic, prd_content, language_instruction, pro_prompt, con_prompt)
 
-        try:
-            response = await asyncio.to_thread(
-                self.llm.invoke,
-                [HumanMessage(content=debate_prompt)]
-            )
+        # Try with primary model and fallbacks
+        max_model_attempts = len(self.all_models)
 
-            content = response.content.strip()
+        for attempt in range(max_model_attempts):
+            try:
+                response = await asyncio.to_thread(
+                    self.llm.invoke,
+                    [HumanMessage(content=debate_prompt)]
+                )
 
-            # Parse the response into structured dialogue
-            dialogue = self._parse_debate_response(content)
+                content = response.content.strip()
 
-            # Extract winner
-            winner = self._extract_winner_from_dialogue(dialogue)
+                # Successfully generated response
+                if attempt > 0:
+                    print(f"  ✓ Generated using model: {self.model}", file=sys.stderr, flush=True)
 
-            return dialogue, winner
+                # Parse the response into structured dialogue
+                dialogue = self._parse_debate_response(content)
 
-        except Exception as e:
-            logger.error(f"Simple debate execution failed: {e}")
-            raise
+                # Extract winner
+                winner = self._extract_winner_from_dialogue(dialogue)
+
+                return dialogue, winner
+
+            except Exception as e:
+                error_str = str(e).lower()
+
+                # Check if this is a rate limit error (429)
+                is_rate_limit = (
+                    "429" in error_str or
+                    "rate limit" in error_str or
+                    "resource exhausted" in error_str
+                )
+
+                if is_rate_limit and self._switch_to_next_model():
+                    # Try next model
+                    logger.warning(f"Rate limit hit for {self.all_models[self.current_model_index - 1]}, switching to {self.model}")
+                    continue
+                else:
+                    # Not a rate limit or no more models - fail
+                    logger.error(f"Simple debate execution failed: {e}")
+                    raise
+
+        # All models failed
+        raise RuntimeError(f"Failed to generate debate after trying all models")
 
     def _get_language_instruction(self) -> str:
         """Get language instruction string."""

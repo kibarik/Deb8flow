@@ -15,8 +15,12 @@ import json
 import logging
 import os
 import sys
+import warnings
 from pathlib import Path
 from typing import Optional
+
+# Suppress Pydantic warnings for Python 3.14
+warnings.filterwarnings("ignore", message="Core Pydantic V1 functionality isn't compatible with Python 3.14")
 
 # Add the src directory to the path for imports
 # Need parent directory (project root) since src is at the root
@@ -33,6 +37,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Suppress httpx and httpcore INFO logs
+logging.getLogger('httpx').setLevel(logging.WARNING)
+logging.getLogger('httpcore').setLevel(logging.WARNING)
+
 
 def parse_arguments():
     """Parse command line arguments with environment variable support."""
@@ -47,6 +55,7 @@ def parse_arguments():
 
     # LLM parameters - CLI args override environment variables
     parser.add_argument("--model", help="LLM model name (default: from env or gpt-4o-mini)")
+    parser.add_argument("--fallback-models", help="Comma-separated list of fallback models (default: from config)")
     parser.add_argument("--language", help="Language for output")
     parser.add_argument("--json-output", help="Path to save JSON output")
     parser.add_argument("--temperature", type=float,
@@ -225,7 +234,7 @@ async def run_debate(
             prd_content=text
         )
 
-        logger.info(f"Debate completed. Winner: {winner}. Messages: {len(dialogue)}")
+        logger.debug(f"Debate completed. Winner: {winner}. Messages: {len(dialogue)}")
 
         result = {
             "dialogue": dialogue,
