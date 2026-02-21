@@ -1,9 +1,13 @@
 ---
 work_package_id: WP05
 title: Unit Tests
-lane: planned
+lane: "doing"
 dependencies: []
+base_branch: main
+base_commit: 26ced25b87753d9fdce674934cd27e98783c37d0
+created_at: '2026-02-21T11:15:23.035721+00:00'
 subtasks: [T022, T023, T024, T025, T026, T027]
+shell_pid: "80478"
 history:
 - version: 1.0.0
   date: '2025-02-21'
