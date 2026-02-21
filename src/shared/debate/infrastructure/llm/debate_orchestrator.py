@@ -68,11 +68,12 @@ class LLMDebateOrchestrator:
         prompt_loader=None,  # Optional PromptLoader
         model: Optional[str] = None,
         temperature: float = 0.7,
-        max_tokens: int = 1000,
+        max_tokens: int = 5000,
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
         language: str = "en",
-        room_id: Optional[str] = None  # For logging
+        room_id: Optional[str] = None,  # For logging
+        json_output_path: Optional[Path] = None  # For progressive saving
     ):
         """
         Initialize the debate orchestrator.
@@ -86,6 +87,7 @@ class LLMDebateOrchestrator:
             base_url: Custom API base URL for compatible APIs
             language: Language code for debate output (e.g., "en", "ru", "de")
             room_id: Room identifier for logging (optional)
+            json_output_path: Path to save progressive JSON state (optional)
         """
         self.prompt_loader = prompt_loader  # Store PromptLoader (may be None)
         self.model = model or "gpt-4o"
@@ -93,6 +95,7 @@ class LLMDebateOrchestrator:
         self.max_tokens = max_tokens
         self.language = language
         self.room_id = room_id or "Debate"
+        self.json_output_path = json_output_path
 
         # Initialize LLM
         llm_kwargs = {
@@ -122,6 +125,40 @@ class LLMDebateOrchestrator:
     def _log_completed(self, message: str):
         """Log completion message to stderr for realtime feedback."""
         print(f"  ✓ {message}", file=sys.stderr, flush=True)
+
+    async def _save_progressive_state(self, winner: Optional[str] = None):
+        """Save current debate state to JSON file for progressive saving.
+
+        Args:
+            winner: Optional winner string if verdict is complete
+        """
+        if not self.json_output_path:
+            return
+
+        try:
+            # Create output data with current state
+            output_data = {
+                "messages": [msg.to_dict() for msg in self.messages],
+                "winner": winner,  # Will be None until verdict stage
+                "stage": f"{self._current_stage}/{self._total_stages}",
+                "in_progress": winner is None  # True if debate still ongoing
+            }
+
+            # Write to file atomically
+            import tempfile
+            import shutil
+
+            # Write to temp file first, then move (atomic operation)
+            temp_path = self.json_output_path.with_suffix('.tmp')
+            temp_path.write_text(
+                json.dumps(output_data, indent=2, ensure_ascii=False),
+                encoding="utf-8"
+            )
+            shutil.move(str(temp_path), str(self.json_output_path))
+
+        except Exception as e:
+            # Don't fail the debate if saving fails
+            logger.warning(f"Failed to save progressive state: {e}")
 
     async def execute_debate(
         self,
@@ -251,6 +288,7 @@ PRD Content:
         )
         self.messages.append(DebateMessage("PRO", pro_response, "opening", validated=True))
         print(f"  ✓ PRO opening completed ({len(pro_response)} chars)", file=sys.stderr, flush=True)
+        await self._save_progressive_state()  # Save after PRO opening
 
         # CON opening
         self._current_stage = 2
@@ -275,6 +313,7 @@ PRD Content:
         )
         self.messages.append(DebateMessage("CON", con_response, "opening", validated=True))
         self._log_completed(f"CON opening completed ({len(con_response)} chars)")
+        await self._save_progressive_state()  # Save after CON opening
 
     async def _run_rebuttals(self, context: str, pro_prompt: str, con_prompt: str):
         """Run rebuttal stage."""
@@ -292,6 +331,7 @@ PRD Content:
         )
         self.messages.append(DebateMessage("CON", con_rebuttal, "rebuttal", validated=True))
         self._log_completed(f"CON rebuttal completed ({len(con_rebuttal)} chars)")
+        await self._save_progressive_state()  # Save after CON rebuttal
 
         # PRO rebuttal
         self._current_stage = 4
@@ -305,6 +345,7 @@ PRD Content:
         )
         self.messages.append(DebateMessage("PRO", pro_rebuttal, "rebuttal", validated=True))
         self._log_completed(f"PRO rebuttal completed ({len(pro_rebuttal)} chars)")
+        await self._save_progressive_state()  # Save after PRO rebuttal
 
     async def _run_counter_arguments(self, context: str, pro_prompt: str, con_prompt: str):
         """Run counter-argument stage."""
@@ -321,6 +362,7 @@ PRD Content:
         )
         self.messages.append(DebateMessage("PRO", pro_counter, "counter", validated=True))
         self._log_completed(f"PRO counter-argument completed ({len(pro_counter)} chars)")
+        await self._save_progressive_state()  # Save after PRO counter
 
         # CON counter
         self._current_stage = 6
@@ -334,6 +376,7 @@ PRD Content:
         )
         self.messages.append(DebateMessage("CON", con_counter, "counter", validated=True))
         self._log_completed(f"CON counter-argument completed ({len(con_counter)} chars)")
+        await self._save_progressive_state()  # Save after CON counter
 
     async def _run_final_arguments(self, context: str, pro_prompt: str, con_prompt: str):
         """Run final argument stage."""
@@ -350,6 +393,7 @@ PRD Content:
         )
         self.messages.append(DebateMessage("PRO", pro_final, "final_argument", validated=True))
         self._log_completed(f"PRO final completed ({len(pro_final)} chars)")
+        await self._save_progressive_state()  # Save after PRO final
 
         # CON final
         self._current_stage = 8
@@ -363,6 +407,7 @@ PRD Content:
         )
         self.messages.append(DebateMessage("CON", con_final, "final_argument", validated=True))
         self._log_completed(f"CON final completed ({len(con_final)} chars)")
+        await self._save_progressive_state()  # Save after CON final
 
     async def _run_verdict(self, context: str) -> str:
         """Run the judge's verdict using PromptLoader."""
@@ -419,17 +464,22 @@ Provide your verdict with:
 
         # Extract winner from verdict
         if "WINNER: PRO" in verdict.upper():
-            return "PRO"
+            winner = "PRO"
         elif "WINNER: CON" in verdict.upper():
-            return "CON"
+            winner = "CON"
         else:
             # Try to determine from context
             if "pro wins" in verdict.lower() or "proposition wins" in verdict.lower():
-                return "PRO"
+                winner = "PRO"
             elif "con wins" in verdict.lower() or "opposition wins" in verdict.lower():
-                return "CON"
+                winner = "CON"
             # Default to PRO if unclear
-            return "PRO"
+            winner = "PRO"
+
+        # Save final state with winner
+        await self._save_progressive_state(winner=winner)
+
+        return winner
 
     def _get_recent_context(self) -> str:
         """Get recent debate messages for context."""
@@ -483,18 +533,20 @@ class SimpleDebateOrchestrator:
         temperature: float = 0.8,
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
-        language: str = "en"
+        language: str = "en",
+        json_output_path: Optional[Path] = None  # For compatibility (not used in simple mode)
     ):
         """Initialize the simple debate orchestrator."""
         self.prompt_loader = prompt_loader  # Store PromptLoader (may be None)
         self.model = model or "gpt-4o"
         self.temperature = temperature
         self.language = language
+        self.json_output_path = json_output_path  # Stored for compatibility
 
         llm_kwargs = {
             "model": self.model,
             "temperature": temperature,
-            "max_tokens": 1500,
+            "max_tokens": 5000,
         }
 
         if api_key:

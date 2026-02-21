@@ -53,7 +53,7 @@ class StandardDebateOrchestrator:
         prompt_loader: PromptLoader,
         model: Optional[str] = None,
         temperature: float = 0.7,
-        max_tokens: int = 1200,  # Lower per response, more responses
+        max_tokens: int = 5000,  # Allow full responses for proper debate
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
         language: str = "en"

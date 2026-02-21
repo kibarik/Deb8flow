@@ -253,5 +253,5 @@ ValueError: Prompt file is empty: src/prompts/debate/stages/opening_pro.md
 
 ## See Also
 
-- [PROMPTS.md](../PROMPTS.md) - Comprehensive prompt management guide
 - [README.md](../README.md) - Project overview and quick start
+- [docs/quickstart.md](quickstart.md) - Getting started guide

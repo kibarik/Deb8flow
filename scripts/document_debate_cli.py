@@ -65,7 +65,7 @@ def get_llm_config(args) -> tuple:
     Priority: CLI args > config file > environment variables > defaults
 
     Returns:
-        Tuple of (model, temperature, api_key, base_url)
+        Tuple of (model, temperature, api_key, base_url, max_tokens)
     """
     # Try to load config file first
     try:
@@ -77,17 +77,20 @@ def get_llm_config(args) -> tuple:
             default_temperature = llm_config.temperature
             default_api_key = llm_config.api_key
             default_base_url = llm_config.get_effective_base_url() or ""
+            default_max_tokens = getattr(llm_config, 'max_tokens', 5000)
         else:
             default_model = "gpt-4o-mini"
             default_temperature = 0.8
             default_api_key = ""
             default_base_url = ""
+            default_max_tokens = 5000
     except Exception:
         # Fallback to defaults if config loading fails
         default_model = "gpt-4o-mini"
         default_temperature = 0.8
         default_api_key = ""
         default_base_url = ""
+        default_max_tokens = 5000
 
     # Model: CLI args > config > env vars > default
     model = (args.model or
@@ -119,7 +122,11 @@ def get_llm_config(args) -> tuple:
                 os.environ.get("OPENAI_API_BASE") or
                 os.environ.get("API_BASE_URL") or "")
 
-    return model, temperature, api_key, base_url
+    # Max tokens: config > env vars > default (5000)
+    max_tokens_str = os.environ.get("DEBATE_MAX_TOKENS")
+    max_tokens = int(max_tokens_str) if max_tokens_str else default_max_tokens
+
+    return model, temperature, api_key, base_url, max_tokens
 
 
 async def run_debate(
@@ -132,6 +139,7 @@ async def run_debate(
     temperature: float,
     api_key: Optional[str],
     base_url: Optional[str],
+    max_tokens: int,
     room_id: Optional[str] = None
 ) -> dict:
     """
@@ -195,11 +203,12 @@ async def run_debate(
         prompt_loader=prompt_loader,
         model=model,
         temperature=temperature,
-        max_tokens=1000,
+        max_tokens=max_tokens,
         api_key=api_key,
         base_url=base_url if base_url else None,
         language=language or "en",
-        room_id=room_id or "Debate"
+        room_id=room_id or "Debate",
+        json_output_path=Path(json_output_path) if json_output_path else None  # Progressive saving
     )
 
     # Print start message to stderr for immediate feedback
@@ -224,11 +233,17 @@ async def run_debate(
             "summary": f"Debate completed with {len(dialogue)} messages. Winner: {winner}."
         }
 
-        # Save JSON output if requested
-        if json_output_path:
+        # Note: JSON is saved progressively by orchestrator during execution
+        # No need to save again here unless it failed
+        if json_output_path and not Path(json_output_path).exists():
+            # Fallback: if progressive saving failed, save now
             try:
+                output_data = {
+                    "messages": dialogue,
+                    "winner": winner
+                }
                 Path(json_output_path).write_text(
-                    json.dumps(dialogue, indent=2, ensure_ascii=False),
+                    json.dumps(output_data, indent=2, ensure_ascii=False),
                     encoding="utf-8"
                 )
                 logger.info(f"Saved dialogue to: {json_output_path}")
@@ -248,7 +263,7 @@ async def main():
 
     try:
         # Get LLM config from args or environment
-        model, temperature, api_key, base_url = get_llm_config(args)
+        model, temperature, api_key, base_url, max_tokens = get_llm_config(args)
 
         result = await run_debate(
             text=args.text,
@@ -260,6 +275,7 @@ async def main():
             temperature=temperature,
             api_key=api_key,
             base_url=base_url,
+            max_tokens=max_tokens,
             room_id=args.room_id
         )
 

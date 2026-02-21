@@ -34,7 +34,7 @@ llm:
   temperature: 0.8
 ```
 
-See [docs/CONFIG_GUIDE.md](docs/CONFIG_GUIDE.md) for provider examples (OpenAI, DeepSeek, Zhipu AI, Ollama).
+See `config/examples/` for provider configurations (OpenAI, DeepSeek, Zhipu AI, Ollama).
 
 **Option B: Using environment variables**
 
@@ -66,37 +66,50 @@ poetry run python main.py conclusion \
 ```
 
 ---
-## Recommended Questions
 
-Here are recommended questions for PRD analysis with the Product Committee:
+## Debate Question Formulation Guide
 
-**PRD Readiness & Completeness:**
+### Quick Checklist for Effective Questions
 
-> Считаете ли вы, что в текущем виде этот PRD достаточно конкретен и полон, чтобы стать рабочей основой годовой стратегии и планирования работы большой кросс‑функциональной команды, без того чтобы каждые две недели возвращаться к пересборке решений?
+| Criterion | Description |
+|-----------|-------------|
+| **Single Clear Thesis** | Format as an assertion or yes/no question where PRO = for, CON = against |
+| **Clear Document Role** | Specify the document's purpose: annual strategy, roadmap, cross-functional planning, etc. |
+| **Quality Criteria** | Include 2-4 criteria: clear, specific, complete, feasible, measurable |
+| **Yes/No Verifiability** | Avoid vague "good/bad" — formulation should allow an honest "yes" or "no" answer |
+| **Focus on Weak Points** | Add qualifiers to target document gaps (e.g., "with minimal need to revisit decisions") |
 
-> Do you believe this PRD is sufficiently specific and complete to serve as a working foundation for annual strategy and cross-functional team planning, without requiring frequent revisiting of decisions?
+### Example of a Well-Formulated Question
 
-**Feasibility Questions:**
+**Classic Debate Format ("This House Believes"):**
 
-> Заработает ли этот проект? / Will this project succeed?
+> This house believes that this PRD is sufficiently clear, specific, and complete to serve as the primary foundation for annual strategy and cross‑functional team planning.
 
-> Какова вероятность успешного запуска этого продукта на рынке? / What is the probability of successfully launching this product in the market?
+**Question Format:**
 
-**Strategic Questions:**
+> "Is this PRD sufficiently clear, specific, and complete to serve as the primary foundation for annual strategy and cross-functional planning, with minimal need to revisit key decisions during the year?"
 
-> Стоит ли инвестировать в этот проект? / Should we invest in this project?
+**What makes these formulations effective:**
+- Single thesis with clear PRO/CON positions
+- Specifies document role (annual strategy, cross-functional planning)
+- Includes quality criteria (clear, specific, complete)
+- Allows verifiable yes/no answer
+- Targets weak points (minimal need to revisit decisions)
 
-> Каковы основные риски и как их можно минимизировать? / What are the main risks and how can they be mitigated?
+### Question Anti-Patterns to Avoid
 
-**Custom Questions:**
+| ❌ Bad | ✅ Good |
+|-------|---------|
+| "What do you think about this PRD?" | "Is this PRD sufficiently complete to serve as a roadmap for Q1-Q2 execution?" |
+| "Is this document good?" | "Does this PRD contain enough technical detail to guide engineering implementation?" |
+| "Will we succeed?" | "Is the proposed business model viable given current market conditions?" |
+| "Should we build this?" | "Does the project have a defensible competitive moat that justifies the investment?" |
 
-You can ask any question relevant to your PRD analysis. The system will generate targeted debates across all committee perspectives (Product, Finance, Technology, Business).
+---
 
 ## Prompt Management
 
 Deb8flow uses file-based prompts for easy customization and debate quality enhancement.
-
-### Prompt Location
 
 All prompts are stored in `src/prompts/`:
 - `debate/stages/` - Individual stage prompts (opening, rebuttal, counter, final)
@@ -106,59 +119,25 @@ All prompts are stored in `src/prompts/`:
 - `analysis/` - Takeaway analysis prompts
 - `roles/` - Agent role descriptions (TPM, CPO, CFO, CTO, BDM)
 
-### Editing Prompts
+### Quick Edit
 
 1. Navigate to `src/prompts/`
 2. Open the relevant `.md` file
 3. Edit the prompt content
 4. Run debates - changes take effect immediately
 
-### Template Variables
-
-Prompts support variables using `{variable}` syntax:
-- `{question}` - Debate question
-- `{topic}` - PRD topic (excerpt)
-- `{prd_content}` - Full PRD content
-- `{language}` - Output language instruction
-- `{recent_context}` - Recent debate messages
-- `{pro_prompt}` - PRO agent role
-- `{con_prompt}` - CON agent role
-- `{dialogue_summary}` - Debate summary for analysis
-- `{verdict_explanation}` - Judge's verdict explanation
-- `{winner}` - Debate winner
-- `{min_takeaways}` - Minimum takeaways to generate
-- `{max_takeaways}` - Maximum takeaways to generate
-
 ### Debate Modes
 
-Two debate execution modes are available:
+**Simple Mode**: Single LLM call for entire debate (faster, cheaper)
+**Standard Mode**: 9 separate LLM calls (better quality and depth)
 
-**Simple Mode** (`debate.modes.simple`):
-- Single LLM call for entire debate
-- Faster and cheaper
-- Good for quick iterations
-
-**Standard Mode** (`debate.modes.standard`):
-- 9 separate LLM calls (8 stages + judge)
-- Better quality and depth
-- Each stage builds on full conversation history
-
-Configure mode in `config/debate_config.yaml`:
+Configure in `config/debate_config.yaml`:
 ```yaml
 debate:
   mode: "standard"  # or "simple"
 ```
 
-### Migration
-
-If you have prompts in the old `config/prompts/` location:
-```bash
-python scripts/migrate_prompts.py
-```
-
-The system will automatically fall back to old locations if needed.
-
-See [PROMPTS.md](PROMPTS.md) for detailed prompt management guide.
+See [docs/prompt-management.md](docs/prompt-management.md) for detailed guide including template variables, configuration, and customization.
 
 ---
 
@@ -349,7 +328,12 @@ poetry run pytest --cov=src
 poetry run pytest tests/unit/shared/debate/domain/test_value_objects.py
 ```
 
-**Current Status**: 102 tests passing
+**Test Structure:**
+- `tests/unit/` - Unit tests for individual components
+- `tests/integration/` - Integration tests for workflows
+- `tests/manual_readability_test.md` - Manual test guidelines
+
+Run `poetry run pytest --collect-only` to see the full test list.
 
 ---
 

@@ -177,8 +177,28 @@ class CliDebateExecutor:
             for msg in messages_list
         ]
 
-        # Find verdict
-        verdict = self._extract_verdict(messages)
+        # Find verdict - first check if winner field exists in JSON (new format)
+        verdict = None
+        winner_from_json = dialogue_json.get("winner") if isinstance(dialogue_json, dict) else None
+
+        if winner_from_json:
+            # Use winner from JSON (new format)
+            try:
+                winner = Speaker.PRO if winner_from_json.upper() == "PRO" else Speaker.CON
+                # Get explanation from JUDGE message if available
+                explanation = ""
+                for msg in reversed(messages):
+                    if msg.speaker == Speaker.JUDGE:
+                        explanation = msg.content
+                        break
+                verdict = Verdict(winner=winner, explanation=explanation)
+                logger.info(f"Completed room: TPM vs {opponent} - WINNER: {winner.value} (from JSON)")
+            except Exception as e:
+                logger.warning(f"Failed to parse winner from JSON: {e}, falling back to extraction")
+
+        # Fallback to extraction from messages if no winner field or parsing failed
+        if not verdict:
+            verdict = self._extract_verdict(messages)
 
         if verdict:
             logger.info(f"Completed room: TPM vs {opponent} - WINNER: {verdict.winner.value}")
@@ -204,6 +224,11 @@ class CliDebateExecutor:
             except Exception as e:
                 logger.warning(f"Failed to generate takeaways: {e}")
 
+        # Set error message if verdict not found
+        error_msg = None
+        if not verdict:
+            error_msg = "No verdict found in JUDGE response - expected WINNER: PRO or WINNER: CON format"
+
         return DebateRoom(
             room_id=room_id,
             pro_participant="TPM",
@@ -211,7 +236,8 @@ class CliDebateExecutor:
             status=RoomStatus.SUCCESS if verdict else RoomStatus.FAILED,
             messages=messages,
             verdict=verdict,
-            takeaways=takeaways
+            takeaways=takeaways,
+            error=error_msg
         )
 
     def _parse_stdout_output(

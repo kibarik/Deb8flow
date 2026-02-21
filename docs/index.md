@@ -11,7 +11,6 @@ Welcome to the Deb8flow documentation. This system uses file-based prompts for A
 ### Core Concepts
 - **[Prompt Management System](prompt-management.md)** - Architecture and usage
 - **[API Reference](api-reference.md)** - Complete API documentation
-- **[PROMPTS.md](../PROMPTS.md)** - Prompt editing and customization guide
 
 ### Configuration
 - `config/debate_config.yaml` - Main configuration file

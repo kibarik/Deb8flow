@@ -375,11 +375,11 @@ class RunProductCommittee:
 
         # Generate conclusion with relative run dir path for command
         # Create relative path like: ./committee_output/RUN_XXX
-        if run_output_dir.is_absolute():
-            relative_run_dir = f".{run_output_dir.relative_to(Path.cwd())}"
+        if output_dir.is_absolute():
+            relative_run_dir = f".{output_dir.relative_to(Path.cwd())}"
         else:
             # Ensure relative path starts with ./
-            path_str = str(run_output_dir)
+            path_str = str(output_dir)
             if not path_str.startswith('./'):
                 relative_run_dir = f"./{path_str}"
             else:
