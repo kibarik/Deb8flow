@@ -243,10 +243,10 @@ This document contains all work packages for implementing the Review Agent Confi
 **Summary**: End-to-end tests for configuration loading and merge workflow.
 
 **Included Subtasks**:
-- [ ] T028: Test full config loading workflow (YAML → ReviewConfig)
-- [ ] T029: Test profile application end-to-end (load with profile)
-- [ ] T030: Test CLI override end-to-end (load with CLI flags)
-- [ ] T031: Test invalid config handling (bad YAML, missing profiles, etc.)
+- [x] T028: Test full config loading workflow (YAML → ReviewConfig)
+- [x] T029: Test profile application end-to-end (load with profile)
+- [x] T030: Test CLI override end-to-end (load with CLI flags)
+- [x] T031: Test invalid config handling (bad YAML, missing profiles, etc.)
 
 **Implementation Sketch**:
 1. Create `tests/integration/test_review_config_workflow.py`
