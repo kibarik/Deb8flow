@@ -154,10 +154,10 @@ This document contains all work packages for implementing the Review Agent Confi
 **Summary**: Update debate_config.yaml with review section including profiles, prompts, and all configuration options.
 
 **Included Subtasks**:
-- [ ] T018: Add review section to debate_config.yaml under rewrite
-- [ ] T019: Add three profile presets (strict, balanced, lenient) with appropriate values
-- [ ] T020: Document all default values in comments
-- [ ] T021: Create example directory structure for custom prompts (src/prompts/review/)
+- [x] T018: Add review section to debate_config.yaml under rewrite
+- [x] T019: Add three profile presets (strict, balanced, lenient) with appropriate values
+- [x] T020: Document all default values in comments
+- [x] T021: Create example directory structure for custom prompts (src/prompts/review/)
 
 **Implementation Sketch**:
 1. Open `config/debate_config.yaml`
