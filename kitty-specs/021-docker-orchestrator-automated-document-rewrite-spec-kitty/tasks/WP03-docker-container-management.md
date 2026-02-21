@@ -18,7 +18,7 @@ subtasks:
 - T018-B
 phase: Phase 1 - Infrastructure
 assignee: ''
-agent: ''
+agent: "claude-opus"
 shell_pid: "51418"
 review_status: ''
 reviewed_by: ''
@@ -280,3 +280,4 @@ Implement Docker container lifecycle management using Docker SDK with health che
 ## Activity Log
 
 - 2026-02-21T19:45:00Z – system – lane=planned – Prompt created.
+- 2026-02-21T22:22:24Z – claude-opus – shell_pid=51418 – lane=doing – Assigned agent via workflow command
