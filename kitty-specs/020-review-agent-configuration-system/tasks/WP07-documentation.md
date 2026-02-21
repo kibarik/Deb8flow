@@ -1,9 +1,13 @@
 ---
 work_package_id: WP07
 title: Documentation
-lane: planned
+lane: "doing"
 dependencies: []
+base_branch: main
+base_commit: add8e148c801af6906614dcb1459157db211fdd3
+created_at: '2026-02-21T11:18:34.637788+00:00'
 subtasks: [T032, T033, T034, T035, T036]
+shell_pid: "81109"
 history:
 - version: 1.0.0
   date: '2025-02-21'
