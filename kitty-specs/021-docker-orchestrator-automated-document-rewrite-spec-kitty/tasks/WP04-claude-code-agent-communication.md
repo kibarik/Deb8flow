@@ -1,8 +1,11 @@
 ---
 work_package_id: WP04
 title: Claude Code Agent Communication
-lane: planned
-dependencies: ["WP02"]
+lane: "doing"
+dependencies: [WP02]
+base_branch: 021-docker-orchestrator-automated-document-rewrite-spec-kitty-WP02
+base_commit: b8709ff21832280547a97707d77a0d508d2dd9e8
+created_at: '2026-02-21T22:24:28.483213+00:00'
 subtasks:
 - T019
 - T019-A
@@ -16,7 +19,7 @@ subtasks:
 phase: Phase 1 - Infrastructure
 assignee: ''
 agent: ''
-shell_pid: ''
+shell_pid: "52115"
 review_status: ''
 reviewed_by: ''
 history:
