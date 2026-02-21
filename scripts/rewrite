@@ -67,6 +67,9 @@ def main():
             base_url=config_dict.get("base_url")
         )
 
+        # Get batch_size from CLI or config
+        batch_size = cli_input.batch_size if cli_input.batch_size is not None else config.get("batch_size", 5)
+
         # Create dependencies
         parser_obj = ConclusionParser()
         storage = RewriteStorage(config)
@@ -77,7 +80,8 @@ def main():
             parser_obj, storage, reporter, config,
             review_reporter=review_reporter,
             use_ai=cli_input.use_ai,
-            ai_config=ai_config
+            ai_config=ai_config,
+            batch_size=batch_size
         )
 
         # Execute rewrite

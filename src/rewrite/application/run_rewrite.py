@@ -16,10 +16,14 @@ from ..domain.change_record import ChangeRecord
 from ..adapters.revision_parser import ConclusionParser
 from ..adapters.document_editor import MarkdownEditor, TextEditor, DocxEditor
 from ..adapters.ai_document_editor import AIMarkdownEditor, AIEditConfig
+from ..adapters.structured_ai_editor import StructuredAIDocumentEditor
 from ..adapters.docx_converter import DocxConverter
 from ..adapters.progress_reporter import ProgressReporter
 from ..adapters.review_reporter import ReviewReporter
 from ..infrastructure.storage import RewriteStorage
+
+# Type hint for AI editor
+from ..adapters.structured_ai_editor import StructuredAIDocumentEditor as StructuredAIEditorType
 
 
 logger = logging.getLogger(__name__)
@@ -44,7 +48,8 @@ class RunRewrite:
         config: RewriteConfig,
         review_reporter: Optional[ReviewReporter] = None,
         use_ai: bool = False,
-        ai_config: Optional[AIEditConfig] = None
+        ai_config: Optional[AIEditConfig] = None,
+        batch_size: Optional[int] = None
     ):
         """
         Initialize use case with required adapters.
@@ -57,6 +62,7 @@ class RunRewrite:
             review_reporter: Optional review reporter for change tracking
             use_ai: If True, use AI-powered editing for markdown files
             ai_config: Configuration for AI editing
+            batch_size: Number of revisions per AI batch (from config or CLI)
         """
         self.parser = parser
         self.storage = storage
@@ -64,6 +70,9 @@ class RunRewrite:
         self.config = config
         self.review_reporter = review_reporter
         self.use_ai = use_ai
+
+        # Get batch_size from config, CLI override, or default
+        effective_batch_size = batch_size or config.batch_size if use_ai else 5
 
         # Initialize AI editor if enabled
         if self.use_ai:
@@ -75,7 +84,14 @@ class RunRewrite:
                     api_key=getenv("OPENAI_API_KEY"),
                     base_url=getenv("OPENAI_BASE_URL")
                 )
-            self.ai_editor = AIMarkdownEditor(ai_config=ai_config)
+            # Use structured AI editor following Perplexity's recommendations
+            self.ai_editor = StructuredAIDocumentEditor(
+                model=ai_config.model,
+                temperature=ai_config.temperature,
+                api_key=ai_config.api_key or "",
+                base_url=ai_config.base_url,
+                batch_size=effective_batch_size
+            )
         else:
             self.ai_editor = None
 
@@ -172,7 +188,7 @@ class RunRewrite:
             self.reporter.report_applying_revisions()
 
             editor = self._get_editor(source_path)
-            use_ai = self.use_ai and isinstance(editor, MarkdownEditor)
+            use_ai = self.use_ai and isinstance(editor, MarkdownEditor) and self.ai_editor is not None and isinstance(self.ai_editor, StructuredAIEditorType)
             modified_content, changes = await self._apply_all_revisions(
                 editor, source_content, revisions, use_ai_for_markdown=use_ai
             )
@@ -261,7 +277,7 @@ class RunRewrite:
             self.reporter.report_applying_revisions()
 
             editor = self._get_editor(source_path)
-            use_ai = self.use_ai and isinstance(editor, MarkdownEditor)
+            use_ai = self.use_ai and isinstance(editor, MarkdownEditor) and self.ai_editor is not None and isinstance(self.ai_editor, StructuredAIEditorType)
             modified_content, changes = await self._apply_all_revisions(
                 editor, source_content, revisions, use_ai_for_markdown=use_ai
             )
@@ -338,11 +354,13 @@ class RunRewrite:
             Tuple of (modified_content, list_of_change_records)
         """
         # Use AI editor for markdown if enabled and available
-        if use_ai_for_markdown and self.ai_editor and isinstance(editor, MarkdownEditor):
-            self.reporter.info("Using AI-powered editing for enhanced quality")
-            return await self.ai_editor.apply_all_revisions(content, revisions)
+        if use_ai_for_markdown and self.ai_editor and isinstance(self.ai_editor, StructuredAIDocumentEditor):
+            self.reporter.info("Using Structured AI-powered editing (multi-step approach)")
+            return await self.ai_editor.rewrite_document(content, revisions)
 
-        # Standard mechanical editing
+        # Fallback to mechanical editing
+
+        # Fallback to mechanical editing
         current_content = content
         applied_count = 0
         changes: List[ChangeRecord] = []
@@ -633,7 +651,7 @@ class RunRewrite:
 
                 # Phase 4: Apply AI edits to Markdown
                 self.reporter.info("Applying AI-powered edits")
-                modified_content, changes = await self.ai_editor.apply_all_revisions(
+                modified_content, changes = await self.ai_editor.rewrite_document(
                     markdown_content, revisions
                 )
 

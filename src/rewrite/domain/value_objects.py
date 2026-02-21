@@ -72,6 +72,7 @@ class RewriteConfig:
 
     Attributes:
         max_rounds: Maximum debate verification rounds (default: 5)
+        batch_size: Number of revisions to process per AI batch (default: 5)
         backup_suffix: Suffix for backup files (default: ".backup")
         pro_prompt_path: Path to PRO verification prompt
         con_prompt_path: Path to CON verification prompt
@@ -79,6 +80,7 @@ class RewriteConfig:
         partial_report_path: Path for partial completion report
     """
     max_rounds: int = 5
+    batch_size: int = 5
     backup_suffix: str = ".backup"
     pro_prompt_path: Path = Path("src/prompts/rewrite/pro_verification.md")
     con_prompt_path: Path = Path("src/prompts/rewrite/con_verification.md")
@@ -91,6 +93,8 @@ class RewriteConfig:
             raise ValueError("max_rounds must be at least 0 (0 = skip verification)")
         if not self.backup_suffix or self.backup_suffix.strip() == "":
             raise ValueError("backup_suffix cannot be empty")
+        if self.batch_size < 1:
+            raise ValueError("batch_size must be at least 1")
 
     @classmethod
     def from_dict(cls, config: Dict[str, Any]) -> "RewriteConfig":
@@ -122,6 +126,7 @@ class RewriteConfig:
 
         return cls(
             max_rounds=rewrite_config.get("max_rounds", 5),
+            batch_size=rewrite_config.get("batch_size", 5),
             backup_suffix=rewrite_config.get("backup_suffix", ".backup"),
             pro_prompt_path=Path(prompts.get("pro", "src/prompts/rewrite/pro_verification.md")),
             con_prompt_path=Path(prompts.get("con", "src/prompts/rewrite/con_verification.md")),

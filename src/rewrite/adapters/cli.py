@@ -36,6 +36,7 @@ class RewriteCliInput(BaseModel):
     file_path: Path = Field(..., description="Path to source document")
     conclusion_path: Path = Field(..., description="Path to conclusion.md")
     max_rounds: Optional[int] = Field(None, ge=0, description="Max debate rounds (0 = skip verification)")
+    batch_size: Optional[int] = Field(None, ge=1, description="Revisions per AI batch (default: 5)")
     output_path: Optional[Path] = Field(None, description="Output file path")
     no_backup: bool = Field(False, description="Skip backup creation")
     verbose: bool = Field(False, description="Enable verbose output")
@@ -177,6 +178,14 @@ Examples:
     )
 
     parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Revisions per AI batch (default: 5). 50 revisions + --batch-size 5 = 10 passes"
+    )
+
+    parser.add_argument(
         "--output",
         "-o",
         type=Path,
@@ -235,6 +244,7 @@ def parse_arguments(args: dict) -> RewriteCliInput:
         "file_path": args.get("file"),
         "conclusion_path": args.get("conclusion"),
         "max_rounds": args.get("max_rounds"),
+        "batch_size": args.get("batch_size"),
         "output_path": args.get("output"),
         "no_backup": args.get("no_backup", False),
         "verbose": args.get("verbose", False),
@@ -343,6 +353,11 @@ def load_rewrite_config(
         if "rewrite" not in config_dict:
             config_dict["rewrite"] = {}
         config_dict["rewrite"]["max_rounds"] = cli_input.max_rounds
+
+    if cli_input.batch_size is not None:
+        if "rewrite" not in config_dict:
+            config_dict["rewrite"] = {}
+        config_dict["rewrite"]["batch_size"] = cli_input.batch_size
 
     # Create RewriteConfig
     rewrite_config = RewriteConfig.from_dict(config_dict)

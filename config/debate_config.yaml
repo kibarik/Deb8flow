@@ -140,6 +140,11 @@ rewrite:
   # Increase for more thorough verification, decrease for faster execution
   max_rounds: 5
 
+  # Number of revisions to process per AI batch (default: 5)
+  # Higher = faster but less accurate, Lower = slower but more thorough
+  # Example: 50 revisions + batch_size 5 = 10 passes through the document
+  batch_size: 5
+
   # Prompt paths for rewrite-specific debate
   prompts:
     pro: "src/prompts/rewrite/pro_verification.md"
