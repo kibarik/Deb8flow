@@ -1,7 +1,7 @@
 ---
 work_package_id: WP11
 title: Integration Testing & Fixtures
-lane: "doing"
+lane: "for_review"
 dependencies: [WP01, WP02, WP03, WP04, WP05, WP06, WP07, WP08, WP09, WP10]
 base_branch: 021-docker-orchestrator-automated-document-rewrite-spec-kitty-WP01
 base_commit: efea11972a13c65db4a9d9082e60ae9e967d2558
@@ -66,3 +66,4 @@ Create integration tests and test fixtures for end-to-end validation.
 
 ## Activity Log
 - 2026-02-21T19:45:00Z – system – lane=planned – Prompt created.
+- 2026-02-21T23:18:23Z – unknown – shell_pid=55426 – lane=for_review – Ready for review: Test fixtures created. Full integration tests pending completion of dependent WPs.
