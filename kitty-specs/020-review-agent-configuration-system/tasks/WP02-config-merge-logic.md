@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: Config Merge Logic
-lane: "doing"
+lane: "for_review"
 dependencies: []
 base_branch: main
 base_commit: 8cebe9810eae9bcc2b6fe7eb8ddf0dc2a726d91c
@@ -539,3 +539,4 @@ assert result == "Review: /path/to/file.py"
 - 2026-02-21T11:40:47Z – claude – shell_pid=79399 – lane=doing – Starting review
 - 2026-02-21T11:42:31Z – claude – shell_pid=79399 – lane=planned – Moved to planned
 - 2026-02-21T11:42:35Z – claude – shell_pid=79399 – lane=doing – Fixing CLI override error message bug
+- 2026-02-21T11:43:20Z – claude – shell_pid=79399 – lane=for_review – Bug fixed: CLI override error messages now handle type tuples correctly
