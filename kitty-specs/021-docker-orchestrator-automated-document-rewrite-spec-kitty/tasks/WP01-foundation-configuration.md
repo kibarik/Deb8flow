@@ -14,7 +14,7 @@ subtasks:
 - T005
 phase: Phase 0 - Foundation
 assignee: ''
-agent: ''
+agent: "claude-opus"
 shell_pid: "49798"
 review_status: ''
 reviewed_by: ''
@@ -305,3 +305,4 @@ Tests are per-constitution requirement. Write unit tests for configuration loadi
 ## Activity Log
 
 - 2026-02-21T19:45:00Z – system – lane=planned – Prompt created.
+- 2026-02-21T22:15:13Z – claude-opus – shell_pid=49798 – lane=doing – Assigned agent via workflow command
