@@ -1,7 +1,7 @@
 ---
 work_package_id: WP05
 title: Unit Tests
-lane: "for_review"
+lane: "doing"
 dependencies: []
 base_branch: main
 base_commit: 26ced25b87753d9fdce674934cd27e98783c37d0
@@ -519,3 +519,4 @@ pytest tests/unit/rewrite/test_review_config.py --cov=src/rewrite/domain/review_
 
 - 2026-02-21T11:15:23Z – claude – shell_pid=80478 – lane=doing – Assigned agent via workflow command
 - 2026-02-21T11:16:59Z – claude – shell_pid=80478 – lane=for_review – Ready for review: Comprehensive unit tests with >80% coverage target
+- 2026-02-21T11:43:38Z – claude – shell_pid=80478 – lane=doing – Reviewing WP05
