@@ -1,9 +1,13 @@
 ---
 work_package_id: WP02
 title: Config Merge Logic
-lane: planned
+lane: "doing"
 dependencies: []
+base_branch: main
+base_commit: 8cebe9810eae9bcc2b6fe7eb8ddf0dc2a726d91c
+created_at: '2026-02-21T11:10:08.742712+00:00'
 subtasks: [T009, T010, T011, T012, T013]
+shell_pid: "79399"
 history:
 - version: 1.0.0
   date: '2025-02-21'
