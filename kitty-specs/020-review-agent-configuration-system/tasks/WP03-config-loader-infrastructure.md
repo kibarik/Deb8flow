@@ -8,6 +8,7 @@ base_commit: 228e94976f3278af45211400c017a9f6bcde34d3
 created_at: '2026-02-21T11:12:33.059167+00:00'
 subtasks: [T014, T015, T016, T017]
 shell_pid: "79802"
+agent: "claude"
 history:
 - version: 1.0.0
   date: '2025-02-21'
@@ -404,3 +405,7 @@ except ValueError as e:
 
 - **Low Risk**: Standard YAML loading and env var expansion
 - **Mitigation**: Comprehensive error handling
+
+## Activity Log
+
+- 2026-02-21T11:12:33Z – claude – shell_pid=79802 – lane=doing – Assigned agent via workflow command
