@@ -1,10 +1,14 @@
 ---
 work_package_id: WP08
 title: File Operations & Output Management
-lane: planned
-dependencies: ["WP01"]
+lane: "doing"
+dependencies: [WP01]
+base_branch: 021-docker-orchestrator-automated-document-rewrite-spec-kitty-WP01
+base_commit: efea11972a13c65db4a9d9082e60ae9e967d2558
+created_at: '2026-02-21T22:24:42.445794+00:00'
 subtasks: [T047, T048, T049, T050, T051]
 phase: Phase 3 - User Interface
+shell_pid: "52262"
 history:
 - timestamp: '2026-02-21T19:45:00Z'
   lane: planned
