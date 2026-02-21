@@ -1,0 +1,47 @@
+# Sample valid orchestrator configuration
+orchestrator:
+  # Workflow control
+  max_retries: 3
+  validation_timeout: 30
+  auto_accept: false
+
+  # Output settings
+  output_suffix: ".corrected."
+  timestamp_output: false
+  overwrite_output: "error"
+
+  # Container management
+  docker_image: "claude-code:latest"
+  keep_containers: false
+  container_timeout: 3600
+  container_memory_limit: "2g"
+  container_cpu_quota: 1.0
+
+  # Logging
+  log_dir: ".orchestrator/logs"
+  log_level: "INFO"
+  verbose: false
+
+  # Phase configuration
+  phases:
+    - name: "specify"
+      enabled: true
+      validate_artifact: true
+    - name: "research"
+      enabled: true
+      validate_artifact: false
+    - name: "plan"
+      enabled: true
+      validate_artifact: true
+    - name: "tasks"
+      enabled: true
+      validate_artifact: true
+    - name: "implement"
+      enabled: true
+      validate_artifact: true
+    - name: "review"
+      enabled: true
+      validate_artifact: false
+    - name: "accept"
+      enabled: true
+      validate_artifact: false
