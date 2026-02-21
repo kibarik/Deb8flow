@@ -129,13 +129,13 @@ Error handling, signal management, and integration testing.
 - Pre-flight Docker validation works
 
 **Included Subtasks**:
-- [ ] T012 – Create DockerClient wrapper adapter
-- [ ] T013 – Implement container start with volume mounts
-- [ ] T014 – Implement container health check
-- [ ] T015 – Implement real-time log streaming
-- [ ] T016 – Implement container stop and cleanup
-- [ ] T017 – Add pre-flight Docker availability validation
-- [ ] T018 – Handle container resource limits and timeouts
+- [x] T012 – Create DockerClient wrapper adapter
+- [x] T013 – Implement container start with volume mounts
+- [x] T014 – Implement container health check
+- [x] T015 – Implement real-time log streaming
+- [x] T016 – Implement container stop and cleanup
+- [x] T017 – Add pre-flight Docker availability validation
+- [x] T018 – Handle container resource limits and timeouts
 
 **Implementation Sketch**:
 1. Create `DockerClient` wrapping docker.from_env()
