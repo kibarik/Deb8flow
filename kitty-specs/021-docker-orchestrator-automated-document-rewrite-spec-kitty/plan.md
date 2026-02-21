@@ -250,8 +250,8 @@ Update appropriate agent-specific context file with:
 ### Pre-Implementation Gate
 
 - [x] All design artifacts complete
-- [ ] `tasks.md` generated via `/spec-kitty.tasks`
-- [ ] Work packages (WP) created for implementation
+- [x] `tasks.md` generated via `/spec-kitty.tasks`
+- [x] Work packages (WP) created for implementation
 
 ## Implementation Notes
 
