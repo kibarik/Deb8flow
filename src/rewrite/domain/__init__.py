@@ -10,17 +10,38 @@ from .value_objects import (
     DocumentType,
     RewriteConfig
 )
-from .change_record import ChangeRecord
+from .review_config import (
+    ReviewConfig,
+    LLMConfig,
+    PromptConfig,
+    RetryConfig,
+    CheckConfig,
+    OutputConfig,
+    ContextConfig,
+    LoggingConfig,
+    deep_merge,
+    substitute_placeholders,
+)
 
 __all__ = [
     # Entities
     "RevisionItem",
     "RewriteResult",
-    # Change tracking
-    "ChangeRecord",
-    # Value objects
+    # Value objects from value_objects.py
     "RevisionAction",
     "RewriteStatus",
     "DocumentType",
     "RewriteConfig",
+    # Value objects from review_config.py
+    "ReviewConfig",
+    "LLMConfig",
+    "PromptConfig",
+    "RetryConfig",
+    "CheckConfig",
+    "OutputConfig",
+    "ContextConfig",
+    "LoggingConfig",
+    # Helper functions
+    "deep_merge",
+    "substitute_placeholders",
 ]

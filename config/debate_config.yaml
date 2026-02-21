@@ -140,11 +140,6 @@ rewrite:
   # Increase for more thorough verification, decrease for faster execution
   max_rounds: 5
 
-  # Number of revisions to process per AI batch (default: 5)
-  # Higher = faster but less accurate, Lower = slower but more thorough
-  # Example: 50 revisions + batch_size 5 = 10 passes through the document
-  batch_size: 5
-
   # Prompt paths for rewrite-specific debate
   prompts:
     pro: "src/prompts/rewrite/pro_verification.md"
@@ -154,3 +149,102 @@ rewrite:
   # Output settings
   backup_suffix: ".backup"  # Suffix for backup files
   partial_report: "rewrite_partial_report.md"  # Partial completion report filename
+
+  # ============================================
+  # Review Agent Configuration
+  # ============================================
+  review:
+    # Default profile to use (strict/balanced/lenient)
+    profile: "balanced"
+
+    # LLM Settings
+    # Environment variables can be used with ${VAR:default} syntax
+    llm:
+      provider: "${DEBATE_PROVIDER:openai}"
+      model: "${DEBATE_MODEL:gpt-4o-mini}"
+      temperature: ${DEBATE_TEMPERATURE:0.7}
+      top_p: 0.9
+      max_tokens_request: 4000
+      max_tokens_response: 2000
+      timeout: 120
+
+    # Custom Prompts
+    # Paths to custom prompt templates (optional)
+    prompts:
+      system: null  # "src/prompts/review/system_prompt.md"
+      user: null    # "src/prompts/review/user_prompt.md"
+      result_template: null  # "src/prompts/review/result_template.md"
+
+      # Variables for placeholder substitution in prompts
+      variables:
+        project_name: "Deb8flow"
+        team_context: "Backend development team"
+
+    # Retry Policy
+    retry:
+      max_retries: 3
+      backoff: "exponential"  # Options: exponential, linear, constant
+      initial_delay: 1.0
+
+    # Checks Configuration
+    # Enable/disable specific check types
+    checks:
+      security: true
+      performance: true
+      style: true
+
+    # Output Format
+    output:
+      format: "markdown"  # Options: markdown, json
+      include_snippets: true
+      max_comment_length: 500
+
+    # Context Settings
+    context:
+      window_size: 8000
+      include_patterns: []
+      exclude_patterns: []
+
+    # Logging
+    logging:
+      level: "INFO"  # Options: ERROR, WARN, INFO, DEBUG
+      debug: false
+
+    # Profile Presets
+    # These override base settings when selected via --profile flag
+    profiles:
+      # Strict: Low temperature, all checks enabled, JSON output
+      strict:
+        llm:
+          temperature: 0.1
+          top_p: 0.5
+        checks:
+          security: true
+          performance: true
+          style: true
+        output:
+          format: "json"
+
+      # Balanced: Medium temperature, most checks, markdown output
+      balanced:
+        llm:
+          temperature: 0.5
+          top_p: 0.8
+        checks:
+          security: true
+          performance: true
+          style: false
+        output:
+          format: "markdown"
+
+      # Lenient: High temperature, style checks only
+      lenient:
+        llm:
+          temperature: 0.9
+          top_p: 0.95
+        checks:
+          security: false
+          performance: false
+          style: true
+        output:
+          format: "markdown"
