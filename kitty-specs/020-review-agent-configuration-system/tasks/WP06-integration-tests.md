@@ -1,7 +1,7 @@
 ---
 work_package_id: WP06
 title: Integration Tests
-lane: "for_review"
+lane: "doing"
 dependencies: []
 base_branch: main
 base_commit: c3cca89a8b6cc1f938600e31e70a8e6503856943
@@ -518,3 +518,4 @@ pytest tests/integration/test_review_config_workflow.py -vv -s
 
 - 2026-02-21T11:17:04Z – claude – shell_pid=80791 – lane=doing – Assigned agent via workflow command
 - 2026-02-21T11:18:28Z – claude – shell_pid=80791 – lane=for_review – Ready for review: End-to-end integration tests for config loading workflow
+- 2026-02-21T11:43:38Z – claude – shell_pid=80791 – lane=doing – Reviewing WP06
