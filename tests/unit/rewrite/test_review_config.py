@@ -420,3 +420,58 @@ class TestEdgeCases:
         assert merged.prompts.variables["a"] == "1"  # Inherited
         assert merged.prompts.variables["b"] == "3"  # Overridden
         assert merged.prompts.variables["c"] == "4"  # Added
+
+
+class TestDeepMerge:
+    """Tests for deep_merge helper function."""
+
+    def test_recursive_merge_nested_dicts(self):
+        """Test that nested dictionaries are merged recursively."""
+        from src.rewrite.domain.review_config import deep_merge
+
+        base = {"llm": {"temperature": 0.5, "model": "gpt-4"}}
+        override = {"llm": {"temperature": 0.1}}
+
+        result = deep_merge(base, override)
+
+        assert result["llm"]["temperature"] == 0.1  # Overridden
+        assert result["llm"]["model"] == "gpt-4"  # Inherited
+
+    def test_merge_preserves_base(self):
+        """Test that base dictionary is not modified."""
+        from src.rewrite.domain.review_config import deep_merge
+
+        base = {"llm": {"temperature": 0.5}}
+        base_copy = base.copy()
+        override = {"llm": {"temperature": 0.1}}
+
+        result = deep_merge(base, override)
+
+        assert base == base_copy  # Base unchanged
+        assert result != base  # Result is new dict
+
+    def test_merge_with_non_dict_values(self):
+        """Test that non-dict values are replaced, not merged."""
+        from src.rewrite.domain.review_config import deep_merge
+
+        base = {"llm": "openai", "temperature": 0.5}
+        override = {"temperature": 0.1}
+
+        result = deep_merge(base, override)
+
+        assert result["llm"] == "openai"
+        assert result["temperature"] == 0.1
+
+    def test_merge_with_new_keys(self):
+        """Test that new keys are added from override."""
+        from src.rewrite.domain.review_config import deep_merge
+
+        base = {"llm": {"temperature": 0.5}}
+        override = {"llm": {"model": "gpt-4"}, "checks": {"security": True}}
+
+        result = deep_merge(base, override)
+
+        assert result["llm"]["temperature"] == 0.5
+        assert result["llm"]["model"] == "gpt-4"
+        assert result["checks"]["security"] is True
+
