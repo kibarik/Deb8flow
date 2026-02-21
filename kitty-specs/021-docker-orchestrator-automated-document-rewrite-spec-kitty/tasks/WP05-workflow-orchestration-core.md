@@ -1,7 +1,7 @@
 ---
 work_package_id: WP05
 title: Workflow Orchestration Core
-lane: "doing"
+lane: "planned"
 dependencies: [WP02, WP03, WP04]
 base_branch: 021-docker-orchestrator-automated-document-rewrite-spec-kitty-WP02
 base_commit: b8709ff21832280547a97707d77a0d508d2dd9e8
@@ -89,3 +89,5 @@ Implement main orchestration loop driving Spec-Kitty phases sequentially.
 
 ## Activity Log
 - 2026-02-21T19:45:00Z – system – lane=planned – Prompt created.
+- 2026-02-21T23:19:19Z – unknown – shell_pid=70386 – lane=doing – Blocked: Requires WP04 (Claude Code Agent) which has BLOCKER T019-A for protocol verification. Also requires WP03 (Docker Container Management).
+- 2026-02-21T23:19:27Z – unknown – shell_pid=70386 – lane=planned – Moved to planned: Requires WP04 (Claude Code Agent) which has BLOCKER task T019-A for protocol verification
