@@ -51,7 +51,7 @@ class MockReportGenerator:
     def generate_final_report(self, run_id, prd_path, question, rooms, metadata):
         return f"# Report for {run_id}"
 
-    def generate_conclusion(self, question, rooms, metadata):
+    def generate_conclusion(self, question, rooms, metadata, run_dir=None, **kwargs):
         return "# Conclusion"
 
     def generate_intermediate_report(self, run_id, question, rooms, metadata):

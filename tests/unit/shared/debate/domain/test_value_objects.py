@@ -4,6 +4,7 @@ Unit tests for value objects.
 Tests the RoomId, RunId, Speaker, and RoomStatus value objects.
 """
 
+import re
 import pytest
 from src.shared.debate.domain.value_objects import RoomId, RunId, Speaker, RoomStatus
 
@@ -42,8 +43,9 @@ def test_run_id_valid():
 def test_run_id_generate_with_question():
     """Test generating RunId from question."""
     run_id = RunId.generate("test question here")
-    assert run_id.value.startswith("RUN_")
-    assert "test-question-here" in run_id.value
+    # Should be ISO format timestamp: YYYYMMDDTHHMMSSZ
+    assert re.match(r'^\d{8}T\d{6}Z$', run_id.value)
+    assert len(run_id.value) == 16  # 8+T+6+Z
 
 
 def test_run_id_generate_with_manual_id():
@@ -52,11 +54,11 @@ def test_run_id_generate_with_manual_id():
     assert run_id.value == "custom_id"
 
 
-def test_run_id_generate_sanitizes_question():
-    """Test that question is properly sanitized."""
-    run_id = RunId.generate("What is   the   potential?!")
-    # Should remove special chars and extra spaces
-    assert "what-is-the-potential" in run_id.value
+def test_run_id_generate_timestamp_format():
+    """Test that generated RunId has valid ISO timestamp format."""
+    run_id = RunId.generate("any question")
+    # Should match ISO format: YYYYMMDDTHHMMSSZ
+    assert re.match(r'^\d{8}T\d{6}Z$', run_id.value)
 
 
 def test_run_id_is_immutable():

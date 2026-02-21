@@ -7,6 +7,7 @@ extracted from debate room verdicts.
 
 import logging
 import re
+from pathlib import Path
 from typing import List, Dict, Any, Optional
 
 from ....shared.debate.domain.entities import DebateRoom
@@ -26,7 +27,8 @@ class ConclusionGenerator:
         rooms: List[DebateRoom],
         metadata: Dict[str, Any],
         custom_prompt: Optional[str] = None,
-        all_takeaways: Optional[List[Dict[str, str]]] = None
+        all_takeaways: Optional[List[Dict[str, str]]] = None,
+        run_dir: Optional[str] = None
     ) -> str:
         """
         Generate a simple checklist conclusion from takeaways.
@@ -37,6 +39,7 @@ class ConclusionGenerator:
             metadata: Run metadata
             custom_prompt: Optional custom instruction for conclusion generation
             all_takeaways: List of {room, text} dicts from dialogue JSONs
+            run_dir: Optional run directory path for command generation
 
         Returns:
             Markdown conclusion content - simple checklist
@@ -82,9 +85,26 @@ class ConclusionGenerator:
             f"",
             f"---",
             f"",
-            f"*Подробная информация о дебатах доступна в [final_report.md](final_report.md)*",
-            f""
         ])
+
+        # Add command to re-run conclusion if run_dir is provided
+        if run_dir:
+            # Extract run_id from run_dir path (e.g., ./committee_output/RUN_XXX -> RUN_XXX)
+            run_path = Path(run_dir)
+            run_id = run_path.name
+            lines.extend([
+                f"**Для повторной генерации вывода:**",
+                f"",
+                f"```bash",
+                f"poetry run python main.py conclusion --run-id {run_id}",
+                f"```",
+                f"",
+            ])
+        else:
+            lines.extend([
+                f"*Подробная информация о дебатах доступна в [final_report.md](final_report.md)*",
+                f"",
+            ])
 
         return '\n'.join(lines)
 

@@ -160,8 +160,8 @@ rewrite:
     # LLM Settings
     # Environment variables can be used with ${VAR:default} syntax
     llm:
-      provider: "${DEBATE_PROVIDER:openai}"
-      model: "${DEBATE_MODEL:gpt-4o-mini}"
+      provider: "${DEBATE_PROVIDER:https://router.requesty.ai/v1}"
+      model: "${DEBATE_MODEL:coding/gemini-2.5-pro}"
       temperature: ${DEBATE_TEMPERATURE:0.7}
       top_p: 0.9
       max_tokens_request: 4000

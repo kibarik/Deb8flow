@@ -187,11 +187,11 @@ def sanitize_run_id(question: str, manual_id: Optional[str] = None) -> str:
     Generate run ID from question or use manual ID.
 
     Args:
-        question: Committee question
+        question: Committee question (unused, kept for compatibility)
         manual_id: Optional manual run identifier
 
     Returns:
-        Run ID string in format RUN_{timestamp}_{slug}
+        Run ID string in ISO format: YYYYMMDDTHHMMSSZ
     """
     if manual_id:
         # Sanitize manual ID
@@ -200,17 +200,6 @@ def sanitize_run_id(question: str, manual_id: Optional[str] = None) -> str:
             raise ValueError("Manual run ID contains no valid characters")
         return sanitized
 
-    # Generate slug from first 3-5 words of question
+    # Generate ISO format timestamp
     from datetime import datetime, timezone
-
-    words = question.strip().split()[:5]
-    slug = "-".join(words).lower()
-    # Remove non-alphanumeric characters except hyphens
-    slug = re.sub(r'[^a-z0-9-]', '', slug)
-
-    # Limit slug length
-    if len(slug) > 50:
-        slug = slug[:50].rstrip('-')
-
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    return f"RUN_{timestamp}_{slug}"
+    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")

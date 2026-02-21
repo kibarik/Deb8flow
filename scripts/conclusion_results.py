@@ -45,15 +45,22 @@ def parse_arguments() -> argparse.Namespace:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python3 conclusion_results.py committee_output/RUN_20260217_230136_test/final_report.md
-  python3 conclusion_results.py '/path/to/final_report.md' --verbose
-  python3 conclusion_results.py '/path/to/final_report.md' --prompt /path/to/custom_prompt.txt
+  python3 conclusion_results.py --run-id 20260217T230136Z
+  python3 conclusion_results.py committee_output/20260217T230136Z/final_report.md
+  python3 conclusion_results.py --run-id 20260217T230136Z --verbose
+  python3 conclusion_results.py --run-id 20260217T230136Z --prompt /path/to/custom_prompt.txt
         """
     )
 
     parser.add_argument(
         "final_report_path",
-        help="Path to the final_report.md file to analyze"
+        nargs="?",
+        help="Path to the final_report.md file to analyze (not needed if --run-id is used)"
+    )
+
+    parser.add_argument(
+        "--run-id",
+        help="Run ID folder name (e.g., 20260217T230136Z). Files will be taken from committee_output/<RUN-ID>/"
     )
 
     parser.add_argument(
@@ -288,8 +295,32 @@ def main():
     # Setup logging
     setup_logging(verbose=args.verbose)
 
+    # Determine the report path based on --run-id or final_report_path
+    if args.run_id:
+        # Use committee_output/<RUN-ID>/ as the base directory
+        committee_output = Path("committee_output")
+        run_dir = committee_output / args.run_id
+        report_path = run_dir / "final_report.md"
+
+        # Validate that the run directory exists
+        if not run_dir.exists():
+            logger.error(f"Error: Run directory not found: {run_dir}")
+            logger.info(f"Available run directories:")
+            if committee_output.exists():
+                for item in sorted(committee_output.iterdir()):
+                    if item.is_dir():
+                        logger.info(f"  - {item.name}")
+            sys.exit(1)
+
+        logger.info(f"Using run directory: {run_dir}")
+    elif args.final_report_path:
+        report_path = Path(args.final_report_path)
+    else:
+        logger.error("Error: Either --run-id or final_report_path must be specified")
+        logger.info("Use --help for more information")
+        sys.exit(1)
+
     # Validate input path
-    report_path = Path(args.final_report_path)
     validate_input_path(report_path)
 
     logger.info(f"Reading final report from: {report_path}")
@@ -383,13 +414,26 @@ def main():
     logger.info("Generating conclusion...")
     generator = ConclusionGenerator()
 
+    # Get relative run dir path for the command
+    run_dir_path = report_path.parent
+    if run_dir_path.is_absolute():
+        relative_run_dir = f".{run_dir_path.relative_to(Path.cwd())}"
+    else:
+        # Ensure relative path starts with ./
+        path_str = str(run_dir_path)
+        if not path_str.startswith('./'):
+            relative_run_dir = f"./{path_str}"
+        else:
+            relative_run_dir = path_str
+
     try:
         conclusion = generator.generate_conclusion(
             question=parsed_data["question"],
             rooms=debate_rooms,
             metadata=parsed_data["metadata"],
             custom_prompt=custom_prompt,
-            all_takeaways=all_takeaways
+            all_takeaways=all_takeaways,
+            run_dir=relative_run_dir
         )
     except Exception as e:
         logger.error(f"Error generating conclusion: {e}")

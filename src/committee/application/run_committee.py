@@ -373,11 +373,23 @@ class RunProductCommittee:
         # Save final report
         await self.storage.save_report(output_dir, "final_report.md", final_report)
 
-        # Generate conclusion
+        # Generate conclusion with relative run dir path for command
+        # Create relative path like: ./committee_output/RUN_XXX
+        if run_output_dir.is_absolute():
+            relative_run_dir = f".{run_output_dir.relative_to(Path.cwd())}"
+        else:
+            # Ensure relative path starts with ./
+            path_str = str(run_output_dir)
+            if not path_str.startswith('./'):
+                relative_run_dir = f"./{path_str}"
+            else:
+                relative_run_dir = path_str
+
         conclusion = self.generator.generate_conclusion(
             question=run.question,
             rooms=run.rooms,
-            metadata=asdict(metadata)
+            metadata=asdict(metadata),
+            run_dir=relative_run_dir
         )
         await self.storage.save_report(output_dir, "conclusion.md", conclusion)
 

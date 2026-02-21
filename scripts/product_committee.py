@@ -183,8 +183,8 @@ class ReportGeneratorAdapter:
     def generate_final_report(self, run_id: str, prd_path: str, question: str, rooms, metadata: dict) -> str:
         return self.final_gen.generate_final_report(run_id, prd_path, question, rooms, metadata)
 
-    def generate_conclusion(self, question: str, rooms, metadata: dict) -> str:
-        return self.conclusion_gen.generate_conclusion(question, rooms, metadata)
+    def generate_conclusion(self, question: str, rooms, metadata: dict, run_dir: str = None) -> str:
+        return self.conclusion_gen.generate_conclusion(question, rooms, metadata, run_dir=run_dir)
 
     def generate_intermediate_report(self, run_id: str, completed_rooms, total_rooms: int) -> str:
         return self.final_gen.generate_intermediate_report(run_id, completed_rooms, total_rooms)

@@ -49,7 +49,10 @@ class ReportGenerator(Protocol):
         self,
         question: str,
         rooms: List[DebateRoom],
-        metadata: Dict[str, Any]
+        metadata: Dict[str, Any],
+        custom_prompt: Optional[str] = None,
+        all_takeaways: Optional[List[Dict[str, str]]] = None,
+        run_dir: Optional[str] = None
     ) -> str:
         """Generate executive summary conclusion."""
         ...

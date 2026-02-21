@@ -7,7 +7,7 @@ Main entry point for running debates, product committees, and conclusion generat
 Usage:
     python main.py debate --text "Topic" --pro-prompt pro.txt --con-prompt con.txt
     python main.py committee --prd prd.txt --question "Should we build this?"
-    python main.py conclusion --run-dir ./committee_output/RUN_XXX
+    python main.py conclusion --run-id 20260221T130504Z
 
 Separate scripts:
     scripts/conclusion_results.py - Generate conclusion from final_report.md
@@ -173,8 +173,8 @@ async def run_committee_async(args) -> int:
         def generate_final_report(self, run_id: str, prd_path: str, question: str, rooms, metadata: dict) -> str:
             return self.final_gen.generate_final_report(run_id, prd_path, question, rooms, metadata)
 
-        def generate_conclusion(self, question: str, rooms, metadata: dict) -> str:
-            return self.conclusion_gen.generate_conclusion(question, rooms, metadata)
+        def generate_conclusion(self, question: str, rooms, metadata: dict, run_dir: str = None) -> str:
+            return self.conclusion_gen.generate_conclusion(question, rooms, metadata, run_dir=run_dir)
 
         def generate_intermediate_report(self, run_id: str, completed_rooms, total_rooms: int) -> str:
             return self.final_gen.generate_intermediate_report(run_id, completed_rooms, total_rooms)
@@ -228,7 +228,24 @@ def run_committee(args) -> int:
 
 def run_conclusion(args) -> int:
     """Generate conclusion from committee results."""
-    run_dir = Path(args.run_dir)
+    # Determine the run directory based on --run-id or --run-dir
+    if args.run_id:
+        committee_output = Path("committee_output")
+        run_dir = committee_output / args.run_id
+
+        if not run_dir.exists():
+            logger.error(f"Run directory not found: {run_dir}")
+            logger.info("Available run directories:")
+            if committee_output.exists():
+                for item in sorted(committee_output.iterdir()):
+                    if item.is_dir():
+                        logger.info(f"  - {item.name}")
+            return 1
+    elif args.run_dir:
+        run_dir = Path(args.run_dir)
+    else:
+        logger.error("Either --run-id or --run-dir must be specified")
+        return 1
 
     # Find final_report.md in the run directory
     final_report_path = run_dir / "final_report.md"
@@ -268,11 +285,14 @@ Examples:
   # Run product committee with custom config
   %(prog)s committee --prd prd.txt --question "Should we build this?" --config my_config.yaml
 
-  # Generate conclusion from existing committee results
-  %(prog)s conclusion --run-dir ./committee_output/RUN_20260218_234755
+  # Generate conclusion from existing committee results (using run-id)
+  %(prog)s conclusion --run-id 20260218T234755Z
+
+  # Generate conclusion from existing committee results (using full path)
+  %(prog)s conclusion --run-dir ./committee_output/20260218T234755Z
 
   # Generate conclusion with custom instruction
-  %(prog)s conclusion --run-dir ./committee_output/RUN_20260218_234755 --prompt /path/to/instruction.txt
+  %(prog)s conclusion --run-id 20260218T234755Z --prompt /path/to/instruction.txt
 
 Agent Configuration:
   Configure agents in debate_config.yaml under the 'agents' section:
@@ -337,7 +357,8 @@ Agent Configuration:
         help="Generate conclusion from existing committee results",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    conclusion_parser.add_argument("--run-dir", required=True, help="Path to committee run directory")
+    conclusion_parser.add_argument("--run-dir", help="Path to committee run directory (not needed if --run-id is used)")
+    conclusion_parser.add_argument("--run-id", help="Run ID folder name (e.g., 20260217T230136Z). Uses committee_output/<RUN-ID>/")
     conclusion_parser.add_argument("--prompt", help="Path to custom prompt file for conclusion generation")
 
     args = parser.parse_args()

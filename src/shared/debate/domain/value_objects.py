@@ -44,12 +44,8 @@ class RunId:
         if manual_id:
             return cls(manual_id)
 
-        words = question.strip().split()[:5]
-        slug = "-".join(words).lower()
-        slug = re.sub(r'[^a-z0-9-]', '', slug)
-
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-        return cls(f"RUN_{timestamp}_{slug}")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        return cls(timestamp)
 
 
 class Speaker(Enum):

@@ -9,7 +9,7 @@ created_at: '2026-02-21T11:18:34.637788+00:00'
 subtasks: [T032, T033, T034, T035, T036]
 shell_pid: "81109"
 agent: "claude"
-reviewed_by: "ALeks ishmanov"
+assignee: nullreviewed_by: "ALeks ishmanov"
 review_status: "approved"
 history:
 - version: 1.0.0
