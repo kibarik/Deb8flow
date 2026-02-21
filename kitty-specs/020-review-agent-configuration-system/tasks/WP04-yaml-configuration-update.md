@@ -1,7 +1,7 @@
 ---
 work_package_id: WP04
 title: YAML Configuration Update
-lane: "for_review"
+lane: "doing"
 dependencies: []
 base_branch: main
 base_commit: 574d20f74d3947d239161d4228d97463529b61c9
@@ -418,3 +418,4 @@ Please provide:
 
 - 2026-02-21T11:14:02Z – claude – shell_pid=80140 – lane=doing – Assigned agent via workflow command
 - 2026-02-21T11:15:14Z – claude – shell_pid=80140 – lane=for_review – Ready for review: YAML config updated with review section and profile presets
+- 2026-02-21T11:43:37Z – claude – shell_pid=80140 – lane=doing – Reviewing WP04
