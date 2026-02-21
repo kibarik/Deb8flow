@@ -66,6 +66,31 @@ poetry run python main.py conclusion \
 ```
 
 ---
+## Recommended Questions
+
+Here are recommended questions for PRD analysis with the Product Committee:
+
+**PRD Readiness & Completeness:**
+
+> Считаете ли вы, что в текущем виде этот PRD достаточно конкретен и полон, чтобы стать рабочей основой годовой стратегии и планирования работы большой кросс‑функциональной команды, без того чтобы каждые две недели возвращаться к пересборке решений?
+
+> Do you believe this PRD is sufficiently specific and complete to serve as a working foundation for annual strategy and cross-functional team planning, without requiring frequent revisiting of decisions?
+
+**Feasibility Questions:**
+
+> Заработает ли этот проект? / Will this project succeed?
+
+> Какова вероятность успешного запуска этого продукта на рынке? / What is the probability of successfully launching this product in the market?
+
+**Strategic Questions:**
+
+> Стоит ли инвестировать в этот проект? / Should we invest in this project?
+
+> Каковы основные риски и как их можно минимизировать? / What are the main risks and how can they be mitigated?
+
+**Custom Questions:**
+
+You can ask any question relevant to your PRD analysis. The system will generate targeted debates across all committee perspectives (Product, Finance, Technology, Business).
 
 ## Prompt Management
 
