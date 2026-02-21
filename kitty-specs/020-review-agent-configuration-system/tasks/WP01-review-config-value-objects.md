@@ -1,7 +1,7 @@
 ---
 work_package_id: WP01
 title: Review Config Value Objects
-lane: "doing"
+lane: "for_review"
 dependencies: []
 base_branch: main
 base_commit: 63396379c2cf6a54188f3252c15d3fee32db3f19
@@ -505,3 +505,4 @@ assert review_config.checks.security == False
 ## Activity Log
 
 - 2026-02-21T10:59:29Z – claude – shell_pid=78439 – lane=doing – Assigned agent via workflow command
+- 2026-02-21T11:00:46Z – claude – shell_pid=78439 – lane=for_review – Ready for review: All 8 review config value objects implemented with validation
