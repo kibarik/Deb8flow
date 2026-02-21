@@ -1,10 +1,14 @@
 ---
 work_package_id: WP09
 title: Logging & Observability
-lane: planned
-dependencies: ["WP01"]
+lane: "doing"
+dependencies: [WP01]
+base_branch: 021-docker-orchestrator-automated-document-rewrite-spec-kitty-WP01
+base_commit: efea11972a13c65db4a9d9082e60ae9e967d2558
+created_at: '2026-02-21T22:28:55.617900+00:00'
 subtasks: [T052, T053, T054, T055, T056]
 phase: Phase 3 - User Interface
+shell_pid: "54551"
 history:
 - timestamp: '2026-02-21T19:45:00Z'
   lane: planned
