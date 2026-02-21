@@ -210,6 +210,56 @@ class OrchestratorResult(BaseModel):
     container_id: Optional[str] = None
     error_summary: List[str] = Field(default_factory=list)
 
+    @classmethod
+    def from_phases(cls, phases: list) -> "OrchestratorResult":
+        """Aggregate results from workflow phases.
+
+        Args:
+            phases: List of WorkflowPhase instances
+
+        Returns:
+            OrchestratorResult with aggregated data
+        """
+        from src.orchestrator.domain.phase import PhaseStatus
+
+        completed_count = sum(1 for p in phases if p.status == PhaseStatus.COMPLETED)
+        total_retries = sum(p.attempts - 1 for p in phases)  # Subtract first attempt
+
+        # Determine overall status
+        failed_phase = None
+        error_messages = []
+
+        for p in phases:
+            if p.status == PhaseStatus.FAILED and failed_phase is None:
+                failed_phase = p.name
+            if p.error_message:
+                error_messages.append(f"{p.name}: {p.error_message}")
+
+        if failed_phase:
+            status = ResultStatus.FAILED if completed_count == 0 else ResultStatus.PARTIAL
+        elif completed_count == len(phases):
+            status = ResultStatus.SUCCESS
+        else:
+            status = ResultStatus.PARTIAL
+
+        # Calculate duration
+        start_times = [p.started_at for p in phases if p.started_at]
+        end_times = [p.completed_at for p in phases if p.completed_at]
+
+        duration = 0
+        if start_times and end_times:
+            duration = int((max(end_times) - min(start_times)).total_seconds())
+
+        return cls(
+            status=status,
+            phases_completed=completed_count,
+            total_phases=len(phases),
+            total_retries=total_retries,
+            duration_seconds=duration,
+            failed_phase=failed_phase,
+            error_summary=error_messages,
+        )
+
 
 class ArtifactMetadata(BaseModel):
     """Metadata extracted from Spec-Kitty artifacts.
