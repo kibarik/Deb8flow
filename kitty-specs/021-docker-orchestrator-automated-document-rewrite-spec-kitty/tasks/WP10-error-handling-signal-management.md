@@ -1,7 +1,7 @@
 ---
 work_package_id: WP10
 title: Error Handling & Signal Management
-lane: "doing"
+lane: "planned"
 dependencies: [WP03, WP04, WP05]
 base_branch: 021-docker-orchestrator-automated-document-rewrite-spec-kitty-WP01
 base_commit: efea11972a13c65db4a9d9082e60ae9e967d2558
@@ -69,3 +69,4 @@ Implement comprehensive error handling and graceful signal management.
 
 ## Activity Log
 - 2026-02-21T19:45:00Z – system – lane=planned – Prompt created.
+- 2026-02-21T23:18:45Z – unknown – shell_pid=55426 – lane=planned – Moved back to planned: Requires WP03, WP04, WP05 which are not complete
