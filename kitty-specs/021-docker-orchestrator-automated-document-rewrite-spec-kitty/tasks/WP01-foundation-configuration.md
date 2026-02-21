@@ -1,7 +1,7 @@
 ---
 work_package_id: WP01
 title: Foundation & Configuration
-lane: "doing"
+lane: "for_review"
 dependencies: []
 base_branch: main
 base_commit: 7d5f984f0956b8bb12921e803c64af2513eb7b26
@@ -306,3 +306,4 @@ Tests are per-constitution requirement. Write unit tests for configuration loadi
 
 - 2026-02-21T19:45:00Z – system – lane=planned – Prompt created.
 - 2026-02-21T22:15:13Z – claude-opus – shell_pid=49798 – lane=doing – Assigned agent via workflow command
+- 2026-02-21T22:19:42Z – claude-opus – shell_pid=49798 – lane=for_review – Ready for review: Foundation & Configuration complete with 21 passing tests
