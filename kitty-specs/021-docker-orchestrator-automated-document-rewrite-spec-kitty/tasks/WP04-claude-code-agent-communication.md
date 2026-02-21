@@ -1,7 +1,7 @@
 ---
 work_package_id: WP04
 title: Claude Code Agent Communication
-lane: "doing"
+lane: "planned"
 dependencies: [WP02]
 base_branch: 021-docker-orchestrator-automated-document-rewrite-spec-kitty-WP02
 base_commit: b8709ff21832280547a97707d77a0d508d2dd9e8
@@ -306,3 +306,4 @@ Implement subprocess communication with Claude Code CLI using JSON-based protoco
 ## Activity Log
 
 - 2026-02-21T19:45:00Z – system – lane=planned – Prompt created.
+- 2026-02-21T23:18:42Z – unknown – shell_pid=52115 – lane=planned – Moved back to planned: BLOCKER T019-A requires Claude Code CLI protocol verification before implementation
