@@ -1,8 +1,11 @@
 ---
 work_package_id: WP02
 title: Domain Models & State Machine
-lane: planned
-dependencies: ["WP01"]
+lane: "doing"
+dependencies: [WP01]
+base_branch: 021-docker-orchestrator-automated-document-rewrite-spec-kitty-WP01
+base_commit: efea11972a13c65db4a9d9082e60ae9e967d2558
+created_at: '2026-02-21T22:19:52.178490+00:00'
 subtasks:
 - T006
 - T007
@@ -13,7 +16,7 @@ subtasks:
 phase: Phase 0 - Foundation
 assignee: ''
 agent: ''
-shell_pid: ''
+shell_pid: "50813"
 review_status: ''
 reviewed_by: ''
 history:
