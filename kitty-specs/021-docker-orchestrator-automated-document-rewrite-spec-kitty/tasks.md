@@ -93,12 +93,12 @@ Error handling, signal management, and integration testing.
 - Result aggregation from phases works correctly
 
 **Included Subtasks**:
-- [ ] T006 – Implement WorkflowPhase domain model
-- [ ] T007 – Implement PhaseStatus and ValidationStatus enums
-- [ ] T008 – Implement state transition logic with validation
-- [ ] T009 – Implement OrchestratorResult domain model
-- [ ] T010 – Implement ArtifactMetadata domain model
-- [ ] T011 – Add thread-safety to phase state updates
+- [x] T006 – Implement WorkflowPhase domain model
+- [x] T007 – Implement PhaseStatus and ValidationStatus enums
+- [x] T008 – Implement state transition logic with validation
+- [x] T009 – Implement OrchestratorResult domain model
+- [x] T010 – Implement ArtifactMetadata domain model
+- [x] T011 – Add thread-safety to phase state updates
 
 **Implementation Sketch**:
 1. Create enum classes for PhaseStatus and ValidationStatus
