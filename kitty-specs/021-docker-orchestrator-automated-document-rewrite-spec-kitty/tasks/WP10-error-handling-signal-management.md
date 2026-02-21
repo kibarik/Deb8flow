@@ -1,10 +1,14 @@
 ---
 work_package_id: WP10
 title: Error Handling & Signal Management
-lane: planned
-dependencies: ["WP03", "WP04", "WP05"]
+lane: "doing"
+dependencies: [WP03, WP04, WP05]
+base_branch: 021-docker-orchestrator-automated-document-rewrite-spec-kitty-WP01
+base_commit: efea11972a13c65db4a9d9082e60ae9e967d2558
+created_at: '2026-02-21T22:31:11.013029+00:00'
 subtasks: [T057, T058, T059, T060, T061, T062]
 phase: Phase 4 - Quality
+shell_pid: "55426"
 history:
 - timestamp: '2026-02-21T19:45:00Z'
   lane: planned
