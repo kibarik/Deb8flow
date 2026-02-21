@@ -1,9 +1,13 @@
 ---
 work_package_id: WP04
 title: YAML Configuration Update
-lane: planned
+lane: "doing"
 dependencies: []
+base_branch: main
+base_commit: 574d20f74d3947d239161d4228d97463529b61c9
+created_at: '2026-02-21T11:14:02.874092+00:00'
 subtasks: [T018, T019, T020, T021]
+shell_pid: "80140"
 history:
 - version: 1.0.0
   date: '2025-02-21'
