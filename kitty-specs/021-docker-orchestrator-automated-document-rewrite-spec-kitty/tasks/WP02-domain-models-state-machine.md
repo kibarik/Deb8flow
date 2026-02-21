@@ -15,7 +15,7 @@ subtasks:
 - T011
 phase: Phase 0 - Foundation
 assignee: ''
-agent: ''
+agent: "claude-opus"
 shell_pid: "50813"
 review_status: ''
 reviewed_by: ''
@@ -291,3 +291,4 @@ Implement core domain entities and workflow state machine with thread-safe trans
 ## Activity Log
 
 - 2026-02-21T19:45:00Z – system – lane=planned – Prompt created.
+- 2026-02-21T22:19:52Z – claude-opus – shell_pid=50813 – lane=doing – Assigned agent via workflow command
