@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: Config Merge Logic
-lane: "for_review"
+lane: "doing"
 dependencies: []
 base_branch: main
 base_commit: 8cebe9810eae9bcc2b6fe7eb8ddf0dc2a726d91c
@@ -534,3 +534,4 @@ assert result == "Review: /path/to/file.py"
 
 - 2026-02-21T11:10:08Z – claude – shell_pid=79399 – lane=doing – Assigned agent via workflow command
 - 2026-02-21T11:12:29Z – claude – shell_pid=79399 – lane=for_review – Ready for review: Hierarchical merge logic with profile/CLI overrides implemented
+- 2026-02-21T11:40:47Z – claude – shell_pid=79399 – lane=doing – Starting review
