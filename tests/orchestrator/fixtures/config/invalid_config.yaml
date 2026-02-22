@@ -1,5 +1,0 @@
-# Sample invalid orchestrator configuration
-orchestrator:
-  # This should cause validation error
-  max_retries: -1  # Invalid: must be >= 0
-  validation_timeout: 0  # Invalid: must be > 0
