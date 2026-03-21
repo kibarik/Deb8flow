@@ -23,14 +23,18 @@ rich = "^14.0.0"
 typing-extensions = "^4.0.0"
 dotenv = "^0.9.9"
 docker = "^7.0.0"
+fastmcp = "^0.1.0"
+pyyaml = "^6.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.5"
+pytest-asyncio = "^0.23.0"
 
 [tool.poetry.scripts]
 product-committee = "product_committee:main"
 conclusion-results = "conclusion_results:main"
 rewrite = "scripts.rewrite:main"
+sdd-analyzer = "src.mcp.server:main"
 
 [build-system]
 requires = ["poetry-core"]
