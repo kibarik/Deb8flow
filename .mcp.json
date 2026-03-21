@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "sdd-analyzer": {
+      "type": "stdio",
+      "command": "/Users/aleksishmanov/.superset/worktrees/dev8flow-stable/pm/mcp-.-mcp-claude-c/scripts/run-sdd-analyzer.sh",
+      "args": [],
+      "env": {}
+    }
+  }
+}

@@ -164,3 +164,10 @@ kitty-specs/
 
 # Web directory
 web/
+.entire/
+.entire/logs/
+.entire/metadata/
+.entire/tmp/
+.DS_Store
+*.pyc
+__pycache__/
