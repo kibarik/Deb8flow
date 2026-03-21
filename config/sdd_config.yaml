@@ -1,0 +1,254 @@
+# SDD Debate Configuration
+# Configure LLM provider and model settings for Software Design Specification analysis
+#
+# Environment variables from .env file can be used with ${VAR_NAME} syntax
+# Example: ${OPENAI_API_KEY} or ${OPENAI_API_KEY:default_value}
+
+# LLM Provider Configuration
+llm:
+  # API Base URL - Change this to use different providers
+  # OpenAI: https://api.openai.com/v1 (or leave empty for default)
+  # DeepSeek via Requesty: https://api.requesty.ai/v1
+  # Zhipu AI: https://open.bigmodel.cn/api/paas/v4
+  # Other OpenAI-compatible APIs: provide your base URL
+  base_url: "${DEBATE_BASE_URL:}"
+
+  # Primary model name
+  # OpenAI examples: gpt-4o, gpt-4o-mini, gpt-3.5-turbo
+  # DeepSeek: deepseek-chat, deepseek-coder, deepseek-reasoner
+  # Zhipu AI: glm-4, glm-3-turbo
+  # Anthropic (via compatibility): claude-3-5-sonnet-20241022, claude-3-5-haiku-20241022
+  # Coding models: coding/gemini-2.5-pro, coding/claude-3-5-haiku-20241022
+  model: "${DEBATE_MODEL:gpt-4o-mini}"
+
+  # Fallback models to use when primary model hits rate limits (429)
+  # These will be tried in order if the primary model fails
+  fallback_models:
+    - "deepseek/deepseek-reasoner"
+    - "coding/gemini-2.5-pro"
+    - "anthropic/claude-3-5-haiku-20241022"
+
+  # API Key
+  # Reads from OPENAI_API_KEY from .env file
+  # You can override with: ${YOUR_CUSTOM_ENV_VAR:your_key}
+  api_key: "${OPENAI_API_KEY:}"
+
+  # Temperature (0.0 - 1.0)
+  # Lower = more focused and deterministic
+  # Higher = more creative and varied
+  temperature: ${DEBATE_TEMPERATURE:0.8}
+
+  # Maximum tokens per response
+  max_tokens: 5000
+
+  # Request timeout in seconds
+  timeout: 120
+
+# Debate Settings
+debate:
+  # Debate mode: standard (multi-turn) or simple (single-call)
+  mode: "standard"
+
+  # Maximum number of retry attempts per room
+  max_retries: 2
+
+  # Maximum concurrent debate rooms (0 = all at once, 1 = sequential)
+  max_concurrency: 0
+
+  # Language for debate output (optional)
+  # Examples: en, ru, zh, es, fr, de
+  language: "ru"
+
+# Prompts Configuration
+# Map prompt types to their file paths for SDD analysis
+prompts:
+  # Debate stage prompts (reuse from debate configuration)
+  stages:
+    opening_pro: "src/prompts/debate/stages/opening_pro.md"
+    opening_con: "src/prompts/debate/stages/opening_con.md"
+    rebuttal_pro: "src/prompts/debate/stages/rebuttal_pro.md"
+    rebuttal_con: "src/prompts/debate/stages/rebuttal_con.md"
+    counter_pro: "src/prompts/debate/stages/counter_pro.md"
+    counter_con: "src/prompts/debate/stages/counter_con.md"
+    final_pro: "src/prompts/debate/stages/final_pro.md"
+    final_con: "src/prompts/debate/stages/final_con.md"
+
+  # Judge prompt (reuse from debate configuration)
+  judge: "src/prompts/debate/judge/verdict.md"
+
+  # Context template (reuse from debate configuration)
+  context: "src/prompts/debate/context/debate_context.md"
+
+  # Analysis prompts
+  analysis:
+    system: "src/prompts/analysis/system_prompt.md"
+    takeaway: "src/prompts/analysis/takeaway_analysis.md"
+
+  # SDD-specific role prompts
+  roles:
+    architect: "src/prompts/sdd/architect.md"
+    devlead: "src/prompts/sdd/devlead.md"
+    qa: "src/prompts/sdd/qa.md"
+    security: "src/prompts/sdd/security.md"
+
+# Agents Configuration
+# Define SDD debate agents with Architect (PRO) vs DevLead/QA/Security (CON)
+agents:
+  # Main agent (PRO position) - REQUIRED
+  # This agent argues FOR the design specification
+  main:
+    name: "Architect"
+    prompt: "src/prompts/sdd/architect.md"
+
+  # Opponents (CON position) - OPTIONAL
+  # These agents argue AGAINST the design specification
+  # Remove or comment out any opponents you don't want to include
+  opponents:
+    - name: "DevLead"
+      prompt: "src/prompts/sdd/devlead.md"
+    - name: "QA"
+      prompt: "src/prompts/sdd/qa.md"
+    - name: "Security"
+      prompt: "src/prompts/sdd/security.md"
+
+  # You can add more opponents by adding more entries here:
+  # - name: "CUSTOM_ROLE"
+  #   prompt: "path/to/custom_prompt.md"
+
+# Output Settings
+output:
+  # Base output directory for SDD debate results
+  directory: "./sdd_output"
+
+  # Whether to save individual dialogue JSON files
+  save_dialogues: true
+
+  # Whether to save metadata
+  save_metadata: true
+
+# Logging Settings
+logging:
+  # Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: "INFO"
+
+  # Enable verbose logging
+  verbose: false
+
+  # Enable quiet mode (minimal output)
+  quiet: false
+
+# Rewrite Configuration
+# Settings for the SDD document rewrite script with debate verification
+rewrite:
+  # Maximum verification rounds (default: 5)
+  # Increase for more thorough verification, decrease for faster execution
+  max_rounds: 5
+
+  # Prompt paths for rewrite-specific debate (reuse from debate configuration)
+  prompts:
+    pro: "src/prompts/rewrite/pro_verification.md"
+    con: "src/prompts/rewrite/con_verification.md"
+    judge: "src/prompts/rewrite/judge_verdict.md"
+
+  # Output settings
+  backup_suffix: ".backup"  # Suffix for backup files
+  partial_report: "sdd_rewrite_partial_report.md"  # Partial completion report filename
+
+  # ============================================
+  # Review Agent Configuration
+  # ============================================
+  review:
+    # Default profile to use (strict/balanced/lenient)
+    profile: "balanced"
+
+    # LLM Settings
+    # Environment variables can be used with ${VAR:default} syntax
+    llm:
+      provider: "${DEBATE_PROVIDER:https://router.requesty.ai/v1}"
+      model: "${DEBATE_MODEL:coding/gemini-2.5-pro}"
+      temperature: ${DEBATE_TEMPERATURE:0.7}
+      top_p: 0.9
+      max_tokens_request: 4000
+      max_tokens_response: 2000
+      timeout: 120
+
+    # Custom Prompts
+    # Paths to custom prompt templates (optional)
+    prompts:
+      system: null  # "src/prompts/review/system_prompt.md"
+      user: null    # "src/prompts/review/user_prompt.md"
+      result_template: null  # "src/prompts/review/result_template.md"
+
+      # Variables for placeholder substitution in prompts
+      variables:
+        project_name: "Deb8flow SDD"
+        team_context: "Software Design Review team"
+
+    # Retry Policy
+    retry:
+      max_retries: 3
+      backoff: "exponential"  # Options: exponential, linear, constant
+      initial_delay: 1.0
+
+    # Checks Configuration
+    # Enable/disable specific check types
+    checks:
+      security: true
+      performance: true
+      style: true
+
+    # Output Format
+    output:
+      format: "markdown"  # Options: markdown, json
+      include_snippets: true
+      max_comment_length: 500
+
+    # Context Settings
+    context:
+      window_size: 8000
+      include_patterns: []
+      exclude_patterns: []
+
+    # Logging
+    logging:
+      level: "INFO"  # Options: ERROR, WARN, INFO, DEBUG
+      debug: false
+
+    # Profile Presets
+    # These override base settings when selected via --profile flag
+    profiles:
+      # Strict: Low temperature, all checks enabled, JSON output
+      strict:
+        llm:
+          temperature: 0.1
+          top_p: 0.5
+        checks:
+          security: true
+          performance: true
+          style: true
+        output:
+          format: "json"
+
+      # Balanced: Medium temperature, most checks, markdown output
+      balanced:
+        llm:
+          temperature: 0.5
+          top_p: 0.8
+        checks:
+          security: true
+          performance: true
+          style: false
+        output:
+          format: "markdown"
+
+      # Lenient: High temperature, style checks only
+      lenient:
+        llm:
+          temperature: 0.9
+          top_p: 0.95
+        checks:
+          security: false
+          performance: false
+          style: true
+        output:
+          format: "markdown"
