@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "backlog": {
+      "type": "stdio",
+      "command": "backlog",
+      "args": ["mcp", "start"],
+      "env": {
+        "BACKLOG_CWD": "/path/to/your/project"
+      }
+    },
+    "sdd-analyzer": {
+      "type": "stdio",
+      "command": "poetry",
+      "args": ["run", "sdd-analyzer"],
+      "cwd": "/path/to/your/project"
+    }
+  }
+}

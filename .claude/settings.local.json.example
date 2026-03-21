@@ -1,0 +1,6 @@
+{
+  "enabledMcpjsonServers": [
+    "backlog",
+    "sdd-analyzer"
+  ]
+}

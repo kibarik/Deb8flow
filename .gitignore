@@ -142,7 +142,6 @@ dmypy.json
 cython_debug/
 
 # Added by Spec Kitty CLI (auto-managed)
-.claude/
 .codex/
 .opencode/
 .windsurf/
@@ -171,3 +170,7 @@ web/
 .DS_Store
 *.pyc
 __pycache__/
+
+# User-specific Claude configuration
+.claude/mcp.json
+.claude/settings.local.json
